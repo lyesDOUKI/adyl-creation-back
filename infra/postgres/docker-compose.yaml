@@ -1,0 +1,35 @@
+services:
+
+  postgres:
+
+    image: postgres:latest
+
+    container_name: postgres-adyl-creation
+
+    ports:
+      - "5437:5432"
+
+    environment:
+
+      POSTGRES_DB: adyl-creation
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+    volumes:
+      - postgres_data_adyl_creation:/var/lib/postgresql/data
+
+    restart: unless-stopped
+
+    networks:
+      - adyl-creation-network
+
+
+volumes:
+
+  postgres_data_adyl_creation:
+
+
+networks:
+
+  adyl-creation-network:
+    external: true
