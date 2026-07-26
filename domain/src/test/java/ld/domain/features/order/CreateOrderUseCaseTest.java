@@ -3,6 +3,7 @@ package ld.domain.features.order;
 
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
+import ld.domain.features.order.model.OrderStatus;
 import ld.domain.helper.ResultTestSupport;
 import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.lib.validation.FailureType;
@@ -124,6 +125,8 @@ class CreateOrderUseCaseTest {
 
             var persistedOrder = createOrderRepository.findCreatedOrder();
 
+            assertThat(persistedOrder.orderStatus())
+                    .isEqualByComparingTo(OrderStatus.PENDING);
             assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
 
@@ -173,15 +176,16 @@ class CreateOrderUseCaseTest {
             var result = createOrderUseCase.execute(command);
             ResultTestSupport.assertSuccess(result);
 
-            var order = createOrderRepository.findCreatedOrder();
-
-            assertThat(order.total())
+            var persistedOrder = createOrderRepository.findCreatedOrder();
+            assertThat(persistedOrder.orderStatus())
+                    .isEqualByComparingTo(OrderStatus.PENDING);
+            assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(1100));
 
-            assertThat(order.items())
+            assertThat(persistedOrder.items())
                     .hasSize(3);
 
-            assertThat(order.items())
+            assertThat(persistedOrder.items())
                     .extracting(OrderSnapshot.OrderItemSnapshot::productId)
                     .containsExactlyInAnyOrder(
                             productOne,
@@ -189,7 +193,7 @@ class CreateOrderUseCaseTest {
                             productThree
                     );
 
-            assertThat(order.items())
+            assertThat(persistedOrder.items())
                     .extracting(
                             OrderSnapshot.OrderItemSnapshot::productId,
                             OrderSnapshot.OrderItemSnapshot::total

@@ -9,6 +9,7 @@ public record OrderSnapshot(UUID orderId, String name,
                             String email, String phone,
                             String address, String city,
                             String message, BigDecimal total,
+                            OrderStatus orderStatus,
                             List<OrderItemSnapshot> items) {
     public record OrderItemSnapshot(UUID itemId, UUID productId, BigDecimal price,
                                     int quantity, BigDecimal total, Color color){}

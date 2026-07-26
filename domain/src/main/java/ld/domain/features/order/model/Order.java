@@ -17,6 +17,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
     private final String city;
     private final String message;
     private Price total;
+    private final OrderStatus orderStatus;
     private List<OrderItem> orderItems = new ArrayList<>();
 
     private Order(String name, String email, String phoneNumber, String address, String city, String message) {
@@ -27,6 +28,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
         this.address = address;
         this.city = city;
         this.message = message;
+        this.orderStatus = OrderStatus.PENDING;
     }
 
     public static Order create(String name, String email, String phoneNumber, String address, String city, String message) {
@@ -52,6 +54,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 this.city,
                 this.message,
                 this.total.value(),
+                this.orderStatus,
                 this.orderItems.stream()
                         .map(this::toItemSnapshot)
                         .toList()
