@@ -4,6 +4,7 @@ package ld.domain.features.order;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderStatus;
+import ld.domain.features.product.InMemoryGetProductRepository;
 import ld.domain.helper.ResultTestSupport;
 import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.lib.validation.FailureType;
@@ -13,7 +14,6 @@ import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -23,23 +23,26 @@ class CreateOrderUseCaseTest {
 
     private final CreateOrderUseCase createOrderUseCase;
     private final InMemoryCreateOrderRepository createOrderRepository = new InMemoryCreateOrderRepository();
+    private final InMemoryGetProductRepository getProductRepository = new InMemoryGetProductRepository();
     private final InMemoryAggregateEventDispatcher<OrderEvent> aggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
 
     CreateOrderUseCaseTest() {
-        this.createOrderUseCase = new CreateOrderUseCaseImpl(createOrderRepository,
-                aggregateEventDispatcher);
+        this.createOrderUseCase = new CreateOrderUseCaseImpl(
+                createOrderRepository,
+                getProductRepository,
+                aggregateEventDispatcher
+        );
     }
 
-    private CreateOrderCommand defaultCommand(UUID productId, BigDecimal price) {
+    private CreateOrderCommand defaultCommand(UUID productId) {
         return new CreateOrderCommand("test",
                 "0123456789",
                 "test@test.com",
                 "7 rue test",
                 "avignon",
-                Optional.empty(),
+                "no message",
                 List.of(new CreateOrderCommand.CreateOrderItem(
                         productId,
-                        price,
                         1,
                         "blue"
                 ))
@@ -52,7 +55,7 @@ class CreateOrderUseCaseTest {
                 "test@test.com",
                 "7 rue test",
                 "avignon",
-                Optional.empty(),
+                "non message",
                 items
         );
     }
@@ -66,11 +69,10 @@ class CreateOrderUseCaseTest {
         void shouldFailToCreateCommand() {
             var productId = UUID.randomUUID();
             var command = defaultCommand(
-                    productId,
-                    BigDecimal.valueOf(50)
+                    productId
             );
 
-            createOrderRepository.addProduct(UUID.randomUUID());
+            getProductRepository.addProduct(UUID.randomUUID(), BigDecimal.valueOf(50));
 
             var result = createOrderUseCase.execute(command);
             ResultTestSupport.assertFailure(result, FailureType.RESOURCE_NOT_FOUND);
@@ -81,8 +83,7 @@ class CreateOrderUseCaseTest {
         void shouldNotPersistCommand() {
             var productId = UUID.randomUUID();
             var command = defaultCommand(
-                    productId,
-                    BigDecimal.valueOf(50)
+                    productId
             );
 
             ResultTestSupport.assertFailure(createOrderUseCase.execute(command));
@@ -104,11 +105,10 @@ class CreateOrderUseCaseTest {
         void shouldCreateOrderWithCorrectCalculationOnOneItem() {
             var productId = UUID.randomUUID();
 
-            createOrderRepository.addProduct(productId);
+            getProductRepository.addProduct(productId, BigDecimal.valueOf(50));
 
             var command = defaultCommand(
-                    productId,
-                    BigDecimal.valueOf(50)
+                    productId
             );
 
             var result = createOrderUseCase.execute(command);
@@ -144,26 +144,23 @@ class CreateOrderUseCaseTest {
             var productTwo = UUID.randomUUID();
             var productThree = UUID.randomUUID();
 
-            createOrderRepository.addProduct(productOne);
-            createOrderRepository.addProduct(productTwo);
-            createOrderRepository.addProduct(productThree);
+            getProductRepository.addProduct(productOne, BigDecimal.valueOf(100));
+            getProductRepository.addProduct(productTwo, BigDecimal.valueOf(100));
+            getProductRepository.addProduct(productThree, BigDecimal.valueOf(200));
 
             var createOrderItems = List.of(
                     new CreateOrderCommand.CreateOrderItem(
                             productOne,
-                            BigDecimal.valueOf(100),
                             2,
                             "blue"
                     ),
                     new CreateOrderCommand.CreateOrderItem(
                             productTwo,
-                            BigDecimal.valueOf(100),
                             1,
                             "noir"
                     ),
                     new CreateOrderCommand.CreateOrderItem(
                             productThree,
-                            BigDecimal.valueOf(200),
                             4,
                             "rouge"
                     )

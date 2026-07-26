@@ -3,9 +3,7 @@ package ld.application.request;
 import jakarta.validation.constraints.*;
 import ld.domain.features.order.CreateOrderCommand;
 
-import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 public record CreateOrderRequest(
@@ -33,14 +31,12 @@ public record CreateOrderRequest(
     public record ItemOrderRequest(
             @NotNull
             UUID productId,
-            BigDecimal unitPrice,
             int quantity,
             String color
     ){
         CreateOrderCommand.CreateOrderItem to() {
             return new CreateOrderCommand.CreateOrderItem(
                     productId,
-                    unitPrice,
                     quantity,
                     color
             );
@@ -54,7 +50,7 @@ public record CreateOrderRequest(
                 costumerEmail,
                 costumerAddress,
                 costumerCity,
-                Optional.ofNullable(costumerMessage),
+                costumerMessage,
                 items.stream().map(ItemOrderRequest::to).toList()
         );
     }

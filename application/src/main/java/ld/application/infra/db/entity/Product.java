@@ -33,7 +33,7 @@ public class Product {
     @Column(name = "color")
     private Set<String> colors = new HashSet<>();
 
-
+    public Product() {}
     public UUID getId() {
         return id;
     }
@@ -74,17 +74,4 @@ public class Product {
         this.colors = colors;
     }
 
-    public Product(
-            UUID id,
-            String name,
-            BigDecimal unitPrice,
-            ProductStatus status,
-            Set<String> colors
-    ) {
-        this.id = id;
-        this.name = name;
-        this.unitPrice = unitPrice;
-        this.status = status;
-        this.colors = colors;
-    }
 }
