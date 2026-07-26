@@ -2,7 +2,7 @@ package ld.domain.features.order;
 
 
 import ld.domain.features.order.model.OrderEvent;
-import ld.domain.features.order.model.OrderItem;
+import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.helper.ResultTestSupport;
 import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.lib.validation.FailureType;
@@ -32,7 +32,7 @@ class CreateOrderUseCaseTest {
     }
 
     private CreateOrderCommand defaultCommand(UUID productId, BigDecimal price) {
-        return new CreateOrderCommand(
+        return new CreateOrderCommand("test",
                 "0123456789",
                 "test@test.com",
                 "7 rue test",
@@ -48,7 +48,7 @@ class CreateOrderUseCaseTest {
     }
 
     private CreateOrderCommand withItems(List<CreateOrderCommand.CreateOrderItem> items) {
-        return new CreateOrderCommand(
+        return new CreateOrderCommand("test",
                 "0123456789",
                 "test@test.com",
                 "7 rue test",
@@ -124,15 +124,15 @@ class CreateOrderUseCaseTest {
 
             var persistedOrder = createOrderRepository.findCreatedOrder();
 
-            assertThat(persistedOrder.getTotal())
+            assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
 
-            assertThat(persistedOrder.getOrderItems())
+            assertThat(persistedOrder.items())
                     .hasSize(1);
 
-            var item = persistedOrder.getOrderItems().getFirst();
+            var item = persistedOrder.items().getFirst();
 
-            assertThat(item.getTotalValue())
+            assertThat(item.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
         }
 
@@ -175,24 +175,24 @@ class CreateOrderUseCaseTest {
 
             var order = createOrderRepository.findCreatedOrder();
 
-            assertThat(order.getTotal())
+            assertThat(order.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(1100));
 
-            assertThat(order.getOrderItems())
+            assertThat(order.items())
                     .hasSize(3);
 
-            assertThat(order.getOrderItems())
-                    .extracting(OrderItem::getProductId)
+            assertThat(order.items())
+                    .extracting(OrderSnapshot.OrderItemSnapshot::productId)
                     .containsExactlyInAnyOrder(
                             productOne,
                             productTwo,
                             productThree
                     );
 
-            assertThat(order.getOrderItems())
+            assertThat(order.items())
                     .extracting(
-                            OrderItem::getProductId,
-                            OrderItem::getTotalValue
+                            OrderSnapshot.OrderItemSnapshot::productId,
+                            OrderSnapshot.OrderItemSnapshot::total
                     )
                     .containsExactlyInAnyOrder(
                             tuple(productOne, BigDecimal.valueOf(200)),

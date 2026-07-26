@@ -1,14 +1,17 @@
 package ld.domain.features.order;
 
-import ld.domain.features.order.model.Order;
+import ld.domain.features.order.model.OrderSnapshot;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 public class InMemoryCreateOrderRepository implements CreateOrderRepository {
 
     private final Set<UUID> products = new HashSet<>();
-    private final Set<Order> orders = new HashSet<>();
+    private final Set<OrderSnapshot> orders = new HashSet<>();
     @Override
     public Set<UUID> findExistingProducts(Collection<UUID> productsId) {
         return productsId.stream()
@@ -17,7 +20,7 @@ public class InMemoryCreateOrderRepository implements CreateOrderRepository {
     }
 
     @Override
-    public void create(Order order) {
+    public void create(OrderSnapshot order) {
         this.orders.add(order);
     }
 
@@ -25,15 +28,11 @@ public class InMemoryCreateOrderRepository implements CreateOrderRepository {
         this.products.add(productId);
     }
 
-    public void clearOrders() {
-        this.orders.clear();
-    }
-
     public int countOrders() {
         return this.orders.size();
     }
 
-    public Order findCreatedOrder() {
+    public OrderSnapshot findCreatedOrder() {
         return this.orders.stream()
                 .findFirst()
                 .orElseThrow();

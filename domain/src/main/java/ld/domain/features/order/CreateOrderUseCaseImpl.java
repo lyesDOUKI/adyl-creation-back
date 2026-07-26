@@ -33,6 +33,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
     public Result<Void> execute(CreateOrderCommand createOrderCommand) {
         return createOrderGuard.validate(createOrderCommand).flatMap(_ -> {
             var order = Order.create(
+                    createOrderCommand.name(),
                     createOrderCommand.email(),
                     createOrderCommand.phoneNumber(),
                     createOrderCommand.address(),
@@ -41,15 +42,19 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
             );
             List<OrderItem> orderItems = this.initItems(createOrderCommand.createOrderItems());
             order.calculateOrder(orderItems);
+            this.createOrderRepository.create(order.toSnapshot());
             this.aggregateEventDispatcher.dispatch(new OrderCreated(order.getId()));
-            this.createOrderRepository.create(order);
             return Result.ok();
         });
     }
 
     private List<OrderItem> initItems(List<CreateOrderCommand.CreateOrderItem> orderItems) {
         return orderItems.stream()
-                .map(item -> OrderItem.create(item.productId(), item.unitPrice(), item.quantity(), item.color()))
+                .map(item ->
+                        OrderItem.create(
+                                item.productId(), item.unitPrice(),
+                                item.quantity(), item.color())
+                )
                 .toList();
     }
 }

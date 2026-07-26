@@ -39,8 +39,23 @@ public class OrderItem {
     public UUID getProductId() {
         return productId;
     }
-
     public BigDecimal getTotalValue() {
         return total.value();
+    }
+
+    public UUID getItemId() {
+        return itemId;
+    }
+
+    public BigDecimal getUnitPrice() {
+        return unitPrice.value();
+    }
+
+    public int getQuantity() {
+        return quantity.value();
+    }
+
+    public Color getColor() {
+        return color;
     }
 }
