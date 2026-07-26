@@ -30,7 +30,7 @@ public class ProductExistsRule implements BusinessRule<CreateOrderCommand> {
         missingIds.removeAll(existingIds);
 
         if (!missingIds.isEmpty()) {
-            return Result.failure("Produits introuvables", "listes : " + missingIds);
+            return Result.resourceNotFound("Produits introuvables", "listes : " + missingIds);
         }
         return Result.ok();
     }
