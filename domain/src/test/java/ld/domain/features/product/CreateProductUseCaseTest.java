@@ -10,7 +10,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.awt.*;
 import java.math.BigDecimal;
 import java.util.List;
 
@@ -32,14 +31,14 @@ class CreateProductUseCaseTest {
         @DisplayName("Le résultat de la création doit etre un échec")
         public void shouldReturnFailureResult() {
             ResultTestSupport.assertFailure(createProductUseCase.execute(new CreateProductCommand("product 1",
-                    BigDecimal.valueOf(50), List.of(Color.BLUE))));
+                    BigDecimal.valueOf(50), List.of("blue"))));
         }
 
         @Test
         @DisplayName("Aucun produit n'est persisté, aucun évenement n'est emis")
         public void shouldNotPersistAndDispatchEvent() {
             ResultTestSupport.assertFailure(createProductUseCase.execute(new CreateProductCommand("product 1",
-                    BigDecimal.valueOf(50), List.of(Color.BLUE))));
+                    BigDecimal.valueOf(50), List.of("blue"))));
             Assertions.assertThat(createProductRepository.count())
                     .isEqualTo(1);
             Assertions.assertThat(aggregateEventDispatcher.count())
@@ -55,7 +54,7 @@ class CreateProductUseCaseTest {
         @DisplayName("Le produit se crée, se persiste et un évenement est émis")
         public void shouldCreateAndPersistProductAndDispatchEvent() {
 
-            var command = new CreateProductCommand("bonnet", BigDecimal.valueOf(50), List.of(Color.BLACK));
+            var command = new CreateProductCommand("bonnet", BigDecimal.valueOf(50), List.of("black"));
             var result = createProductUseCase.execute(command);
             ResultTestSupport.assertSuccess(result);
 
@@ -71,7 +70,7 @@ class CreateProductUseCaseTest {
             Assertions.assertThat(persistedProduct.price())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
             Assertions.assertThat(persistedProduct.colors())
-                    .containsOnly(Color.BLACK);
+                    .containsOnly("black");
             Assertions.assertThat(persistedProduct.productStatus())
                     .isEqualByComparingTo(ProductStatus.UNAVAILABLE);
         }

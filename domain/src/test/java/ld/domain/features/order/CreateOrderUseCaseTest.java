@@ -12,7 +12,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import java.awt.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
@@ -43,7 +42,7 @@ class CreateOrderUseCaseTest {
                         productId,
                         price,
                         1,
-                        Color.BLUE
+                        "blue"
                 ))
         );
     }
@@ -155,19 +154,19 @@ class CreateOrderUseCaseTest {
                             productOne,
                             BigDecimal.valueOf(100),
                             2,
-                            Color.BLUE
+                            "blue"
                     ),
                     new CreateOrderCommand.CreateOrderItem(
                             productTwo,
                             BigDecimal.valueOf(100),
                             1,
-                            Color.BLUE
+                            "noir"
                     ),
                     new CreateOrderCommand.CreateOrderItem(
                             productThree,
                             BigDecimal.valueOf(200),
                             4,
-                            Color.BLUE
+                            "rouge"
                     )
             );
 

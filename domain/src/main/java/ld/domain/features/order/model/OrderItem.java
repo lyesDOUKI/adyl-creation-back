@@ -1,9 +1,9 @@
 package ld.domain.features.order.model;
 
+import ld.domain.features.product.model.ProductColor;
 import ld.domain.valueObjects.Price;
 import ld.domain.valueObjects.Quantity;
 
-import java.awt.*;
 import java.math.BigDecimal;
 import java.util.UUID;
 
@@ -13,10 +13,10 @@ public class OrderItem {
     private final Price unitPrice;
     private final Quantity quantity;
     private Price total;
-    private final Color color;
+    private final ProductColor color;
 
 
-    private OrderItem(UUID productId, Price unitPrice, Quantity quantity, Color color) {
+    private OrderItem(UUID productId, Price unitPrice, Quantity quantity, ProductColor color) {
         this.itemId = UUID.randomUUID();
         this.productId = productId;
         this.unitPrice = unitPrice;
@@ -24,8 +24,8 @@ public class OrderItem {
         this.color = color;
     }
 
-    public static OrderItem create(UUID productId, BigDecimal unitPrice, int quantity, Color color) {
-        return new OrderItem(productId, new Price(unitPrice), new Quantity(quantity), color);
+    public static OrderItem create(UUID productId, BigDecimal unitPrice, int quantity, String color) {
+        return new OrderItem(productId, new Price(unitPrice), new Quantity(quantity), new ProductColor(color));
     }
 
     public void calculateTotal() {
@@ -55,7 +55,7 @@ public class OrderItem {
         return quantity.value();
     }
 
-    public Color getColor() {
+    public ProductColor getColor() {
         return color;
     }
 }

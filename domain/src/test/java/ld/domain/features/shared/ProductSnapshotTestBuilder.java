@@ -3,7 +3,6 @@ package ld.domain.features.shared;
 import ld.domain.features.product.model.ProductSnapshot;
 import ld.domain.features.product.model.ProductStatus;
 
-import java.awt.*;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -13,7 +12,7 @@ public class ProductSnapshotTestBuilder {
     private UUID id = UUID.randomUUID();
     private String name = "default product";
     private BigDecimal price = BigDecimal.TEN;
-    private List<Color> colors = List.of(Color.BLACK);
+    private List<String> colors = List.of("noir");
     private ProductStatus status = ProductStatus.UNAVAILABLE;
 
     public static ProductSnapshotTestBuilder aProduct() {
@@ -34,7 +33,7 @@ public class ProductSnapshotTestBuilder {
         return this;
     }
 
-    public ProductSnapshotTestBuilder withColors(List<Color> colors) {
+    public ProductSnapshotTestBuilder withColors(List<String> colors) {
         this.colors = colors;
         return this;
     }
