@@ -7,7 +7,6 @@ import ld.domain.features.order.model.OrderStatus;
 import ld.domain.helper.ResultTestSupport;
 import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.lib.validation.FailureType;
-import ld.lib.validation.Result;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -73,7 +72,7 @@ class CreateOrderUseCaseTest {
 
             createOrderRepository.addProduct(UUID.randomUUID());
 
-            Result<Void> result = createOrderUseCase.execute(command);
+            var result = createOrderUseCase.execute(command);
             ResultTestSupport.assertFailure(result, FailureType.RESOURCE_NOT_FOUND);
         }
 

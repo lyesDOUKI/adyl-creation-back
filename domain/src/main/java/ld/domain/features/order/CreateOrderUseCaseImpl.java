@@ -1,9 +1,6 @@
 package ld.domain.features.order;
 
-import ld.domain.features.order.model.Order;
-import ld.domain.features.order.model.OrderCreated;
-import ld.domain.features.order.model.OrderEvent;
-import ld.domain.features.order.model.OrderItem;
+import ld.domain.features.order.model.*;
 import ld.domain.features.order.validation.ProductsExistsRule;
 import ld.lib.AggregateEventDispatcher;
 import ld.lib.validation.BusinessGuard;
@@ -30,7 +27,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
         );
     }
     @Override
-    public Result<Void> execute(CreateOrderCommand createOrderCommand) {
+    public Result<OrderSnapshot> execute(CreateOrderCommand createOrderCommand) {
         return createOrderGuard.validate(createOrderCommand).flatMap(_ -> {
             var order = Order.create(
                     createOrderCommand.name(),
@@ -44,7 +41,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
             order.calculateOrder(orderItems);
             this.createOrderRepository.create(order.toSnapshot());
             this.aggregateEventDispatcher.dispatch(new OrderCreated(order.getId()));
-            return Result.ok();
+            return Result.success(order.toSnapshot());
         });
     }
 

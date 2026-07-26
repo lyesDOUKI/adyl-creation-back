@@ -1,0 +1,19 @@
+package ld.application.bridge;
+
+import ld.domain.features.order.CreateOrderRepository;
+import ld.domain.features.order.CreateOrderUseCase;
+import ld.domain.features.order.CreateOrderUseCaseImpl;
+import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OrderConfiguration {
+
+    @Bean
+    public CreateOrderUseCase createOrderUseCase(
+            CreateOrderRepository createOrderRepository
+    ) {
+        return new CreateOrderUseCaseImpl(createOrderRepository, new InMemoryAggregateEventDispatcher<>());
+    }
+}
