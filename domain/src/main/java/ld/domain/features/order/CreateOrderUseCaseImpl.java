@@ -4,7 +4,7 @@ import ld.domain.features.order.model.Order;
 import ld.domain.features.order.model.OrderCreated;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderItem;
-import ld.domain.features.order.validation.ProductExistsRule;
+import ld.domain.features.order.validation.ProductsExistsRule;
 import ld.lib.AggregateEventDispatcher;
 import ld.lib.validation.BusinessGuard;
 import ld.lib.validation.Result;
@@ -26,7 +26,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
 
     private static BusinessGuard<CreateOrderCommand> businessGuard(CreateOrderRepository createOrderRepository) {
         return BusinessGuard.of(
-                new ProductExistsRule(createOrderRepository)
+                new ProductsExistsRule(createOrderRepository)
         );
     }
     @Override

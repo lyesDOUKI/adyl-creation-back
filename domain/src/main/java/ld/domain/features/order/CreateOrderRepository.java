@@ -7,6 +7,6 @@ import java.util.Set;
 import java.util.UUID;
 
 public interface CreateOrderRepository {
-    Set<UUID> findExistingProducts(Collection<UUID> productsId);
+    Set<UUID> findExistingProductIds(Collection<UUID> productsId);
     void create(OrderSnapshot order);
 }

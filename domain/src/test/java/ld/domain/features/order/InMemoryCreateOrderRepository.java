@@ -13,7 +13,7 @@ public class InMemoryCreateOrderRepository implements CreateOrderRepository {
     private final Set<UUID> products = new HashSet<>();
     private final Set<OrderSnapshot> orders = new HashSet<>();
     @Override
-    public Set<UUID> findExistingProducts(Collection<UUID> productsId) {
+    public Set<UUID> findExistingProductIds(Collection<UUID> productsId) {
         return productsId.stream()
                 .filter(this.products::contains)
                 .collect(Collectors.toSet());

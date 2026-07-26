@@ -10,27 +10,28 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class ProductExistsRule implements BusinessRule<CreateOrderCommand> {
+public class ProductsExistsRule implements BusinessRule<CreateOrderCommand> {
 
     private final CreateOrderRepository  createOrderRepository;
-    public ProductExistsRule(CreateOrderRepository createOrderRepository) {
+    public ProductsExistsRule(CreateOrderRepository createOrderRepository) {
         this.createOrderRepository = createOrderRepository;
     }
 
     @Override
     public Result<Void> apply(CreateOrderCommand context) {
 
-        Set<UUID> requestedIds = context.createOrderItems().stream()
+        Set<UUID> requestedProducts = context.createOrderItems().stream()
                 .map(CreateOrderCommand.CreateOrderItem::productId)
                 .collect(Collectors.toSet());
 
-        Set<UUID> existingIds = createOrderRepository.findExistingProducts(requestedIds);
+        Set<UUID> existingIds = createOrderRepository.findExistingProductIds(requestedProducts);
 
-        Set<UUID> missingIds = new HashSet<>(requestedIds);
+        Set<UUID> missingIds = new HashSet<>(requestedProducts);
         missingIds.removeAll(existingIds);
 
         if (!missingIds.isEmpty()) {
-            return Result.resourceNotFound("Produits introuvables", "listes : " + missingIds);
+            return Result.resourceNotFound("Produits introuvables",
+                    "des produits de la commandes sont introuvables (identifiants : " + missingIds + ")");
         }
         return Result.ok();
     }
