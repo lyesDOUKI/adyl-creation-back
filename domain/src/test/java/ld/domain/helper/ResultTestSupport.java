@@ -10,8 +10,8 @@ import static org.assertj.core.api.Assertions.fail;
 
 public class ResultTestSupport {
 
-    public static <T> T assertSuccess(Result<T> result) {
-        return result.resolve(
+    public static <T> void assertSuccess(Result<T> result) {
+        result.resolve(
                 value -> value,
                 failure -> fail(
                         "Expected success but got failure: ["
@@ -30,7 +30,7 @@ public class ResultTestSupport {
                 .isTrue();
     }
 
-    public static <T> FailureDetail assertFailure(Result<T> result, FailureType expectedType, ErrorCode expectedCode) {
+    public static <T> void assertFailure(Result<T> result, FailureType expectedType, ErrorCode expectedCode) {
         assertThat(result.isFailure()).isTrue();
 
         FailureDetail detail = result.resolve(
@@ -40,6 +40,5 @@ public class ResultTestSupport {
 
         assertThat(detail.type()).isEqualTo(expectedType);
         assertThat(detail.errorCode()).isEqualTo(expectedCode);
-        return detail;
     }
 }
