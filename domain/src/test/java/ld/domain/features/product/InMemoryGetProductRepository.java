@@ -1,6 +1,7 @@
 package ld.domain.features.product;
 
 import ld.domain.features.product.model.ProductSnapshot;
+import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
 
 import java.math.BigDecimal;
@@ -22,4 +23,17 @@ public class InMemoryGetProductRepository implements GetProductRepository {
         products.put(productId, ProductSnapshotTestBuilder.aProduct()
                 .withId(productId).withPrice(price).build());
     }
+
+    public void addProduct(UUID productId, BigDecimal price, ProductStatus productStatus) {
+        products.put(productId, ProductSnapshotTestBuilder.aProduct()
+                .withId(productId).withPrice(price)
+                .withStatus(productStatus).build());
+    }
+
+    public void addProduct(UUID productId, BigDecimal price, String productName) {
+        products.put(productId, ProductSnapshotTestBuilder.aProduct()
+                .withId(productId).withPrice(price)
+                .withName(productName).build());
+    }
+
 }

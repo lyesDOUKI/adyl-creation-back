@@ -1,9 +1,12 @@
 package ld.domain.features.order;
 
 import ld.domain.features.order.model.*;
+import ld.domain.features.order.validation.CreateOrderContextValidation;
+import ld.domain.features.order.validation.ProductStatusRule;
 import ld.domain.features.product.GetProductRepository;
 import ld.domain.features.product.model.ProductSnapshot;
 import ld.lib.AggregateEventDispatcher;
+import ld.lib.validation.BusinessGuard;
 import ld.lib.validation.Result;
 
 import java.util.List;
@@ -18,6 +21,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
     private final CreateOrderRepository createOrderRepository;
     private final GetProductRepository getProductRepository;
     private final AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
+    private final BusinessGuard<CreateOrderContextValidation> createOrderGuard;
 
     public CreateOrderUseCaseImpl(CreateOrderRepository createOrderRepository,
                                   GetProductRepository getProductRepository,
@@ -25,11 +29,16 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
         this.createOrderRepository = createOrderRepository;
         this.getProductRepository = getProductRepository;
         this.aggregateEventDispatcher = aggregateEventDispatcher;
+        this.createOrderGuard = BusinessGuard.of(new ProductStatusRule());
     }
 
     @Override
     public Result<OrderSnapshot> execute(CreateOrderCommand createOrderCommand) {
-        return this.initItems(createOrderCommand.createOrderItems())
+        return this.getGivenProducts(createOrderCommand.createOrderItems())
+                .flatMap(givenProducts ->
+                        this.assertGivenProducts(createOrderCommand, givenProducts))
+                .map(productsById ->
+                        this.initItems(createOrderCommand.createOrderItems(), productsById))
                 .map(orderItems -> {
                     var order = Order.create(
                             createOrderCommand.name(),
@@ -46,7 +55,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                 });
     }
 
-    private Result<List<OrderItem>> initItems(List<CreateOrderCommand.CreateOrderItem> orderItems) {
+    private Result<Map<UUID, ProductSnapshot>> getGivenProducts(List<CreateOrderCommand.CreateOrderItem> orderItems) {
         List<UUID> requestedIds = orderItems.stream()
                 .map(CreateOrderCommand.CreateOrderItem::productId)
                 .toList();
@@ -67,7 +76,21 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
             );
         }
 
-        List<OrderItem> items = orderItems.stream()
+        return Result.success(productsById);
+    }
+
+    private Result<Map<UUID, ProductSnapshot>> assertGivenProducts(
+            CreateOrderCommand createOrderCommand,
+            Map<UUID, ProductSnapshot> givenProducts
+    ) {
+        return this.createOrderGuard.validate(new CreateOrderContextValidation(
+                createOrderCommand, givenProducts.values().stream().toList()
+        )).map(_ -> givenProducts);
+    }
+
+    private List<OrderItem> initItems(List<CreateOrderCommand.CreateOrderItem> orderItems,
+                                      Map<UUID, ProductSnapshot> productsById) {
+        return orderItems.stream()
                 .map(item -> {
                     ProductSnapshot product = productsById.get(item.productId());
                     return OrderItem.create(
@@ -78,7 +101,5 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                     );
                 })
                 .toList();
-
-        return Result.success(items);
     }
 }

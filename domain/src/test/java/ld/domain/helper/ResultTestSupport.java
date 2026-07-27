@@ -1,5 +1,6 @@
 package ld.domain.helper;
 
+import ld.lib.validation.FailureDetail;
 import ld.lib.validation.FailureType;
 import ld.lib.validation.Result;
 
@@ -28,13 +29,15 @@ public class ResultTestSupport {
                 .isTrue();
     }
 
-    public static void assertFailure(
-            Result<?> result,
-            FailureType expectedType
-    ) {
-        assertFailure(result);
-        var failure = (Result.Failure<?>) result;
-        assertThat(failure.detail().type())
-                .isEqualTo(expectedType);
+    public static <T> FailureDetail assertFailure(Result<T> result, FailureType expectedType) {
+        assertThat(result.isFailure()).isTrue();
+
+        FailureDetail detail = result.resolve(
+                success -> { throw new AssertionError("Expected failure but got success: " + success); },
+                failureDetail -> failureDetail
+        );
+
+        assertThat(detail.type()).isEqualTo(expectedType);
+        return detail;
     }
 }

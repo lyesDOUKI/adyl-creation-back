@@ -5,6 +5,7 @@ import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderStatus;
 import ld.domain.features.product.InMemoryGetProductRepository;
+import ld.domain.features.product.model.ProductStatus;
 import ld.domain.helper.ResultTestSupport;
 import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.lib.validation.FailureType;
@@ -105,7 +106,7 @@ class CreateOrderUseCaseTest {
         void shouldCreateOrderWithCorrectCalculationOnOneItem() {
             var productId = UUID.randomUUID();
 
-            getProductRepository.addProduct(productId, BigDecimal.valueOf(50));
+            getProductRepository.addProduct(productId, BigDecimal.valueOf(50), ProductStatus.AVAILABLE);
 
             var command = defaultCommand(
                     productId
@@ -144,9 +145,9 @@ class CreateOrderUseCaseTest {
             var productTwo = UUID.randomUUID();
             var productThree = UUID.randomUUID();
 
-            getProductRepository.addProduct(productOne, BigDecimal.valueOf(100));
-            getProductRepository.addProduct(productTwo, BigDecimal.valueOf(100));
-            getProductRepository.addProduct(productThree, BigDecimal.valueOf(200));
+            getProductRepository.addProduct(productOne, BigDecimal.valueOf(100), ProductStatus.AVAILABLE);
+            getProductRepository.addProduct(productTwo, BigDecimal.valueOf(100), ProductStatus.AVAILABLE);
+            getProductRepository.addProduct(productThree, BigDecimal.valueOf(200), ProductStatus.AVAILABLE);
 
             var createOrderItems = List.of(
                     new CreateOrderCommand.CreateOrderItem(
@@ -198,6 +199,48 @@ class CreateOrderUseCaseTest {
                             tuple(productTwo, BigDecimal.valueOf(100)),
                             tuple(productThree, BigDecimal.valueOf(800))
                     );
+        }
+    }
+
+    @Nested
+    @DisplayName("Quand un des produits demandé est en statut indisponible")
+    public class WhenOneOfGivenProductsIsUnavailable {
+
+        @Test
+        @DisplayName("Une erreur business doit etre remonté, rien ne doit etre persisté et aucun evement n'est emis")
+        public void shouldReturnFailureResultAndNotPersistAndNotDispatchEvent() {
+            var productOne = UUID.randomUUID();
+            var productTwo = UUID.randomUUID();
+
+            getProductRepository.addProduct(productOne, BigDecimal.valueOf(100), "unavailable product");
+            getProductRepository.addProduct(productTwo, BigDecimal.valueOf(100), ProductStatus.AVAILABLE);
+
+            var createOrderItems = List.of(
+                    new CreateOrderCommand.CreateOrderItem(
+                            productOne,
+                            2,
+                            "blue"
+                    ),
+                    new CreateOrderCommand.CreateOrderItem(
+                            productTwo,
+                            1,
+                            "noir"
+                    ));
+            var command = withItems(createOrderItems);
+
+            var result = createOrderUseCase.execute(command);
+
+            var failure = ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE);
+
+            assertThat(failure.title())
+                    .isEqualTo("Produits indisponibles");
+            assertThat(failure.detail())
+                    .contains("unavailable product");
+            assertThat(createOrderRepository.countOrders())
+                    .isZero();
+
+            assertThat(aggregateEventDispatcher.count())
+                    .isZero();
         }
     }
 }
