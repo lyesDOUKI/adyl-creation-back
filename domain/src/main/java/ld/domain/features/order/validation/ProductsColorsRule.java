@@ -1,5 +1,6 @@
 package ld.domain.features.order.validation;
 
+import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductSnapshot;
 import ld.lib.validation.BusinessRule;
 import ld.lib.validation.Result;
@@ -14,7 +15,7 @@ public class ProductsColorsRule implements BusinessRule<CreateOrderContextValida
 
     @Override
     public Result<Void> apply(CreateOrderContextValidation context) {
-        Map<UUID, List<String>> productColorsByProductId =
+        Map<UUID, List<ProductColor>> productColorsByProductId =
                 context.products().stream()
                         .collect(Collectors.toMap(
                                 ProductSnapshot::productId,
@@ -22,16 +23,15 @@ public class ProductsColorsRule implements BusinessRule<CreateOrderContextValida
                                     if (productSnapshot.colors() == null) {
                                         return Collections.emptyList();
                                     }
-                                    return productSnapshot.colors()
-                                            .stream().map(String::toUpperCase).toList();
+                                    return productSnapshot.colors();
                                 }
                         ));
         for (var item : context.createOrderCommand().createOrderItems()) {
-            List<String> availableColors = productColorsByProductId.get(item.productId());
+            List<ProductColor> availableColors = productColorsByProductId.get(item.productId());
             if (availableColors.isEmpty()) {
                 return Result.ok();
             }
-            if (!availableColors.contains(item.color().toUpperCase())) {
+            if (!availableColors.contains(new ProductColor(item.color()))) {
                 return Result.businessFailure(
                         OrderErrorCode.PRODUCT_COLOR_NOT_AVAILABLE,
                         "Couleur demandée non valide",

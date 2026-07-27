@@ -32,7 +32,7 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
     public ProductSnapshot toSnapshot() {
         return new ProductSnapshot(getId(), this.name,
                 this.price.value(),
-                this.colors.stream().map(ProductColor::value).toList(),
+                this.colors,
                 this.productStatus);
     }
 }

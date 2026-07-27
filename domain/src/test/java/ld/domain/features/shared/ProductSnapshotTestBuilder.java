@@ -1,5 +1,6 @@
 package ld.domain.features.shared;
 
+import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductSnapshot;
 import ld.domain.features.product.model.ProductStatus;
 
@@ -12,7 +13,7 @@ public class ProductSnapshotTestBuilder {
     private UUID id = UUID.randomUUID();
     private String name = "default product";
     private BigDecimal price = BigDecimal.TEN;
-    private List<String> colors = List.of("noir");
+    private List<ProductColor> colors = List.of(new ProductColor("noir"));
     private ProductStatus status = ProductStatus.UNAVAILABLE;
 
     public static ProductSnapshotTestBuilder aProduct() {
@@ -33,7 +34,7 @@ public class ProductSnapshotTestBuilder {
         return this;
     }
 
-    public ProductSnapshotTestBuilder withColors(List<String> colors) {
+    public ProductSnapshotTestBuilder withColors(List<ProductColor> colors) {
         this.colors = colors;
         return this;
     }

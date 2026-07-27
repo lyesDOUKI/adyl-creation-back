@@ -3,6 +3,7 @@ package ld.application.infra.db.adapter;
 import ld.application.infra.db.entity.Product;
 import ld.application.infra.db.jpa.ProductJpaRepository;
 import ld.domain.features.product.GetProductRepository;
+import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductSnapshot;
 import org.springframework.stereotype.Repository;
 
@@ -31,7 +32,8 @@ public class GetProductJpaRepositoryAdapter implements GetProductRepository {
                 entity.getId(),
                 entity.getName(),
                 entity.getUnitPrice(),
-                entity.getColors().stream().toList(),
+                entity.getColors().stream()
+                        .map(ProductColor::new).toList(),
                 entity.getStatus()
         );
     }

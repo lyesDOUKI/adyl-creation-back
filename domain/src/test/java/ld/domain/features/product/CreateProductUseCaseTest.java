@@ -1,5 +1,6 @@
 package ld.domain.features.product;
 
+import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductEvent;
 import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.product.validation.ProductErrorCode;
@@ -78,7 +79,7 @@ class CreateProductUseCaseTest {
             Assertions.assertThat(persistedProduct.price())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
             Assertions.assertThat(persistedProduct.colors())
-                    .containsOnly("black");
+                    .containsOnly(new ProductColor("black"));
             Assertions.assertThat(persistedProduct.productStatus())
                     .isEqualByComparingTo(ProductStatus.UNAVAILABLE);
         }

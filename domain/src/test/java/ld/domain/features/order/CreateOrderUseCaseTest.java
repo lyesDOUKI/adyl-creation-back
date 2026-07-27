@@ -6,6 +6,7 @@ import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderStatus;
 import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.product.InMemoryGetProductRepository;
+import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
 import ld.domain.helper.ResultTestSupport;
@@ -119,7 +120,10 @@ class CreateOrderUseCaseTest {
                             .withId(productId)
                             .withPrice(BigDecimal.valueOf(50))
                             .withStatus(ProductStatus.AVAILABLE)
-                            .withColors(List.of("blue"))
+                            .withColors(List.of(
+                                    new ProductColor("blue")
+                                    )
+                            )
                             .build()
             );
 
@@ -165,7 +169,10 @@ class CreateOrderUseCaseTest {
                             .withId(productOne)
                             .withPrice(BigDecimal.valueOf(100))
                             .withStatus(ProductStatus.AVAILABLE)
-                            .withColors(List.of("blue"))
+                            .withColors(List.of(
+                            new ProductColor("blue")
+                                    )
+                            )
                             .build()
             );
             getProductRepository.addProduct(
@@ -173,7 +180,11 @@ class CreateOrderUseCaseTest {
                             .withId(productTwo)
                             .withPrice(BigDecimal.valueOf(100))
                             .withStatus(ProductStatus.AVAILABLE)
-                            .withColors(List.of("noir", "blue"))
+                            .withColors(List.of(
+                                    new ProductColor("blue"),
+                                    new ProductColor("noir")
+                                    )
+                            )
                             .build()
             );
             getProductRepository.addProduct(
@@ -181,7 +192,11 @@ class CreateOrderUseCaseTest {
                             .withId(productThree)
                             .withPrice(BigDecimal.valueOf(200))
                             .withStatus(ProductStatus.AVAILABLE)
-                            .withColors(List.of("vert", "rouge"))
+                            .withColors(List.of(
+                                            new ProductColor("vert"),
+                                            new ProductColor("rouge")
+                                    )
+                            )
                             .build()
             );
 
@@ -306,7 +321,10 @@ class CreateOrderUseCaseTest {
             getProductRepository.addProduct(
                     ProductSnapshotTestBuilder.aProduct()
                             .withId(productId)
-                            .withColors(List.of("black"))
+                            .withColors(List.of(
+                                            new ProductColor("black")
+                                    )
+                            )
                             .withStatus(ProductStatus.AVAILABLE)
                             .build()
             );
