@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
@@ -117,6 +118,7 @@ class CreateOrderUseCaseTest {
                             .withId(productId)
                             .withPrice(BigDecimal.valueOf(50))
                             .withStatus(ProductStatus.AVAILABLE)
+                            .withColors(List.of("blue"))
                             .build()
             );
 
@@ -162,6 +164,7 @@ class CreateOrderUseCaseTest {
                             .withId(productOne)
                             .withPrice(BigDecimal.valueOf(100))
                             .withStatus(ProductStatus.AVAILABLE)
+                            .withColors(List.of("blue"))
                             .build()
             );
             getProductRepository.addProduct(
@@ -169,6 +172,7 @@ class CreateOrderUseCaseTest {
                             .withId(productTwo)
                             .withPrice(BigDecimal.valueOf(100))
                             .withStatus(ProductStatus.AVAILABLE)
+                            .withColors(List.of("noir", "blue"))
                             .build()
             );
             getProductRepository.addProduct(
@@ -176,6 +180,7 @@ class CreateOrderUseCaseTest {
                             .withId(productThree)
                             .withPrice(BigDecimal.valueOf(200))
                             .withStatus(ProductStatus.AVAILABLE)
+                            .withColors(List.of("vert", "rouge"))
                             .build()
             );
 
@@ -282,6 +287,76 @@ class CreateOrderUseCaseTest {
 
             assertThat(aggregateEventDispatcher.count())
                     .isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("Quand la couleur d'un des produits disponible demandé n'est pas présente dans les couleurs possible du produit")
+    public class WhenOneOfGivenColorIsNotInTheListOfGivenChosenProduct {
+
+        @Test
+        @DisplayName("Une erreur business doit etre remonté, rien ne doit etre persisté et aucun evement n'est emis")
+        public void shouldReturnFailureResultAndNotPersistAndNotDispatchEvent() {
+
+            UUID productId = UUID.randomUUID();
+            var command = withItems(List.of(
+                    new CreateOrderCommand.CreateOrderItem(
+                            productId,
+                            2,
+                            "red"
+                    )
+            ));
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(productId)
+                            .withColors(List.of("black"))
+                            .withStatus(ProductStatus.AVAILABLE)
+                            .build()
+            );
+
+            ResultTestSupport.assertFailure(createOrderUseCase.execute(command), FailureType.BUSINESS_RULE);
+        }
+    }
+
+    @Nested
+    @DisplayName("Quand un produit n'a pas de couleur défini")
+    public class WhenProductDoesntHaveColors {
+
+        @Test
+        @DisplayName("La création de la commande est validé, la commande est persisté et un évenement est dispatché")
+        public void shouldCreateCommandWithoutBusinessFailure() {
+            UUID productOne = UUID.randomUUID();
+            UUID productTwo = UUID.randomUUID();
+
+            var command = withItems(List.of(
+                    new CreateOrderCommand.CreateOrderItem(productOne,
+                            2,
+                            "blue"),
+                    new CreateOrderCommand.CreateOrderItem(productTwo,
+                            1,
+                            "rouge")
+            ));
+
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(productOne)
+                            .withColors(null)
+                            .withStatus(ProductStatus.AVAILABLE)
+                            .build()
+            );
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(productTwo)
+                            .withColors(Collections.emptyList())
+                            .withStatus(ProductStatus.AVAILABLE)
+                            .build()
+            );
+
+            ResultTestSupport.assertSuccess(createOrderUseCase.execute(command));
+            assertThat(createOrderRepository.countOrders())
+                    .isOne();
+            assertThat(aggregateEventDispatcher.count())
+                    .isOne();
         }
     }
 }

@@ -3,6 +3,7 @@ package ld.domain.features.order;
 import ld.domain.features.order.model.*;
 import ld.domain.features.order.validation.CreateOrderContextValidation;
 import ld.domain.features.order.validation.ProductStatusRule;
+import ld.domain.features.order.validation.ProductsColorsRule;
 import ld.domain.features.product.GetProductRepository;
 import ld.domain.features.product.model.ProductSnapshot;
 import ld.lib.AggregateEventDispatcher;
@@ -29,7 +30,10 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
         this.createOrderRepository = createOrderRepository;
         this.getProductRepository = getProductRepository;
         this.aggregateEventDispatcher = aggregateEventDispatcher;
-        this.createOrderGuard = BusinessGuard.of(new ProductStatusRule());
+        this.createOrderGuard = BusinessGuard.of(
+                new ProductStatusRule(),
+                new ProductsColorsRule()
+        );
     }
 
     @Override
