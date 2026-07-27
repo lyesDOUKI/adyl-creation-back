@@ -60,7 +60,7 @@
                                     </excludes>
                                     <includes>
                                         <include>*:*:*:*:test</include>
-                                        <include>ld.lib*</include>
+                                        <include>ld.standard.lib*</include>
                                     </includes>
                                 </bannedDependencies>
                             </rules>
@@ -79,8 +79,8 @@
             <scope>test</scope>
         </dependency>
         <dependency>
-            <groupId>ld.lib</groupId>
-            <artifactId>lib</artifactId>
+            <groupId>ld.standard.lib</groupId>
+            <artifactId>standard-lib</artifactId>
             <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>

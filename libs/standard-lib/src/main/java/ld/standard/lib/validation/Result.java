@@ -1,4 +1,4 @@
-package ld.lib.validation;
+package ld.standard.lib.validation;
 
 import java.util.function.Function;
 

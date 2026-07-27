@@ -1,4 +1,4 @@
-package ld.lib;
+package ld.standard.lib;
 
 import java.util.ArrayList;
 import java.util.Collections;

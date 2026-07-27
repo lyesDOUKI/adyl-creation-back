@@ -1,7 +1,7 @@
-package ld.lib.helper.test;
+package ld.standard.lib.helper.test;
 
-import ld.lib.AggregateEventDispatcher;
-import ld.lib.DomainEvent;
+import ld.standard.lib.AggregateEventDispatcher;
+import ld.standard.lib.DomainEvent;
 
 import java.util.ArrayList;
 import java.util.List;

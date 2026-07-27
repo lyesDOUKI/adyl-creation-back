@@ -1,4 +1,4 @@
-package ld.lib;
+package ld.standard.lib;
 
 public interface DomainEvent{
 }
