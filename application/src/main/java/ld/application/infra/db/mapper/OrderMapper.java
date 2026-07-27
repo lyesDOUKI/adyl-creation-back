@@ -10,14 +10,15 @@ public class OrderMapper {
     private OrderMapper(){}
 
     public static Order from(OrderSnapshot orderSnapshot) {
+        var customerInfo = orderSnapshot.customer();
         var order = new Order(
                 orderSnapshot.orderId(),
-                orderSnapshot.name(),
-                orderSnapshot.email(),
-                orderSnapshot.phone()
+                customerInfo.name(),
+                customerInfo.email(),
+                customerInfo.phoneNumber()
         );
-        order.setCustomerAddress(orderSnapshot.address());
-        order.setCustomerCity(orderSnapshot.city());
+        order.setCustomerAddress(customerInfo.address());
+        order.setCustomerCity(customerInfo.city());
         order.setCustomerMessage(orderSnapshot.message());
         orderSnapshot.items()
                 .stream()

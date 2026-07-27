@@ -39,12 +39,18 @@ class CreateOrderUseCaseTest {
         );
     }
 
-    private CreateOrderCommand defaultCommand(UUID productId) {
-        return new CreateOrderCommand("test",
+    private CreateOrderCommand.CustomerInfo defaultCustomer() {
+        return new CreateOrderCommand.CustomerInfo(
+                "test",
                 "0123456789",
                 "test@test.com",
                 "7 rue test",
-                "avignon",
+                "avignon");
+    }
+
+    private CreateOrderCommand defaultCommand(UUID productId) {
+        return new CreateOrderCommand(
+                defaultCustomer(),
                 "no message",
                 List.of(new CreateOrderCommand.CreateOrderItem(
                         productId,
@@ -55,12 +61,9 @@ class CreateOrderUseCaseTest {
     }
 
     private CreateOrderCommand withItems(List<CreateOrderCommand.CreateOrderItem> items) {
-        return new CreateOrderCommand("test",
-                "0123456789",
-                "test@test.com",
-                "7 rue test",
-                "avignon",
-                "non message",
+        return new CreateOrderCommand(
+                defaultCustomer(),
+                "personnal message",
                 items
         );
     }

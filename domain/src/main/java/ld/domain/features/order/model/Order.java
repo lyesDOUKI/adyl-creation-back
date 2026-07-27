@@ -1,5 +1,6 @@
 package ld.domain.features.order.model;
 
+import ld.domain.features.order.CreateOrderCommand;
 import ld.domain.valueObjects.Price;
 import ld.standard.lib.AggregateRoot;
 import ld.standard.lib.Snapshottable;
@@ -10,29 +11,21 @@ import java.util.UUID;
 
 public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshottable<OrderSnapshot> {
 
-    private final String name;
-    private final String email;
-    private final String phoneNumber;
-    private final String address;
-    private final String city;
+    private final Customer customer;
     private final String message;
     private Price total;
     private final OrderStatus orderStatus;
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    private Order(String name, String email, String phoneNumber, String address, String city, String message) {
+    private Order(Customer customer, String message) {
         this.setId(UUID.randomUUID());
-        this.name = name;
-        this.phoneNumber = phoneNumber;
-        this.email = email;
-        this.address = address;
-        this.city = city;
+        this.customer = customer;
         this.message = message;
         this.orderStatus = OrderStatus.PENDING;
     }
 
-    public static Order create(String name, String email, String phoneNumber, String address, String city, String message) {
-        return new Order(name, email, phoneNumber, address, city, message);
+    public static Order create(Customer customer, String message) {
+        return new Order(customer, message);
     }
 
     public void calculateOrder(List<OrderItem> orderItems) {
@@ -47,11 +40,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
     public OrderSnapshot toSnapshot() {
         return new OrderSnapshot(
                 this.getId(),
-                this.name,
-                this.email,
-                this.phoneNumber,
-                this.address,
-                this.city,
+                this.customer,
                 this.message,
                 this.total.value(),
                 this.orderStatus,

@@ -46,11 +46,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                         this.initItems(createOrderCommand.createOrderItems(), productsById))
                 .map(orderItems -> {
                     var order = Order.create(
-                            createOrderCommand.name(),
-                            createOrderCommand.email(),
-                            createOrderCommand.phoneNumber(),
-                            createOrderCommand.address(),
-                            createOrderCommand.city(),
+                            Customer.from(createOrderCommand.customerInfo()),
                             createOrderCommand.message()
                     );
                     order.calculateOrder(orderItems);

@@ -8,21 +8,21 @@ import java.util.UUID;
 
 public record CreateOrderRequest(
         @NotBlank(message = "Le nom est obligatoire")
-        String costumerName,
+        String customerName,
 
         @NotBlank(message = "L'email est obligatoire")
         @Email(message = "Email invalide")
-        String costumerEmail,
+        String customerEmail,
 
         @NotBlank(message = "Le numéro de téléphone est obligatoire")
         @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Numéro de téléphone invalide")
-        String costumerPhoneNumber,
+        String customerPhoneNumber,
 
-        String costumerAddress,
+        String customerAddress,
 
-        String costumerCity,
+        String customerCity,
 
-        String costumerMessage,
+        String customerMessage,
 
         @NotNull
         @NotEmpty
@@ -44,13 +44,16 @@ public record CreateOrderRequest(
     }
 
     public CreateOrderCommand toCommand() {
+        var customerInfo = new CreateOrderCommand.CustomerInfo(
+                customerName,
+                customerPhoneNumber,
+                customerEmail,
+                customerAddress,
+                customerCity
+        );
         return new CreateOrderCommand(
-                costumerName,
-                costumerPhoneNumber,
-                costumerEmail,
-                costumerAddress,
-                costumerCity,
-                costumerMessage,
+                customerInfo,
+                customerMessage,
                 items.stream().map(ItemOrderRequest::to).toList()
         );
     }
