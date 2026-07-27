@@ -1,8 +1,7 @@
 package ld.application.response;
 
-import ld.application.response.utils.ApiResponseBody;
 import ld.domain.features.order.model.OrderSnapshot;
-
+import ld.spring.web.lib.ApiResponseBody;
 import java.math.BigDecimal;
 import java.util.UUID;
 

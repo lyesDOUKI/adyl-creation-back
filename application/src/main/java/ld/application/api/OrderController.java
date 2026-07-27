@@ -10,14 +10,14 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import ld.application.request.CreateOrderRequest;
 import ld.application.response.CreateOrderResponse;
-import ld.application.response.utils.ApiResponseBody;
-import ld.application.response.utils.ResultToResponse;
 import ld.domain.features.order.CreateOrderUseCase;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import ld.spring.web.lib.ApiResponseBody;
+import ld.spring.web.lib.ResultToResponse;
 
 @RestController
 @RequestMapping("/orders")

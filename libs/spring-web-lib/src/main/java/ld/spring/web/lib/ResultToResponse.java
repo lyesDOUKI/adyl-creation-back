@@ -1,4 +1,4 @@
-package ld.application.response.utils;
+package ld.spring.web.lib;
 
 import jakarta.servlet.http.HttpServletRequest;
 import ld.standard.lib.validation.FailureDetail;
