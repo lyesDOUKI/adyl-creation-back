@@ -1,9 +1,9 @@
 package ld.application.response.utils;
 
 import jakarta.servlet.http.HttpServletRequest;
-import ld.lib.validation.FailureDetail;
-import ld.lib.validation.FailureType;
-import ld.lib.validation.Result;
+import ld.standard.lib.validation.FailureDetail;
+import ld.standard.lib.validation.FailureType;
+import ld.standard.lib.validation.Result;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;

@@ -4,7 +4,7 @@ import ld.domain.features.order.CreateOrderRepository;
 import ld.domain.features.order.CreateOrderUseCase;
 import ld.domain.features.order.CreateOrderUseCaseImpl;
 import ld.domain.features.product.GetProductRepository;
-import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
+import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

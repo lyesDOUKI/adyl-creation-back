@@ -1,8 +1,8 @@
 package ld.domain.features.product.model;
 
 import ld.domain.valueObjects.Price;
-import ld.lib.AggregateRoot;
-import ld.lib.Snapshottable;
+import ld.standard.lib.AggregateRoot;
+import ld.standard.lib.Snapshottable;
 
 import java.math.BigDecimal;
 import java.util.List;

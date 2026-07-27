@@ -2,8 +2,8 @@ package ld.domain.features.order.validation;
 
 import ld.domain.features.product.model.ProductSnapshot;
 import ld.domain.features.product.model.ProductStatus;
-import ld.lib.validation.BusinessRule;
-import ld.lib.validation.Result;
+import ld.standard.lib.validation.BusinessRule;
+import ld.standard.lib.validation.Result;
 
 import java.util.List;
 

@@ -1,9 +1,9 @@
 package ld.domain.helper;
 
-import ld.lib.validation.ErrorCode;
-import ld.lib.validation.FailureDetail;
-import ld.lib.validation.FailureType;
-import ld.lib.validation.Result;
+import ld.standard.lib.validation.ErrorCode;
+import ld.standard.lib.validation.FailureDetail;
+import ld.standard.lib.validation.FailureType;
+import ld.standard.lib.validation.Result;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;

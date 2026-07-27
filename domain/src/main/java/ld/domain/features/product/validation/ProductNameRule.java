@@ -2,8 +2,8 @@ package ld.domain.features.product.validation;
 
 import ld.domain.features.product.CreateProductCommand;
 import ld.domain.features.product.CreateProductRepository;
-import ld.lib.validation.BusinessRule;
-import ld.lib.validation.Result;
+import ld.standard.lib.validation.BusinessRule;
+import ld.standard.lib.validation.Result;
 
 public class ProductNameRule implements BusinessRule<CreateProductCommand> {
 

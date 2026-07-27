@@ -1,6 +1,6 @@
 package ld.domain.features.order.validation;
 
-import ld.lib.validation.ErrorCode;
+import ld.standard.lib.validation.ErrorCode;
 
 public enum OrderErrorCode implements ErrorCode {
 

@@ -3,9 +3,9 @@ package ld.domain.features.product;
 import ld.domain.features.product.model.Product;
 import ld.domain.features.product.model.ProductEvent;
 import ld.domain.features.product.validation.ProductNameRule;
-import ld.lib.AggregateEventDispatcher;
-import ld.lib.validation.BusinessGuard;
-import ld.lib.validation.Result;
+import ld.standard.lib.AggregateEventDispatcher;
+import ld.standard.lib.validation.BusinessGuard;
+import ld.standard.lib.validation.Result;
 
 public class CreateProductUseCaseImpl implements CreateProductUseCase {
 

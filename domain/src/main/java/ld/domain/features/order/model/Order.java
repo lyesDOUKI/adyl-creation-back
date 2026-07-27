@@ -1,8 +1,8 @@
 package ld.domain.features.order.model;
 
 import ld.domain.valueObjects.Price;
-import ld.lib.AggregateRoot;
-import ld.lib.Snapshottable;
+import ld.standard.lib.AggregateRoot;
+import ld.standard.lib.Snapshottable;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -7,9 +7,9 @@ import ld.domain.features.order.validation.ProductStatusRule;
 import ld.domain.features.order.validation.ProductsColorsRule;
 import ld.domain.features.product.GetProductRepository;
 import ld.domain.features.product.model.ProductSnapshot;
-import ld.lib.AggregateEventDispatcher;
-import ld.lib.validation.BusinessGuard;
-import ld.lib.validation.Result;
+import ld.standard.lib.AggregateEventDispatcher;
+import ld.standard.lib.validation.BusinessGuard;
+import ld.standard.lib.validation.Result;
 
 import java.util.List;
 import java.util.Map;
