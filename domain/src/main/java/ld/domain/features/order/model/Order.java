@@ -1,6 +1,5 @@
 package ld.domain.features.order.model;
 
-import ld.domain.features.order.CreateOrderCommand;
 import ld.domain.valueObjects.Price;
 import ld.standard.lib.AggregateRoot;
 import ld.standard.lib.Snapshottable;

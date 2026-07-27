@@ -16,37 +16,20 @@ public class Order {
     @Id
     private UUID id;
 
-
-    @Column(nullable = false)
-    private String customerName;
-
-
-    @Column(nullable = false, unique = true)
-    private String customerEmail;
-
-
-    @Column(nullable = false, unique = true)
-    private String customerPhone;
-
-
-    private String customerAddress;
-
-    private String customerCity;
-
+    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @JoinColumn(name = "customer_id", nullable = false)
+    private Customer customer;
 
     @Column(length = 255)
     private String customerMessage;
-
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-
     @UpdateTimestamp
     @Column(nullable = false)
     private LocalDateTime updatedAt;
-
 
     @OneToMany(
             mappedBy = "order",
@@ -64,44 +47,12 @@ public class Order {
         this.id = id;
     }
 
-    public String getCustomerName() {
-        return customerName;
+    public Customer getCustomer() {
+        return customer;
     }
 
-    public void setCustomerName(String customerName) {
-        this.customerName = customerName;
-    }
-
-    public String getCustomerEmail() {
-        return customerEmail;
-    }
-
-    public void setCustomerEmail(String customerEmail) {
-        this.customerEmail = customerEmail;
-    }
-
-    public String getCustomerPhone() {
-        return customerPhone;
-    }
-
-    public void setCustomerPhone(String customerPhone) {
-        this.customerPhone = customerPhone;
-    }
-
-    public String getCustomerAddress() {
-        return customerAddress;
-    }
-
-    public void setCustomerAddress(String customerAddress) {
-        this.customerAddress = customerAddress;
-    }
-
-    public String getCustomerCity() {
-        return customerCity;
-    }
-
-    public void setCustomerCity(String customerCity) {
-        this.customerCity = customerCity;
+    public void setCustomer(Customer customer) {
+        this.customer = customer;
     }
 
     public String getCustomerMessage() {
@@ -138,14 +89,10 @@ public class Order {
 
     public Order(
             UUID id,
-            String customerName,
-            String customerEmail,
-            String customerPhone
+            Customer customer
     ) {
         this.id = id;
-        this.customerName = customerName;
-        this.customerEmail = customerEmail;
-        this.customerPhone = customerPhone;
+        this.customer = customer;
     }
 
 

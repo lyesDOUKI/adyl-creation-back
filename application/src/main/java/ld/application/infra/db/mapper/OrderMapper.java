@@ -1,5 +1,6 @@
 package ld.application.infra.db.mapper;
 
+import ld.application.infra.db.entity.Customer;
 import ld.application.infra.db.entity.Order;
 import ld.application.infra.db.entity.OrderDetail;
 import ld.domain.features.order.model.OrderSnapshot;
@@ -11,14 +12,17 @@ public class OrderMapper {
 
     public static Order from(OrderSnapshot orderSnapshot) {
         var customerInfo = orderSnapshot.customer();
-        var order = new Order(
-                orderSnapshot.orderId(),
+        var customer = new Customer(
                 customerInfo.name(),
                 customerInfo.email(),
-                customerInfo.phoneNumber()
+                customerInfo.phoneNumber(),
+                customerInfo.address(),
+                customerInfo.city()
         );
-        order.setCustomerAddress(customerInfo.address());
-        order.setCustomerCity(customerInfo.city());
+        var order = new Order(
+                orderSnapshot.orderId(),
+                customer
+        );
         order.setCustomerMessage(orderSnapshot.message());
         orderSnapshot.items()
                 .stream()
