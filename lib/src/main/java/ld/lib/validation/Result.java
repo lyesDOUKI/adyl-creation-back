@@ -20,22 +20,26 @@ public sealed interface Result<T>
     }
 
     static <T> Result<T> businessFailure(
+            ErrorCode errorCode,
             String title,
             String detail
     ) {
         return failure(
                 FailureType.BUSINESS_RULE,
+                errorCode,
                 title,
                 detail
         );
     }
 
     static <T> Result<T> resourceNotFound(
+            ErrorCode errorCode,
             String title,
             String detail
     ) {
         return failure(
                 FailureType.RESOURCE_NOT_FOUND,
+                errorCode,
                 title,
                 detail
         );
@@ -43,11 +47,12 @@ public sealed interface Result<T>
 
     static <T> Result<T> failure(
             FailureType type,
+            ErrorCode errorCode,
             String title,
             String detail
     ) {
         return new Failure<>(
-                new FailureDetail(type, title, detail)
+                new FailureDetail(type, errorCode, title, detail)
         );
     }
 
@@ -67,6 +72,7 @@ public sealed interface Result<T>
             case Failure<T> failure ->
                     Result.failure(
                             failure.detail().type(),
+                            failure.detail().errorCode(),
                             failure.detail().title(),
                             failure.detail().detail()
                     );
@@ -81,6 +87,7 @@ public sealed interface Result<T>
             case Failure<T> failure ->
                     Result.failure(
                             failure.detail().type(),
+                            failure.detail().errorCode(),
                             failure.detail().title(),
                             failure.detail().detail()
                     );

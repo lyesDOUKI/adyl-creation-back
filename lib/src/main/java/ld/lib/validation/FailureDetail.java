@@ -1,4 +1,4 @@
 package ld.lib.validation;
 
-public record FailureDetail(FailureType type, String title, String detail) {
+public record FailureDetail(FailureType type, ErrorCode errorCode, String title, String detail) {
 }
