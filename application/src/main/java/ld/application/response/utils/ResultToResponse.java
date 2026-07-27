@@ -9,13 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.URI;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.function.Function;
 
 public final class ResultToResponse {
-
-    private static final String DEFAULT_TITLE = "Un problème de validation de votre demande a été détecté";
 
     private ResultToResponse() {}
 
@@ -41,7 +38,7 @@ public final class ResultToResponse {
             Result<Void> result,
             HttpServletRequest request
     ) {
-        return result.resolve(v -> ResponseEntity.noContent().build(), failureResponse(request));
+        return result.resolve(_ -> ResponseEntity.noContent().build(), failureResponse(request));
     }
 
     private static URI buildLocation(HttpServletRequest request, UUID id) {
@@ -57,14 +54,14 @@ public final class ResultToResponse {
     ) {
         return detail -> {
             HttpStatus status = toHttpStatus(detail.type());
-
             return ResponseEntity
                     .status(status)
                     .body(new ProblemDetailResponse(
-                            "business-error",
-                            Objects.isNull(detail.title()) ? DEFAULT_TITLE : detail.title(),
+                            detail.type().name(),
+                            detail.errorCode().code(),
+                            detail.title(),
+                            detail.message(),
                             status.value(),
-                            detail.detail(),
                             request.getRequestURI()
                     ));
         };

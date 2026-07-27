@@ -1,4 +1,4 @@
 package ld.application.response.utils;
 
-public record ProblemDetailResponse(String type, String title, int status, String detail, String instance) implements ApiResponseBody {
+public record ProblemDetailResponse(String type, String code, String title, String detail, int status, String instance) implements ApiResponseBody {
 }
