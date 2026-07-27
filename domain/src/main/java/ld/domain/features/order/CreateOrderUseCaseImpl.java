@@ -2,6 +2,7 @@ package ld.domain.features.order;
 
 import ld.domain.features.order.model.*;
 import ld.domain.features.order.validation.CreateOrderContextValidation;
+import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.order.validation.ProductStatusRule;
 import ld.domain.features.order.validation.ProductsColorsRule;
 import ld.domain.features.product.GetProductRepository;
@@ -75,6 +76,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
 
         if (!missingIds.isEmpty()) {
             return Result.resourceNotFound(
+                    OrderErrorCode.PRODUCTS_NOT_FOUND,
                     "Produits introuvables",
                     "Des produits de la commande sont introuvables (identifiants : " + missingIds + ")"
             );

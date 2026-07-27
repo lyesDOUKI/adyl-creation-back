@@ -2,9 +2,11 @@ package ld.domain.features.product;
 
 import ld.domain.features.product.model.ProductEvent;
 import ld.domain.features.product.model.ProductStatus;
+import ld.domain.features.product.validation.ProductErrorCode;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
 import ld.domain.helper.ResultTestSupport;
 import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
+import ld.lib.validation.FailureType;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,8 +37,9 @@ class CreateProductUseCaseTest {
         @Test
         @DisplayName("Le résultat de la création doit etre un échec")
         public void shouldReturnFailureResult() {
-            ResultTestSupport.assertFailure(createProductUseCase.execute(new CreateProductCommand("product 1",
-                    BigDecimal.valueOf(50), List.of("blue"))));
+            var result = createProductUseCase.execute(new CreateProductCommand("product 1",
+                    BigDecimal.valueOf(50), List.of("blue")));
+            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, ProductErrorCode.PRODUCT_ALREADY_EXISTS);
         }
 
         @Test

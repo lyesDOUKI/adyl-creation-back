@@ -74,7 +74,7 @@ public sealed interface Result<T>
                             failure.detail().type(),
                             failure.detail().errorCode(),
                             failure.detail().title(),
-                            failure.detail().detail()
+                            failure.detail().message()
                     );
         };
     }
@@ -89,7 +89,7 @@ public sealed interface Result<T>
                             failure.detail().type(),
                             failure.detail().errorCode(),
                             failure.detail().title(),
-                            failure.detail().detail()
+                            failure.detail().message()
                     );
         };
     }

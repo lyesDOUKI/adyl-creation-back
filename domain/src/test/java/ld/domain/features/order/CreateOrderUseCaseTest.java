@@ -4,6 +4,7 @@ package ld.domain.features.order;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderStatus;
+import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.product.InMemoryGetProductRepository;
 import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
@@ -83,7 +84,7 @@ class CreateOrderUseCaseTest {
             );
 
             var result = createOrderUseCase.execute(command);
-            ResultTestSupport.assertFailure(result, FailureType.RESOURCE_NOT_FOUND);
+            ResultTestSupport.assertFailure(result, FailureType.RESOURCE_NOT_FOUND, OrderErrorCode.PRODUCTS_NOT_FOUND);
         }
 
         @Test
@@ -276,12 +277,8 @@ class CreateOrderUseCaseTest {
 
             var result = createOrderUseCase.execute(command);
 
-            var failure = ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE);
+            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, OrderErrorCode.PRODUCT_NOT_AVAILABLE);
 
-            assertThat(failure.title())
-                    .isEqualTo("Produits indisponibles");
-            assertThat(failure.detail())
-                    .contains("unavailable product");
             assertThat(createOrderRepository.countOrders())
                     .isZero();
 
@@ -314,7 +311,7 @@ class CreateOrderUseCaseTest {
                             .build()
             );
 
-            ResultTestSupport.assertFailure(createOrderUseCase.execute(command), FailureType.BUSINESS_RULE);
+            ResultTestSupport.assertFailure(createOrderUseCase.execute(command), FailureType.BUSINESS_RULE, OrderErrorCode.PRODUCT_COLOR_NOT_AVAILABLE);
         }
     }
 

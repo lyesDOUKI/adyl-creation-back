@@ -33,7 +33,8 @@ public class ProductsColorsRule implements BusinessRule<CreateOrderContextValida
             }
             if (!availableColors.contains(item.color().toUpperCase())) {
                 return Result.businessFailure(
-                        "Couleur demandée incohérente",
+                        OrderErrorCode.PRODUCT_COLOR_NOT_AVAILABLE,
+                        "Couleur demandée non valide",
                         String.format(
                                 "La couleur '%s' n'est pas disponible pour le produit identifiant : %s. Couleurs disponibles : %s",
                                 item.color(),

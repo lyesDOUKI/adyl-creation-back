@@ -18,6 +18,7 @@ public class ProductStatusRule implements BusinessRule<CreateOrderContextValidat
 
         if (!unavailableProductNames.isEmpty()) {
             return Result.businessFailure(
+                    OrderErrorCode.PRODUCT_NOT_AVAILABLE,
                     "Produits indisponibles",
                     "Les produits suivants sont indisponibles : " + String.join(", ", unavailableProductNames)
             );

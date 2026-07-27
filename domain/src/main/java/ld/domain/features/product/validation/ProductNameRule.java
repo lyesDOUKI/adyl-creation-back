@@ -16,7 +16,10 @@ public class ProductNameRule implements BusinessRule<CreateProductCommand> {
     @Override
     public Result<Void> apply(CreateProductCommand command) {
         if (this.createProductRepository.alreadyExists(command.name())) {
-            return Result.businessFailure("Produit déjà existant", "le produit : " + command.name() + "existe déjà");
+            return Result.businessFailure(
+                    ProductErrorCode.PRODUCT_ALREADY_EXISTS,
+                    "Produit déjà existant",
+                    String.format("Le produit %s existe déjà", command.name()));
         }
         return Result.ok();
     }

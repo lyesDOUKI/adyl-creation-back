@@ -1,5 +1,6 @@
 package ld.domain.helper;
 
+import ld.lib.validation.ErrorCode;
 import ld.lib.validation.FailureDetail;
 import ld.lib.validation.FailureType;
 import ld.lib.validation.Result;
@@ -18,7 +19,7 @@ public class ResultTestSupport {
                                 + "] "
                                 + failure.title()
                                 + " - "
-                                + failure.detail()
+                                + failure.message()
                 )
         );
     }
@@ -29,7 +30,7 @@ public class ResultTestSupport {
                 .isTrue();
     }
 
-    public static <T> FailureDetail assertFailure(Result<T> result, FailureType expectedType) {
+    public static <T> FailureDetail assertFailure(Result<T> result, FailureType expectedType, ErrorCode expectedCode) {
         assertThat(result.isFailure()).isTrue();
 
         FailureDetail detail = result.resolve(
@@ -38,6 +39,7 @@ public class ResultTestSupport {
         );
 
         assertThat(detail.type()).isEqualTo(expectedType);
+        assertThat(detail.errorCode()).isEqualTo(expectedCode);
         return detail;
     }
 }
