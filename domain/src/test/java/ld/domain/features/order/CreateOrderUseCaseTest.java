@@ -6,6 +6,7 @@ import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderStatus;
 import ld.domain.features.product.InMemoryGetProductRepository;
 import ld.domain.features.product.model.ProductStatus;
+import ld.domain.features.shared.ProductSnapshotTestBuilder;
 import ld.domain.helper.ResultTestSupport;
 import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.lib.validation.FailureType;
@@ -73,7 +74,12 @@ class CreateOrderUseCaseTest {
                     productId
             );
 
-            getProductRepository.addProduct(UUID.randomUUID(), BigDecimal.valueOf(50));
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(UUID.randomUUID())
+                            .withPrice(BigDecimal.valueOf(50))
+                            .build()
+            );
 
             var result = createOrderUseCase.execute(command);
             ResultTestSupport.assertFailure(result, FailureType.RESOURCE_NOT_FOUND);
@@ -106,7 +112,13 @@ class CreateOrderUseCaseTest {
         void shouldCreateOrderWithCorrectCalculationOnOneItem() {
             var productId = UUID.randomUUID();
 
-            getProductRepository.addProduct(productId, BigDecimal.valueOf(50), ProductStatus.AVAILABLE);
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(productId)
+                            .withPrice(BigDecimal.valueOf(50))
+                            .withStatus(ProductStatus.AVAILABLE)
+                            .build()
+            );
 
             var command = defaultCommand(
                     productId
@@ -145,9 +157,27 @@ class CreateOrderUseCaseTest {
             var productTwo = UUID.randomUUID();
             var productThree = UUID.randomUUID();
 
-            getProductRepository.addProduct(productOne, BigDecimal.valueOf(100), ProductStatus.AVAILABLE);
-            getProductRepository.addProduct(productTwo, BigDecimal.valueOf(100), ProductStatus.AVAILABLE);
-            getProductRepository.addProduct(productThree, BigDecimal.valueOf(200), ProductStatus.AVAILABLE);
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(productOne)
+                            .withPrice(BigDecimal.valueOf(100))
+                            .withStatus(ProductStatus.AVAILABLE)
+                            .build()
+            );
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(productTwo)
+                            .withPrice(BigDecimal.valueOf(100))
+                            .withStatus(ProductStatus.AVAILABLE)
+                            .build()
+            );
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(productThree)
+                            .withPrice(BigDecimal.valueOf(200))
+                            .withStatus(ProductStatus.AVAILABLE)
+                            .build()
+            );
 
             var createOrderItems = List.of(
                     new CreateOrderCommand.CreateOrderItem(
@@ -212,8 +242,19 @@ class CreateOrderUseCaseTest {
             var productOne = UUID.randomUUID();
             var productTwo = UUID.randomUUID();
 
-            getProductRepository.addProduct(productOne, BigDecimal.valueOf(100), "unavailable product");
-            getProductRepository.addProduct(productTwo, BigDecimal.valueOf(100), ProductStatus.AVAILABLE);
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                    .withId(productOne).withPrice(BigDecimal.valueOf(100))
+                    .withName("unavailable product")
+                            .build()
+            );
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(productTwo)
+                            .withPrice(BigDecimal.valueOf(100))
+                            .withStatus(ProductStatus.AVAILABLE)
+                            .build()
+            );
 
             var createOrderItems = List.of(
                     new CreateOrderCommand.CreateOrderItem(

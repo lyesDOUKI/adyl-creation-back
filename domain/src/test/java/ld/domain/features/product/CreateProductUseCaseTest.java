@@ -2,6 +2,7 @@ package ld.domain.features.product;
 
 import ld.domain.features.product.model.ProductEvent;
 import ld.domain.features.product.model.ProductStatus;
+import ld.domain.features.shared.ProductSnapshotTestBuilder;
 import ld.domain.helper.ResultTestSupport;
 import ld.lib.helper.test.InMemoryAggregateEventDispatcher;
 import org.assertj.core.api.Assertions;
@@ -25,7 +26,11 @@ class CreateProductUseCaseTest {
 
         @BeforeEach
         public void setup() {
-            createProductRepository.addProduct("product 1");
+            createProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withName("product 1")
+                            .build()
+            );
         }
         @Test
         @DisplayName("Le résultat de la création doit etre un échec")

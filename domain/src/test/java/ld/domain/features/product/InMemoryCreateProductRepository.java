@@ -1,7 +1,6 @@
 package ld.domain.features.product;
 
 import ld.domain.features.product.model.ProductSnapshot;
-import ld.domain.features.shared.ProductSnapshotTestBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -21,8 +20,8 @@ public class InMemoryCreateProductRepository implements CreateProductRepository 
         products.add(product);
     }
 
-    public void addProduct(String name) {
-        products.add(ProductSnapshotTestBuilder.aProduct().withName(name).build());
+    public void addProduct(ProductSnapshot productSnapshot) {
+        products.add(productSnapshot);
     }
 
     public int count() {
