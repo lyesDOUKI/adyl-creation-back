@@ -1,0 +1,17 @@
+services:
+  adyl-creation-api:
+    container_name: adyl-creation-api
+    build:
+      context: .
+    restart: unless-stopped
+    ports:
+      - "8084:8084"
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - adyl-creation-network
+networks:
+  adyl-creation-network:
+    external: true

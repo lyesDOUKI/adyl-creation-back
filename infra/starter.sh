@@ -19,6 +19,13 @@ docker compose -p postgres-adyl-creation up -d
 cd ../..
 
 echo ""
+echo "3) Starting Backend API..."
+
+docker compose up -d
+
+
+
+echo ""
 echo "Waiting for infrastructure startup..."
 sleep 10
 
@@ -27,7 +34,3 @@ echo ""
 echo "================================="
 echo " Adyl Création started"
 echo "================================="
-
-echo ""
-echo "Services:"
-echo "- PostgreSQL: localhost:5437"

@@ -2,12 +2,12 @@ services:
 
   postgres:
 
-    image: postgres:latest
+    image: postgres:17.10
 
     container_name: postgres-adyl-creation
 
     ports:
-      - "5437:5432"
+      - "5432:5432"
 
     environment:
 
