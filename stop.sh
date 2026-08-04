@@ -2,7 +2,7 @@
 
 echo "Stopping Adyl Création stack..."
 
-cd postgres || exit
+cd infra/postgres || exit
 docker compose -p postgres-adyl-creation down
 cd ../..
 

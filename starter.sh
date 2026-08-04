@@ -9,12 +9,13 @@ echo "================================="
 
 echo ""
 echo "1) Creating Docker network..."
+cd infra
 ./docker-network.sh
-
+cd ..
 
 echo ""
 echo "2) Starting PostgreSQL..."
-cd postgres
+cd infra/postgres
 docker compose -p postgres-adyl-creation up -d
 cd ../..
 
