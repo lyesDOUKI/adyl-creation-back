@@ -5,7 +5,7 @@ services:
       context: .
     restart: unless-stopped
     ports:
-      - "8084:8084"
+      - "${SERVER_PORT:-8084}:${SERVER_PORT:-8084}"
     env_file:
       - .env
     environment:
