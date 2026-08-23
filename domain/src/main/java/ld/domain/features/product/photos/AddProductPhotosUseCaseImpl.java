@@ -3,7 +3,6 @@ package ld.domain.features.product.photos;
 import ld.domain.features.product.model.Product;
 import ld.domain.features.product.model.ProductPhoto;
 import ld.domain.features.product.model.ProductPhotoSnapshot;
-import ld.domain.features.product.model.ProductSnapshot;
 import ld.domain.features.product.photos.validation.PhotoRule;
 import ld.domain.features.product.validation.ProductErrorCode;
 import ld.standard.lib.validation.BusinessGuard;
@@ -26,7 +25,7 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
     }
 
     @Override
-    public Result<ProductSnapshot> execute(AddProductPhotosCommand command) {
+    public Result<ProductPhotoSnapshot> execute(AddProductPhotosCommand command) {
         return this.addProductPhotosCommandBusinessGuard.validate(command)
                 .flatMap(_ -> this.addProductPhotosRepository.findById(command.productId())
                         .map(Result::success)
@@ -37,10 +36,11 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
                                     return this.storePhotos(command).flatMap(product::addPhotos).map(_ -> product);
                                 })
                                 .map(product -> {
-                                            this.addProductPhotosRepository.execute(
-                                                    new ProductPhotoSnapshot(product.toSnapshot(),
-                                                    product.getPhotos()));
-                                            return product.toSnapshot();
+                                    var productPhotoSnapshot = new ProductPhotoSnapshot(product.toSnapshot(),
+                                            product.getPhotos());
+                                    this.addProductPhotosRepository.execute(
+                                            productPhotoSnapshot);
+                                            return productPhotoSnapshot;
                                         }
                                 )
                 );
