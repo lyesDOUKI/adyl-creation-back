@@ -105,6 +105,20 @@ class AddProductPhotosUseCaseImplTest {
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
         }
+        @Test
+        void shouldFailWithNullList() {
+            var productId = UUID.randomUUID();
+            registerProduct(productId, List.of());
+
+            var command = withPhotos(productId, null);
+
+            var result = addProductPhotosUseCase.execute(command);
+
+            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_LIST_EMPTY);
+
+            assertThat(addProductPhotosRepository.countUpdates()).isZero();
+            assertThat(productPhotoStoragePort.countStored()).isZero();
+        }
     }
 
     @Nested
@@ -118,6 +132,20 @@ class AddProductPhotosUseCaseImplTest {
             registerProduct(productId, List.of());
 
             var command = withPhotos(productId, List.of(photo("photo1.jpg", new byte[0])));
+
+            var result = addProductPhotosUseCase.execute(command);
+
+            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_SIZE_ZERO);
+
+            assertThat(addProductPhotosRepository.countUpdates()).isZero();
+            assertThat(productPhotoStoragePort.countStored()).isZero();
+        }
+        @Test
+        void shouldFailWithNullSize() {
+            var productId = UUID.randomUUID();
+            registerProduct(productId, List.of());
+
+            var command = withPhotos(productId, List.of(photo("photo1.jpg", null)));
 
             var result = addProductPhotosUseCase.execute(command);
 
@@ -161,6 +189,21 @@ class AddProductPhotosUseCaseImplTest {
             registerProduct(productId, List.of());
 
             var command = withPhotos(productId, List.of(defaultPhoto("photo1.gif")));
+
+            var result = addProductPhotosUseCase.execute(command);
+
+            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_EXTENSION_NOT_ALLOWED);
+
+            assertThat(addProductPhotosRepository.countUpdates()).isZero();
+            assertThat(productPhotoStoragePort.countStored()).isZero();
+        }
+
+        @Test
+        void shouldFailWithExtensionNoneExtension() {
+            var productId = UUID.randomUUID();
+            registerProduct(productId, List.of());
+
+            var command = withPhotos(productId, List.of(defaultPhoto("photo1")));
 
             var result = addProductPhotosUseCase.execute(command);
 

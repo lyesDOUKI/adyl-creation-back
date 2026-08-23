@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 class CreateProductUseCaseTest {
@@ -80,6 +81,55 @@ class CreateProductUseCaseTest {
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
             Assertions.assertThat(persistedProduct.colors())
                     .containsOnly(new ProductColor("black"));
+            Assertions.assertThat(persistedProduct.productStatus())
+                    .isEqualByComparingTo(ProductStatus.AVAILABLE);
+        }
+
+        @Test
+        public void withoutColors_shouldCreateAndPersistProductAndDispatchEvent() {
+
+            var command = new CreateProductCommand("bonnet", BigDecimal.valueOf(50), null);
+            var result = createProductUseCase.execute(command);
+            ResultTestSupport.assertSuccess(result);
+
+            Assertions.assertThat(createProductRepository.count())
+                    .isOne();
+            Assertions.assertThat(aggregateEventDispatcher.count())
+                    .isOne();
+
+            var persistedProduct = createProductRepository.getLast();
+
+            Assertions.assertThat(persistedProduct.name())
+                    .isEqualTo("bonnet");
+            Assertions.assertThat(persistedProduct.price())
+                    .isEqualByComparingTo(BigDecimal.valueOf(50));
+            Assertions.assertThat(persistedProduct.colors())
+                    .isEmpty();
+            Assertions.assertThat(persistedProduct.productStatus())
+                    .isEqualByComparingTo(ProductStatus.AVAILABLE);
+        }
+
+        @Test
+        public void witNullColors_shouldCreateAndPersistProductAndDispatchEvent() {
+            List<String> colors = new ArrayList<>();
+            colors.add(null);
+            var command = new CreateProductCommand("bonnet", BigDecimal.valueOf(50), colors);
+            var result = createProductUseCase.execute(command);
+            ResultTestSupport.assertSuccess(result);
+
+            Assertions.assertThat(createProductRepository.count())
+                    .isOne();
+            Assertions.assertThat(aggregateEventDispatcher.count())
+                    .isOne();
+
+            var persistedProduct = createProductRepository.getLast();
+
+            Assertions.assertThat(persistedProduct.name())
+                    .isEqualTo("bonnet");
+            Assertions.assertThat(persistedProduct.price())
+                    .isEqualByComparingTo(BigDecimal.valueOf(50));
+            Assertions.assertThat(persistedProduct.colors())
+                    .isEmpty();
             Assertions.assertThat(persistedProduct.productStatus())
                     .isEqualByComparingTo(ProductStatus.AVAILABLE);
         }

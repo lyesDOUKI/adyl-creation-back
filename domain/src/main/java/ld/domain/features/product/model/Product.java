@@ -25,7 +25,7 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
         setId(UUID.randomUUID());
         this.name = name;
         this.price = price;
-        this.colors = colors == null ? new ArrayList<>() : new ArrayList<>(colors);
+        this.colors = colors;
         this.photos = new ArrayList<>();
         productStatus = ProductStatus.AVAILABLE;
         addDomainEvent(new ProductCreated(getId()));
@@ -36,9 +36,9 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
         setId(id);
         this.name = name;
         this.price = price;
-        this.colors = colors == null ? new ArrayList<>() : new ArrayList<>(colors);
+        this.colors = colors;
         this.productStatus = productStatus;
-        this.photos = photos == null ? new ArrayList<>() : new ArrayList<>(photos);
+        this.photos = photos;
     }
 
     public static Product create(String name, BigDecimal price, List<String> colors) {
@@ -57,10 +57,6 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
     }
 
     public Result<Void> addPhotos(List<ProductPhoto> newPhotos) {
-        if (newPhotos == null || newPhotos.isEmpty()) {
-            return Result.ok();
-        }
-
         int nextPosition = this.photos.stream()
                 .mapToInt(ProductPhoto::position)
                 .max()
