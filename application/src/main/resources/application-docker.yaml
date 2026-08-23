@@ -7,3 +7,8 @@ spring:
 
 server:
   port: ${SERVER_PORT:8084}
+
+app:
+  base-url: ${APP_BASE_URL:http://localhost:8084}
+  photos:
+    storage-path: ${APP_PHOTOS_STORAGE_PATH:/data/photos}
