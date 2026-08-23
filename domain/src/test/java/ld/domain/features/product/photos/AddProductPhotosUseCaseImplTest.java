@@ -179,7 +179,7 @@ class AddProductPhotosUseCaseImplTest {
         @DisplayName("Les photos sont stockées et persistées avec la bonne position")
         void shouldStoreAndPersistPhotosWithCorrectPosition() {
             var productId = UUID.randomUUID();
-            registerProduct(productId, List.of());
+            registerProduct(productId, List.of(new ProductPhoto(UUID.randomUUID(), "photoxistante.jpg", 0)));
 
             var command = withPhotos(productId, List.of(
                     defaultPhoto("photo1.jpg"),
@@ -195,9 +195,9 @@ class AddProductPhotosUseCaseImplTest {
             var persisted = addProductPhotosRepository.findLastPersisted();
 
             assertThat(persisted.photos())
-                    .hasSize(2)
+                    .hasSize(3)
                     .extracting(ProductPhoto::position)
-                    .containsExactly(0, 1);
+                    .containsExactly(0, 1, 2);
 
             assertThat(persisted.photos())
                     .extracting(ProductPhoto::storageKey)
