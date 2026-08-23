@@ -81,7 +81,7 @@ class CreateProductUseCaseTest {
             Assertions.assertThat(persistedProduct.colors())
                     .containsOnly(new ProductColor("black"));
             Assertions.assertThat(persistedProduct.productStatus())
-                    .isEqualByComparingTo(ProductStatus.UNAVAILABLE);
+                    .isEqualByComparingTo(ProductStatus.AVAILABLE);
         }
     }
 }

@@ -8,9 +8,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import ld.application.request.CreateOrderRequest;
+import ld.application.request.CreateProductRequest;
 import ld.application.response.CreateOrderResponse;
-import ld.domain.features.order.CreateOrderUseCase;
+import ld.application.response.CreateProductResponse;
+import ld.domain.features.product.CreateProductUseCase;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
 import org.springframework.http.ResponseEntity;
@@ -20,25 +21,25 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/orders")
-@Tag(name = "Commandes", description = "API pour la création d'une commande")
-public class OrderController {
+@RequestMapping("/products")
+@Tag(name = "Produits", description = "API pour la gestion des produits")
+public class ProductController {
 
-    private final CreateOrderUseCase createOrderUseCase;
+    private final CreateProductUseCase createProductUseCase;
 
-    public OrderController(CreateOrderUseCase createOrderUseCase) {
-        this.createOrderUseCase = createOrderUseCase;
+    public ProductController(CreateProductUseCase createProductUseCase) {
+        this.createProductUseCase = createProductUseCase;
     }
 
     @PostMapping
     @Operation(
-            summary = "Création d'une demande de commande",
-            description = "Envoi la demande de commande pour prise en compte et traitement"
+            summary = "Création d'un produit",
+            description = "Créer un nouveau produit de crochet adyl-creation"
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "201",
-                    description = "Demande de commande enregistré avec succès",
+                    description = "Produit créé avec succès",
                     content = @Content(schema = @Schema(implementation = CreateOrderResponse.class))
             ),
             @ApiResponse(
@@ -47,13 +48,8 @@ public class OrderController {
                     content = @Content
             ),
             @ApiResponse(
-                    responseCode = "404",
-                    description = "Produits demande inexistants dans l'application",
-                    content = @Content
-            ),
-            @ApiResponse(
                     responseCode = "422",
-                    description = "Incohérence sur la création de la demande d'une commande",
+                    description = "Incohérence sur la création du produit",
                     content = @Content
             ),
             @ApiResponse(
@@ -62,12 +58,10 @@ public class OrderController {
                     content = @Content
             )
     })
-    public ResponseEntity<ApiResponseBody> createOrder(
-            @RequestBody @Valid CreateOrderRequest request,
-            HttpServletRequest httpServletRequest
-    ) {
-        var response = this.createOrderUseCase.execute(request.toCommand())
-                .map(CreateOrderResponse::from);
-        return ResultToResponse.created(response, CreateOrderResponse::orderId, httpServletRequest);
+    public ResponseEntity<ApiResponseBody> create(@RequestBody @Valid CreateProductRequest createProductRequest,
+                                                  HttpServletRequest httpServletRequest) {
+        var response = this.createProductUseCase.execute(createProductRequest.to())
+                .map(CreateProductResponse::from);
+        return ResultToResponse.created(response, CreateProductResponse::productId, httpServletRequest);
     }
 }

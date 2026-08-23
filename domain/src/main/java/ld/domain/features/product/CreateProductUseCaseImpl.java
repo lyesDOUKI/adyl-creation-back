@@ -2,6 +2,7 @@ package ld.domain.features.product;
 
 import ld.domain.features.product.model.Product;
 import ld.domain.features.product.model.ProductEvent;
+import ld.domain.features.product.model.ProductSnapshot;
 import ld.domain.features.product.validation.ProductNameRule;
 import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.validation.BusinessGuard;
@@ -24,7 +25,7 @@ public class CreateProductUseCaseImpl implements CreateProductUseCase {
     }
 
     @Override
-    public Result<Void> execute(CreateProductCommand createProductCommand) {
+    public Result<ProductSnapshot> execute(CreateProductCommand createProductCommand) {
         return this.createProductGuard.validate(createProductCommand)
                 .flatMap(_ -> {
                     Product product = Product.create(
@@ -34,7 +35,7 @@ public class CreateProductUseCaseImpl implements CreateProductUseCase {
                     );
                     this.createProductRepository.create(product.toSnapshot());
                     product.getDomainEvents().forEach(this.aggregateEventDispatcher::dispatch);
-                    return Result.ok();
+                    return Result.success(product.toSnapshot());
                 });
     }
 }

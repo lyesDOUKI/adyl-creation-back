@@ -14,7 +14,7 @@ public class ProductSnapshotTestBuilder {
     private String name = "default product";
     private BigDecimal price = BigDecimal.TEN;
     private List<ProductColor> colors = List.of(new ProductColor("noir"));
-    private ProductStatus status = ProductStatus.UNAVAILABLE;
+    private ProductStatus status = ProductStatus.AVAILABLE;
 
     public static ProductSnapshotTestBuilder aProduct() {
         return new ProductSnapshotTestBuilder();

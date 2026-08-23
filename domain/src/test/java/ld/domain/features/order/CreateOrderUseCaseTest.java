@@ -122,7 +122,6 @@ class CreateOrderUseCaseTest {
                     ProductSnapshotTestBuilder.aProduct()
                             .withId(productId)
                             .withPrice(BigDecimal.valueOf(50))
-                            .withStatus(ProductStatus.AVAILABLE)
                             .withColors(List.of(
                                     new ProductColor("blue")
                                     )
@@ -171,7 +170,6 @@ class CreateOrderUseCaseTest {
                     ProductSnapshotTestBuilder.aProduct()
                             .withId(productOne)
                             .withPrice(BigDecimal.valueOf(100))
-                            .withStatus(ProductStatus.AVAILABLE)
                             .withColors(List.of(
                             new ProductColor("blue")
                                     )
@@ -182,7 +180,6 @@ class CreateOrderUseCaseTest {
                     ProductSnapshotTestBuilder.aProduct()
                             .withId(productTwo)
                             .withPrice(BigDecimal.valueOf(100))
-                            .withStatus(ProductStatus.AVAILABLE)
                             .withColors(List.of(
                                     new ProductColor("blue"),
                                     new ProductColor("noir")
@@ -194,7 +191,6 @@ class CreateOrderUseCaseTest {
                     ProductSnapshotTestBuilder.aProduct()
                             .withId(productThree)
                             .withPrice(BigDecimal.valueOf(200))
-                            .withStatus(ProductStatus.AVAILABLE)
                             .withColors(List.of(
                                             new ProductColor("vert"),
                                             new ProductColor("rouge")
@@ -267,8 +263,11 @@ class CreateOrderUseCaseTest {
             var productTwo = UUID.randomUUID();
 
             getProductRepository.addProduct(
-                    ProductSnapshotTestBuilder.aProduct()
-                    .withId(productOne).withPrice(BigDecimal.valueOf(100))
+                    ProductSnapshotTestBuilder
+                            .aProduct()
+                            .withId(productOne)
+                            .withPrice(BigDecimal.valueOf(100))
+                            .withStatus(ProductStatus.UNAVAILABLE)
                     .withName("unavailable product")
                             .build()
             );
@@ -276,7 +275,6 @@ class CreateOrderUseCaseTest {
                     ProductSnapshotTestBuilder.aProduct()
                             .withId(productTwo)
                             .withPrice(BigDecimal.valueOf(100))
-                            .withStatus(ProductStatus.AVAILABLE)
                             .build()
             );
 
@@ -328,7 +326,6 @@ class CreateOrderUseCaseTest {
                                             new ProductColor("black")
                                     )
                             )
-                            .withStatus(ProductStatus.AVAILABLE)
                             .build()
             );
 
@@ -359,14 +356,12 @@ class CreateOrderUseCaseTest {
                     ProductSnapshotTestBuilder.aProduct()
                             .withId(productOne)
                             .withColors(null)
-                            .withStatus(ProductStatus.AVAILABLE)
                             .build()
             );
             getProductRepository.addProduct(
                     ProductSnapshotTestBuilder.aProduct()
                             .withId(productTwo)
                             .withColors(Collections.emptyList())
-                            .withStatus(ProductStatus.AVAILABLE)
                             .build()
             );
 
