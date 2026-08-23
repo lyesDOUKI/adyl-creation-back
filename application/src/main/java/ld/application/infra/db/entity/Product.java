@@ -4,9 +4,7 @@ import jakarta.persistence.*;
 import ld.domain.features.product.model.ProductStatus;
 
 import java.math.BigDecimal;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "products")
@@ -32,6 +30,9 @@ public class Product {
     )
     @Column(name = "color")
     private Set<String> colors = new HashSet<>();
+
+    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<ProductPhotoEntity> photos = new ArrayList<>();
 
     public Product() {}
     public UUID getId() {
@@ -74,4 +75,14 @@ public class Product {
         this.colors = colors;
     }
 
+    public List<ProductPhotoEntity> getPhotos() {
+        return photos;
+    }
+
+    public void addPhoto(ProductPhotoEntity photo) {
+        this.photos.add(photo);
+    }
+    public void setPhotos(List<ProductPhotoEntity> photos) {
+        this.photos = photos;
+    }
 }

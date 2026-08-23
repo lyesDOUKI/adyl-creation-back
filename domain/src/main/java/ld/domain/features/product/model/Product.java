@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapshottable<ProductSnapshot> {
@@ -59,7 +60,21 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
         if (newPhotos == null || newPhotos.isEmpty()) {
             return Result.ok();
         }
-        this.photos = Stream.concat(this.photos.stream(), newPhotos.stream()).toList();
+
+        int nextPosition = this.photos.stream()
+                .mapToInt(ProductPhoto::position)
+                .max()
+                .orElse(-1) + 1;
+
+        List<ProductPhoto> photosToAdd = IntStream.range(0, newPhotos.size())
+                .mapToObj(index -> newPhotos.get(index).withPosition(nextPosition + index))
+                .toList();
+
+        this.photos = Stream.concat(
+                this.photos.stream(),
+                photosToAdd.stream()
+        ).toList();
+
         return Result.ok();
     }
     @Override

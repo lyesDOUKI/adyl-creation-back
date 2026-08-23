@@ -20,4 +20,14 @@ public class ProductMapper {
                 map(ProductColor::value).collect(Collectors.toSet())));
         return product;
     }
+
+    public static ProductSnapshot toSnapshot(Product product) {
+        return new ProductSnapshot(
+                product.getId(),
+                product.getName(),
+                product.getUnitPrice(),
+                product.getColors().stream().map(ProductColor::new).toList(),
+                product.getStatus()
+        );
+    }
 }

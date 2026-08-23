@@ -25,7 +25,7 @@ public record AddProductPhotosResponse(
                 .sorted(Comparator.comparingInt(ProductPhoto::position))
                 .map(photo -> new ProductPhotoResponse(
                         photo.id(),
-                        urlResolver.resolve(photo.storageKey()),
+                        urlResolver.resolve(snapshot.productSnapshot().productId(), photo.storageKey()),
                         photo.position()
                 ))
                 .toList();

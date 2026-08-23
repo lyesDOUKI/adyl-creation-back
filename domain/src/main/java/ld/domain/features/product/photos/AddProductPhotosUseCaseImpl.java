@@ -48,13 +48,11 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
 
     private Result<List<ProductPhoto>> storePhotos(AddProductPhotosCommand command) {
         List<ProductPhoto> stored = new ArrayList<>();
-        int position = 0;
         for (var photo : command.photos()) {
             String storageKey = this.productPhotoStoragePort.store(
                     command.productId(), photo.fileName(), photo.content()
             );
-            stored.add(new ProductPhoto(UUID.randomUUID(), storageKey, position));
-            position++;
+            stored.add(ProductPhoto.create(UUID.randomUUID(), storageKey));
         }
         return Result.success(stored);
     }

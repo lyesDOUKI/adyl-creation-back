@@ -1,5 +1,7 @@
 package ld.domain.features.product.photos;
 
+import java.util.UUID;
+
 public interface ProductPhotoUrlResolver {
-    String resolve(String storageKey);
+    String resolve(UUID productId, String storageKey);
 }
