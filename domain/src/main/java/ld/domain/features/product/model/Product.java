@@ -18,7 +18,7 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
     private final String name;
     private final Price price;
     private final List<ProductColor> colors;
-    private  List<ProductPhoto> photos;
+    private List<ProductPhoto> photos;
     private final ProductStatus productStatus;
 
     private Product(String name, Price price, List<ProductColor> colors) {

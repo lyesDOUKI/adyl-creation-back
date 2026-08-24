@@ -18,7 +18,8 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
     private final ProductPhotoStoragePort productPhotoStoragePort;
     private final BusinessGuard<AddProductPhotosCommand> addProductPhotosCommandBusinessGuard;
 
-    public AddProductPhotosUseCaseImpl(AddProductPhotosRepository addProductPhotosRepository, ProductPhotoStoragePort productPhotoStoragePort) {
+    public AddProductPhotosUseCaseImpl(AddProductPhotosRepository addProductPhotosRepository,
+                                       ProductPhotoStoragePort productPhotoStoragePort) {
         this.addProductPhotosRepository = addProductPhotosRepository;
         this.productPhotoStoragePort = productPhotoStoragePort;
         this.addProductPhotosCommandBusinessGuard = BusinessGuard.of(new PhotoRule());
@@ -30,19 +31,20 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
                 .flatMap(_ -> this.addProductPhotosRepository.findById(command.productId())
                         .map(Result::success)
                         .orElseGet(() -> Result.resourceNotFound(ProductErrorCode.PRODUCTS_NOT_FOUND, "Produit introuvable",
-                                        String.format("Le produit %s est introuvable", command.productId())))
-                                .flatMap(snapshot -> {
-                                    Product product = Product.from(snapshot);
-                                    return this.storePhotos(command).flatMap(product::addPhotos).map(_ -> product);
-                                })
-                                .map(product -> {
+                                String.format("Le produit %s est introuvable", command.productId()))
+                        )
+                        .flatMap(snapshot -> {
+                            Product product = Product.from(snapshot);
+                            return this.storePhotos(command).flatMap(product::addPhotos).map(_ -> product);
+                        })
+                        .map(product -> {
                                     var productPhotoSnapshot = new ProductPhotoSnapshot(product.toSnapshot(),
                                             product.getPhotos());
                                     this.addProductPhotosRepository.execute(
                                             productPhotoSnapshot);
-                                            return productPhotoSnapshot;
-                                        }
-                                )
+                                    return productPhotoSnapshot;
+                                }
+                        )
                 );
     }
 
