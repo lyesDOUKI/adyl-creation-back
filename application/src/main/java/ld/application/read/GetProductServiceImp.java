@@ -85,6 +85,7 @@ public class GetProductServiceImp implements GetProductService {
                 .toList();
 
         return new GetProductsResponse(
+                productId,
                 productRow.get(PRODUCTS.NAME),
                 unitPrice,
                 colors,
