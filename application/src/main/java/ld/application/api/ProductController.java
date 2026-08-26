@@ -23,6 +23,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.UUID;
+
 @RestController
 @RequestMapping("/products")
 @Tag(name = "Produits", description = "API pour la gestion des produits")
@@ -96,4 +98,33 @@ public class ProductController {
         return ResponseEntity.ok(PageResponse.from(this.getProductService.findAll(pageable)));
     }
 
+    @GetMapping("{id}")
+    @Operation(
+            summary = "Récupération des produits"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Produits récupéré avec succès",
+                    content = @Content(schema = @Schema(implementation = GetProductResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Produits introuvable",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Requête invalide",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Erreur interne du serveur",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponseBody> getById(@PathVariable("id") UUID productId, HttpServletRequest httpServletRequest) {
+        return ResultToResponse.ok(this.getProductService.findById(productId), httpServletRequest);
+    }
 }
