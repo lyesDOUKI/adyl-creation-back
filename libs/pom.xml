@@ -17,6 +17,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.version>7.0.8</spring.version>
         <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
+        <spring.data.commons.version>3.3.4</spring.data.commons.version>
     </properties>
 
     <dependencyManagement>
@@ -33,6 +34,11 @@
                 <groupId>jakarta.servlet</groupId>
                 <artifactId>jakarta.servlet-api</artifactId>
                 <version>${jakarta.servlet.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.data</groupId>
+                <artifactId>spring-data-commons</artifactId>
+                <version>${spring.data.commons.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

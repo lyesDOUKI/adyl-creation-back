@@ -1,15 +1,21 @@
 package ld.application.read;
 
+import ld.application.jooq.JooqSortUtils;
 import ld.application.response.GetProductResponse;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.jooq.Record1;
+import org.jooq.SortField;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static ld.application.jooq.tables.OrderDetails.ORDER_DETAILS;
@@ -17,6 +23,7 @@ import static ld.application.jooq.tables.ProductColors.PRODUCT_COLORS;
 import static ld.application.jooq.tables.ProductPhotos.PRODUCT_PHOTOS;
 import static ld.application.jooq.tables.Products.PRODUCTS;
 import static org.jooq.impl.DSL.*;
+
 
 @Service
 public class JooqGetProductService implements GetProductService {
@@ -31,7 +38,7 @@ public class JooqGetProductService implements GetProductService {
     }
 
     @Override
-    public List<GetProductResponse> findAll() {
+    public Page<GetProductResponse> findAll(Pageable pageable) {
 
         Field<List<String>> colorsField = multiset(
                 select(PRODUCT_COLORS.COLOR)
@@ -54,7 +61,17 @@ public class JooqGetProductService implements GetProductService {
                         .where(ORDER_DETAILS.PRODUCT_ID.eq(PRODUCTS.ID))
         ).as("numberOfOrders");
 
-        return dsl
+        Map<String, Field<?>> sortableFields = Map.of(
+                "productId", PRODUCTS.ID,
+                "name", PRODUCTS.NAME,
+                "price", PRODUCTS.UNIT_PRICE,
+                "numberOfOrders", numberOfOrdersField
+        );
+        List<SortField<?>> orderFields = JooqSortUtils.toOrderFields(pageable.getSort(), sortableFields, PRODUCTS.ID.asc());
+
+        int totalElements = dsl.fetchCount(PRODUCTS);
+
+        List<GetProductResponse> content = dsl
                 .select(
                         PRODUCTS.ID,
                         PRODUCTS.NAME,
@@ -64,8 +81,13 @@ public class JooqGetProductService implements GetProductService {
                         numberOfOrdersField
                 )
                 .from(PRODUCTS)
+                .orderBy(orderFields)
+                .limit(pageable.getPageSize())
+                .offset(pageable.getOffset())
                 .fetch(productRow ->
                         toResponse(productRow, colorsField, photoStorageKeysField, numberOfOrdersField));
+
+        return new PageImpl<>(content, pageable, totalElements);
     }
 
     private GetProductResponse toResponse(

@@ -1,9 +1,9 @@
 package ld.application.read;
 
 import ld.application.response.GetProductResponse;
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface GetProductService {
-    List<GetProductResponse> findAll();
+    Page<GetProductResponse> findAll(Pageable pageable);
 }

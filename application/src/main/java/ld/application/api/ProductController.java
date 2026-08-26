@@ -15,11 +15,13 @@ import ld.application.response.CreateProductResponse;
 import ld.application.response.GetProductResponse;
 import ld.domain.features.product.CreateProductUseCase;
 import ld.spring.web.lib.ApiResponseBody;
+import ld.spring.web.lib.PageResponse;
 import ld.spring.web.lib.ResultToResponse;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/products")
@@ -90,8 +92,8 @@ public class ProductController {
                     content = @Content
             )
     })
-    public ResponseEntity<List<GetProductResponse>> get() {
-        return ResponseEntity.ok(this.getProductService.findAll());
+    public ResponseEntity<PageResponse<GetProductResponse>> get(@ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(PageResponse.from(this.getProductService.findAll(pageable)));
     }
 
 }
