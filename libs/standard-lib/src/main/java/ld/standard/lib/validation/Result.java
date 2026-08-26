@@ -71,7 +71,7 @@ public sealed interface Result<T>
 
             case Failure<T> failure ->
                     Result.failure(
-                            failure.detail().type(),
+                            failure.detail().failureType(),
                             failure.detail().errorCode(),
                             failure.detail().title(),
                             failure.detail().message()
@@ -86,7 +86,7 @@ public sealed interface Result<T>
 
             case Failure<T> failure ->
                     Result.failure(
-                            failure.detail().type(),
+                            failure.detail().failureType(),
                             failure.detail().errorCode(),
                             failure.detail().title(),
                             failure.detail().message()

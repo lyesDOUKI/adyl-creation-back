@@ -15,7 +15,7 @@ public class ResultTestSupport {
                 value -> value,
                 failure -> fail(
                         "Expected success but got failure: ["
-                                + failure.type()
+                                + failure.failureType()
                                 + "] "
                                 + failure.title()
                                 + " - "
@@ -38,7 +38,7 @@ public class ResultTestSupport {
                 failureDetail -> failureDetail
         );
 
-        assertThat(detail.type()).isEqualTo(expectedType);
+        assertThat(detail.failureType()).isEqualTo(expectedType);
         assertThat(detail.errorCode()).isEqualTo(expectedCode);
     }
 }

@@ -53,17 +53,22 @@ public final class ResultToResponse {
             HttpServletRequest request
     ) {
         return detail -> {
-            HttpStatus status = toHttpStatus(detail.type());
-            return ResponseEntity
-                    .status(status)
-                    .body(new ProblemDetailResponse(
-                            detail.type().name(),
+            HttpStatus status = toHttpStatus(detail.failureType());
+
+            var problemDetail =
+                    ProblemDetailResponse.forStatus(
+                            status,
                             detail.errorCode().code(),
-                            detail.title(),
-                            detail.message(),
-                            status.value(),
-                            request.getRequestURI()
-                    ));
+                            detail.failureType().name()
+                    );
+
+            problemDetail.setTitle(detail.title());
+            problemDetail.setDetail(detail.message());
+            problemDetail.setInstance(URI.create(request.getRequestURI())
+            );
+
+            return ResponseEntity.status(status)
+                    .body(problemDetail);
         };
     }
 

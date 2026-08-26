@@ -23,7 +23,7 @@ public class JooqSortUtils {
                 .map(order -> {
                     Field<?> field = sortableFields.get(order.getProperty());
                     if (field == null) {
-                        throw new IllegalArgumentException(
+                        throw new InvalidSortFieldException(
                                 "Tri non supporté sur le champ: " + order.getProperty());
                     }
                     return order.isAscending() ? field.asc() : field.desc();
