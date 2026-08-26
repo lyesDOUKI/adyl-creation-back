@@ -1,6 +1,6 @@
 package ld.application.read;
 
-import ld.application.response.GetProductsResponse;
+import ld.application.response.GetProductResponse;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -31,7 +31,7 @@ public class JooqGetProductService implements GetProductService {
     }
 
     @Override
-    public List<GetProductsResponse> findAll() {
+    public List<GetProductResponse> findAll() {
 
         Field<List<String>> colorsField = multiset(
                 select(PRODUCT_COLORS.COLOR)
@@ -68,7 +68,7 @@ public class JooqGetProductService implements GetProductService {
                         toResponse(productRow, colorsField, photoStorageKeysField, numberOfOrdersField));
     }
 
-    private GetProductsResponse toResponse(
+    private GetProductResponse toResponse(
             org.jooq.Record productRow,
             Field<List<String>> colorsField,
             Field<List<String>> photoStorageKeysField,
@@ -84,7 +84,7 @@ public class JooqGetProductService implements GetProductService {
                 .map(storageKey -> photoUrlResolver.resolve(productId, storageKey))
                 .toList();
 
-        return new GetProductsResponse(
+        return new GetProductResponse(
                 productId,
                 productRow.get(PRODUCTS.NAME),
                 unitPrice,

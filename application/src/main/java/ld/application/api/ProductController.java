@@ -12,7 +12,7 @@ import ld.application.read.GetProductService;
 import ld.application.request.CreateProductRequest;
 import ld.application.response.CreateOrderResponse;
 import ld.application.response.CreateProductResponse;
-import ld.application.response.GetProductsResponse;
+import ld.application.response.GetProductResponse;
 import ld.domain.features.product.CreateProductUseCase;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
@@ -77,7 +77,7 @@ public class ProductController {
             @ApiResponse(
                     responseCode = "200",
                     description = "Produits récupéré avec succès",
-                    content = @Content(schema = @Schema(implementation = GetProductsResponse.class))
+                    content = @Content(schema = @Schema(implementation = GetProductResponse.class))
             ),
             @ApiResponse(
                     responseCode = "400",
@@ -90,7 +90,7 @@ public class ProductController {
                     content = @Content
             )
     })
-    public ResponseEntity<List<GetProductsResponse>> get() {
+    public ResponseEntity<List<GetProductResponse>> get() {
         return ResponseEntity.ok(this.getProductService.findAll());
     }
 
