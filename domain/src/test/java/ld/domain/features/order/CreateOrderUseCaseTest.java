@@ -301,6 +301,57 @@ class CreateOrderUseCaseTest {
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
         }
 
+        @Test
+        @DisplayName("La commande est créée avec succès quand le produit n'a pas de couleurs et que la commande a une couleur")
+        void shouldCreateOrderWhenProductHasNoColorsAndCommandHasColor() {
+            var productId = UUID.randomUUID();
+
+            getProductRepository.addProduct(
+                    ProductSnapshotTestBuilder.aProduct()
+                            .withId(productId)
+                            .withPrice(BigDecimal.valueOf(50))
+                            .withColors(List.of())
+                            .build()
+            );
+
+            var createOrderItems = List.of(
+                    new CreateOrderCommand.CreateOrderItem(
+                            productId,
+                            1,
+                            "blue"
+                    )
+            );
+
+            var command = withItems(createOrderItems);
+
+            var result = createOrderUseCase.execute(command);
+            ResultTestSupport.assertSuccess(result);
+
+            assertThat(createOrderRepository.countOrders())
+                    .isOne();
+
+            assertThat(aggregateEventDispatcher.count())
+                    .isOne();
+
+            var persistedOrder = createOrderRepository.findCreatedOrder();
+
+            assertThat(persistedOrder.orderStatus())
+                    .isEqualByComparingTo(OrderStatus.PENDING);
+            assertThat(persistedOrder.total())
+                    .isEqualByComparingTo(BigDecimal.valueOf(50));
+
+            assertThat(persistedOrder.items())
+                    .hasSize(1);
+
+            var item = persistedOrder.items().getFirst();
+
+            assertThat(item.productId())
+                    .isEqualTo(productId);
+            assertThat(item.color())
+                    .isEqualTo(new ProductColor("blue"));
+            assertThat(item.total())
+                    .isEqualByComparingTo(BigDecimal.valueOf(50));
+        }
     }
 
     @Nested
