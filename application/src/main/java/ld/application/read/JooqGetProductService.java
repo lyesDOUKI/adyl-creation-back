@@ -19,13 +19,13 @@ import static ld.application.jooq.tables.Products.PRODUCTS;
 import static org.jooq.impl.DSL.*;
 
 @Service
-public class GetProductServiceImp implements GetProductService {
+public class JooqGetProductService implements GetProductService {
 
     private final DSLContext dsl;
     private final ProductPhotoUrlResolver photoUrlResolver;
 
     @Autowired
-    public GetProductServiceImp(DSLContext dsl, ProductPhotoUrlResolver photoUrlResolver) {
+    public JooqGetProductService(DSLContext dsl, ProductPhotoUrlResolver photoUrlResolver) {
         this.dsl = dsl;
         this.photoUrlResolver = photoUrlResolver;
     }
