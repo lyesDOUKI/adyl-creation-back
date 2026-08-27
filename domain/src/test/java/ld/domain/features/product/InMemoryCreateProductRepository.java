@@ -28,7 +28,4 @@ public class InMemoryCreateProductRepository implements CreateProductRepository 
         return products.size();
     }
 
-    public ProductSnapshot getLast() {
-        return products.getLast();
-    }
 }

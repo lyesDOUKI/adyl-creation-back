@@ -1,4 +1,4 @@
-package ld.domain.helper;
+package ld.standard.lib.helper.test;
 
 import ld.standard.lib.validation.ErrorCode;
 import ld.standard.lib.validation.FailureDetail;
@@ -40,5 +40,12 @@ public class ResultTestSupport {
 
         assertThat(detail.failureType()).isEqualTo(expectedType);
         assertThat(detail.errorCode()).isEqualTo(expectedCode);
+    }
+
+    public static <T> T extractValue(Result<T> result) {
+        return result.resolve(
+                value -> value,
+                failure -> { throw new AssertionError("Expected success but got failure: " + failure); }
+        );
     }
 }

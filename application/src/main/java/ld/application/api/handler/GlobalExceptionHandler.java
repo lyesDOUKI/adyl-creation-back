@@ -1,6 +1,6 @@
 package ld.application.api.handler;
 
-import ld.application.jooq.InvalidSortFieldException;
+import ld.application.infra.db.read.jooq.exception.InvalidSortFieldException;
 import ld.spring.web.lib.ProblemDetailResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;

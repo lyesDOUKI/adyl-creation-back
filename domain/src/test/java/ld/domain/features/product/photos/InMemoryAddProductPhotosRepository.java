@@ -10,7 +10,6 @@ import java.util.UUID;
 class InMemoryAddProductPhotosRepository implements AddProductPhotosRepository {
 
     private final Map<UUID, ProductPhotoSnapshot> products = new HashMap<>();
-    private ProductPhotoSnapshot lastPersisted;
     private int updateCount = 0;
 
     void addProduct(ProductPhotoSnapshot snapshot) {
@@ -24,7 +23,6 @@ class InMemoryAddProductPhotosRepository implements AddProductPhotosRepository {
 
     @Override
     public void execute(ProductPhotoSnapshot productPhotoSnapshot) {
-        this.lastPersisted = productPhotoSnapshot;
         this.updateCount++;
     }
 
@@ -32,7 +30,4 @@ class InMemoryAddProductPhotosRepository implements AddProductPhotosRepository {
         return this.updateCount;
     }
 
-    ProductPhotoSnapshot findLastPersisted() {
-        return this.lastPersisted;
-    }
 }

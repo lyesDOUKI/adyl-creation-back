@@ -9,7 +9,6 @@ import ld.domain.features.product.InMemoryGetProductRepository;
 import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
-import ld.domain.helper.ResultTestSupport;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.standard.lib.validation.FailureType;
 import org.junit.jupiter.api.DisplayName;
@@ -21,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import static ld.standard.lib.helper.test.ResultTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.tuple;
 
@@ -88,7 +88,7 @@ class CreateOrderUseCaseTest {
             );
 
             var result = createOrderUseCase.execute(command);
-            ResultTestSupport.assertFailure(result, FailureType.RESOURCE_NOT_FOUND, OrderErrorCode.PRODUCTS_NOT_FOUND);
+            assertFailure(result, FailureType.RESOURCE_NOT_FOUND, OrderErrorCode.PRODUCTS_NOT_FOUND);
         }
 
         @Test
@@ -99,7 +99,7 @@ class CreateOrderUseCaseTest {
                     productId
             );
 
-            ResultTestSupport.assertFailure(createOrderUseCase.execute(command));
+            assertFailure(createOrderUseCase.execute(command));
 
             assertThat(createOrderRepository.countOrders())
                     .isZero();
@@ -134,7 +134,7 @@ class CreateOrderUseCaseTest {
             );
 
             var result = createOrderUseCase.execute(command);
-            ResultTestSupport.assertSuccess(result);
+            assertSuccess(result);
 
             assertThat(createOrderRepository.countOrders())
                     .isOne();
@@ -143,7 +143,7 @@ class CreateOrderUseCaseTest {
                     .isOne();
 
 
-            var persistedOrder = createOrderRepository.findCreatedOrder();
+            var persistedOrder = extractValue(result);
 
             assertThat(persistedOrder.orderStatus())
                     .isEqualByComparingTo(OrderStatus.PENDING);
@@ -220,9 +220,10 @@ class CreateOrderUseCaseTest {
             var command = withItems(createOrderItems);
 
             var result = createOrderUseCase.execute(command);
-            ResultTestSupport.assertSuccess(result);
+            assertSuccess(result);
 
-            var persistedOrder = createOrderRepository.findCreatedOrder();
+            var persistedOrder = extractValue(result);
+            
             assertThat(persistedOrder.orderStatus())
                     .isEqualByComparingTo(OrderStatus.PENDING);
             assertThat(persistedOrder.total())
@@ -275,7 +276,7 @@ class CreateOrderUseCaseTest {
             var command = withItems(createOrderItems);
 
             var result = createOrderUseCase.execute(command);
-            ResultTestSupport.assertSuccess(result);
+            assertSuccess(result);
 
             assertThat(createOrderRepository.countOrders())
                     .isOne();
@@ -283,7 +284,7 @@ class CreateOrderUseCaseTest {
             assertThat(aggregateEventDispatcher.count())
                     .isOne();
 
-            var persistedOrder = createOrderRepository.findCreatedOrder();
+            var persistedOrder = extractValue(result);
 
             assertThat(persistedOrder.orderStatus())
                     .isEqualByComparingTo(OrderStatus.PENDING);
@@ -325,7 +326,7 @@ class CreateOrderUseCaseTest {
             var command = withItems(createOrderItems);
 
             var result = createOrderUseCase.execute(command);
-            ResultTestSupport.assertSuccess(result);
+            assertSuccess(result);
 
             assertThat(createOrderRepository.countOrders())
                     .isOne();
@@ -333,7 +334,7 @@ class CreateOrderUseCaseTest {
             assertThat(aggregateEventDispatcher.count())
                     .isOne();
 
-            var persistedOrder = createOrderRepository.findCreatedOrder();
+            var persistedOrder = extractValue(result);
 
             assertThat(persistedOrder.orderStatus())
                     .isEqualByComparingTo(OrderStatus.PENDING);
@@ -395,7 +396,7 @@ class CreateOrderUseCaseTest {
 
             var result = createOrderUseCase.execute(command);
 
-            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, OrderErrorCode.PRODUCT_NOT_AVAILABLE);
+            assertFailure(result, FailureType.BUSINESS_RULE, OrderErrorCode.PRODUCT_NOT_AVAILABLE);
 
             assertThat(createOrderRepository.countOrders())
                     .isZero();
@@ -431,7 +432,7 @@ class CreateOrderUseCaseTest {
                             .build()
             );
 
-            ResultTestSupport.assertFailure(createOrderUseCase.execute(command), FailureType.BUSINESS_RULE, OrderErrorCode.PRODUCT_COLOR_NOT_AVAILABLE);
+            assertFailure(createOrderUseCase.execute(command), FailureType.BUSINESS_RULE, OrderErrorCode.PRODUCT_COLOR_NOT_AVAILABLE);
         }
     }
 
@@ -467,7 +468,7 @@ class CreateOrderUseCaseTest {
                             .build()
             );
 
-            ResultTestSupport.assertSuccess(createOrderUseCase.execute(command));
+            assertSuccess(createOrderUseCase.execute(command));
             assertThat(createOrderRepository.countOrders())
                     .isOne();
             assertThat(aggregateEventDispatcher.count())

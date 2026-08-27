@@ -100,17 +100,17 @@ public class ProductController {
 
     @GetMapping("{id}")
     @Operation(
-            summary = "Récupération des produits"
+            summary = "Récupération d'un produit"
     )
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Produits récupéré avec succès",
+                    description = "Produit récupéré avec succès",
                     content = @Content(schema = @Schema(implementation = GetProductResponse.class))
             ),
             @ApiResponse(
                     responseCode = "404",
-                    description = "Produits introuvable",
+                    description = "Produit introuvable",
                     content = @Content
             ),
             @ApiResponse(

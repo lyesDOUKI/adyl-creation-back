@@ -7,7 +7,6 @@ import ld.domain.features.product.photos.validation.PhotoErrorCode;
 import ld.domain.features.product.photos.validation.PhotoRule;
 import ld.domain.features.product.validation.ProductErrorCode;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
-import ld.domain.helper.ResultTestSupport;
 import ld.standard.lib.validation.FailureType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -16,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.UUID;
 
+import static ld.standard.lib.helper.test.ResultTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -70,7 +70,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            ResultTestSupport.assertFailure(result, FailureType.RESOURCE_NOT_FOUND, ProductErrorCode.PRODUCTS_NOT_FOUND);
+            assertFailure(result, FailureType.RESOURCE_NOT_FOUND, ProductErrorCode.PRODUCTS_NOT_FOUND);
         }
 
         @Test
@@ -79,7 +79,7 @@ class AddProductPhotosUseCaseImplTest {
             var productId = UUID.randomUUID();
             var command = defaultCommand(productId);
 
-            ResultTestSupport.assertFailure(addProductPhotosUseCase.execute(command));
+            assertFailure(addProductPhotosUseCase.execute(command));
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -100,7 +100,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_LIST_EMPTY);
+            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_LIST_EMPTY);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -114,7 +114,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_LIST_EMPTY);
+            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_LIST_EMPTY);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -135,7 +135,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_SIZE_ZERO);
+            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_SIZE_ZERO);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -149,7 +149,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_SIZE_ZERO);
+            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_SIZE_ZERO);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -171,7 +171,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_MAX_SIZE_EXCEEDED);
+            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_MAX_SIZE_EXCEEDED);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -192,7 +192,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_EXTENSION_NOT_ALLOWED);
+            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_EXTENSION_NOT_ALLOWED);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -207,7 +207,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_EXTENSION_NOT_ALLOWED);
+            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_EXTENSION_NOT_ALLOWED);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -230,12 +230,12 @@ class AddProductPhotosUseCaseImplTest {
             ));
 
             var result = addProductPhotosUseCase.execute(command);
-            ResultTestSupport.assertSuccess(result);
+            assertSuccess(result);
 
             assertThat(productPhotoStoragePort.countStored()).isEqualTo(2);
             assertThat(addProductPhotosRepository.countUpdates()).isOne();
 
-            var persisted = addProductPhotosRepository.findLastPersisted();
+            var persisted = extractValue(result);
 
             assertThat(persisted.photos())
                     .hasSize(3)
@@ -257,9 +257,9 @@ class AddProductPhotosUseCaseImplTest {
             var command = withPhotos(productId, List.of(defaultPhoto("new-photo.jpg")));
 
             var result = addProductPhotosUseCase.execute(command);
-            ResultTestSupport.assertSuccess(result);
+            assertSuccess(result);
 
-            var persisted = addProductPhotosRepository.findLastPersisted();
+            var persisted = extractValue(result);
 
             assertThat(persisted.photos())
                     .hasSize(2)

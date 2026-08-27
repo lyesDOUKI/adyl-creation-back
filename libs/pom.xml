@@ -19,6 +19,7 @@
         <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
         <spring.data.commons.version>3.3.4</spring.data.commons.version>
         <jackson.annotations.version>2.21</jackson.annotations.version>
+        <org.assertions.version>3.26.3</org.assertions.version>
     </properties>
 
     <dependencyManagement>
@@ -45,6 +46,11 @@
                 <groupId>com.fasterxml.jackson.core</groupId>
                 <artifactId>jackson-annotations</artifactId>
                 <version>${jackson.annotations.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${org.assertions.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

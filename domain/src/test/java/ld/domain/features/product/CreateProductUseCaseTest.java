@@ -5,7 +5,6 @@ import ld.domain.features.product.model.ProductEvent;
 import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.product.validation.ProductErrorCode;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
-import ld.domain.helper.ResultTestSupport;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.standard.lib.validation.FailureType;
 import org.assertj.core.api.Assertions;
@@ -17,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+
+import static ld.standard.lib.helper.test.ResultTestSupport.*;
 
 class CreateProductUseCaseTest {
 
@@ -41,13 +42,13 @@ class CreateProductUseCaseTest {
         public void shouldReturnFailureResult() {
             var result = createProductUseCase.execute(new CreateProductCommand("product 1",
                     BigDecimal.valueOf(50), List.of("blue")));
-            ResultTestSupport.assertFailure(result, FailureType.BUSINESS_RULE, ProductErrorCode.PRODUCT_ALREADY_EXISTS);
+            assertFailure(result, FailureType.BUSINESS_RULE, ProductErrorCode.PRODUCT_ALREADY_EXISTS);
         }
 
         @Test
         @DisplayName("Aucun produit n'est persisté, aucun évenement n'est emis")
         public void shouldNotPersistAndDispatchEvent() {
-            ResultTestSupport.assertFailure(createProductUseCase.execute(new CreateProductCommand("product 1",
+            assertFailure(createProductUseCase.execute(new CreateProductCommand("product 1",
                     BigDecimal.valueOf(50), List.of("blue"))));
             Assertions.assertThat(createProductRepository.count())
                     .isEqualTo(1);
@@ -66,14 +67,14 @@ class CreateProductUseCaseTest {
 
             var command = new CreateProductCommand("bonnet", BigDecimal.valueOf(50), List.of("black"));
             var result = createProductUseCase.execute(command);
-            ResultTestSupport.assertSuccess(result);
+            assertSuccess(result);
 
             Assertions.assertThat(createProductRepository.count())
                     .isOne();
             Assertions.assertThat(aggregateEventDispatcher.count())
                     .isOne();
 
-            var persistedProduct = createProductRepository.getLast();
+            var persistedProduct = extractValue(result);
 
             Assertions.assertThat(persistedProduct.name())
                     .isEqualTo("bonnet");
@@ -90,14 +91,14 @@ class CreateProductUseCaseTest {
 
             var command = new CreateProductCommand("bonnet", BigDecimal.valueOf(50), null);
             var result = createProductUseCase.execute(command);
-            ResultTestSupport.assertSuccess(result);
+            assertSuccess(result);
 
             Assertions.assertThat(createProductRepository.count())
                     .isOne();
             Assertions.assertThat(aggregateEventDispatcher.count())
                     .isOne();
 
-            var persistedProduct = createProductRepository.getLast();
+            var persistedProduct = extractValue(result);
 
             Assertions.assertThat(persistedProduct.name())
                     .isEqualTo("bonnet");
@@ -115,14 +116,14 @@ class CreateProductUseCaseTest {
             colors.add(null);
             var command = new CreateProductCommand("bonnet", BigDecimal.valueOf(50), colors);
             var result = createProductUseCase.execute(command);
-            ResultTestSupport.assertSuccess(result);
+            assertSuccess(result);
 
             Assertions.assertThat(createProductRepository.count())
                     .isOne();
             Assertions.assertThat(aggregateEventDispatcher.count())
                     .isOne();
 
-            var persistedProduct = createProductRepository.getLast();
+            var persistedProduct = extractValue(result);
 
             Assertions.assertThat(persistedProduct.name())
                     .isEqualTo("bonnet");

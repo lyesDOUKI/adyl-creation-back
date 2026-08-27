@@ -18,9 +18,4 @@ public class InMemoryCreateOrderRepository implements CreateOrderRepository {
         return this.orders.size();
     }
 
-    public OrderSnapshot findCreatedOrder() {
-        return this.orders.stream()
-                .findFirst()
-                .orElseThrow();
-    }
 }
