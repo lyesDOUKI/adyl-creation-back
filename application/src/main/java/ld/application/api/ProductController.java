@@ -80,8 +80,7 @@ public class ProductController {
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
-                    description = "Produits récupéré avec succès",
-                    content = @Content(schema = @Schema(implementation = GetProductResponse.class))
+                    description = "Produits récupéré avec succès"
             ),
             @ApiResponse(
                     responseCode = "400",
