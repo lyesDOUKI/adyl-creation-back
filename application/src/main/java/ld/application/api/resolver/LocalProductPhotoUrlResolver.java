@@ -1,6 +1,6 @@
 package ld.application.api.resolver;
 
-import ld.application.api.PhotoController;
+import ld.application.api.product.PhotoController;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBuilder;
