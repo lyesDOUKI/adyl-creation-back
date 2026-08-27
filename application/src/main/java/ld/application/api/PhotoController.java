@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -29,7 +30,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/{id}/photos")
+@RequestMapping("/products/{id}/photos")
 @Tag(name = "photos", description = "API pour la gestion des photos des produits")
 public class PhotoController {
 
@@ -83,20 +84,25 @@ public class PhotoController {
     public ResponseEntity<byte[]> get(
             @PathVariable("id") UUID productId,
             @PathVariable String fileName
-    ) throws IOException {
+    ) {
         Path filePath = this.rootDirectory.resolve(productId + "/" + fileName).normalize();
 
         if (!filePath.startsWith(this.rootDirectory) || !Files.exists(filePath)) {
             return ResponseEntity.notFound().build();
         }
 
-        String contentType = Files.probeContentType(filePath);
+        try {
+            String contentType = Files.probeContentType(filePath);
+            byte[] content = Files.readAllBytes(filePath);
 
-        return ResponseEntity.ok()
-                .contentType(contentType != null
-                        ? MediaType.parseMediaType(contentType)
-                        : MediaType.APPLICATION_OCTET_STREAM)
-                .cacheControl(CacheControl.maxAge(Duration.ofDays(7)))
-                .body(Files.readAllBytes(filePath));
+            return ResponseEntity.ok()
+                    .contentType(contentType != null
+                            ? MediaType.parseMediaType(contentType)
+                            : MediaType.APPLICATION_OCTET_STREAM)
+                    .cacheControl(CacheControl.maxAge(Duration.ofDays(7)))
+                    .body(content);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Erreur lors de la lecture du fichier photo : " + filePath, e);
+        }
     }
 }

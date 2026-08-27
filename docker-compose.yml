@@ -11,12 +11,9 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
     volumes:
-      - photos_data_adyl_creation:/data/photos
+      - ./data/photos:/data/photos
     networks:
       - adyl-creation-network
-
-volumes:
-  photos_data_adyl_creation:
 
 networks:
   adyl-creation-network:
