@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.util.*;
 
+import static ld.application.shared.ProductQueryTestBuilder.aProduct;
 import static ld.standard.lib.helper.test.ResultTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -36,14 +37,14 @@ class GetProductServiceImplTest {
 
     @Test
     void findById_returns_success_with_mapped_fields_when_product_exists() {
-        repository.add(new ProductQuery(
-                productId,
-                "T-shirt",
-                BigDecimal.valueOf(19.90),
-                List.of("rouge", "bleu"),
-                List.of("photo1.jpg", "photo2.jpg"),
-                3
-        ));
+        repository.add(aProduct()
+                .withProductId(productId)
+                .withName("T-shirt")
+                .withPrice(BigDecimal.valueOf(19.90))
+                .withColors("rouge", "bleu")
+                .withPhotos("photo1.jpg", "photo2.jpg")
+                .withNumberOfOrders(3)
+                .build());
 
         Result<GetProductResponse> result = service.findById(productId);
 
@@ -58,14 +59,12 @@ class GetProductServiceImplTest {
 
     @Test
     void findById_resolves_each_photo_url_via_the_resolver() {
-        repository.add(new ProductQuery(
-                productId,
-                "T-shirt",
-                BigDecimal.TEN,
-                List.of(),
-                List.of("photo1.jpg", "photo2.jpg"),
-                0
-        ));
+        repository.add(aProduct()
+                .withProductId(productId)
+                .withName("T-shirt")
+                .withPrice(BigDecimal.TEN)
+                .withPhotos("photo1.jpg", "photo2.jpg")
+                .build());
 
         Result<GetProductResponse> result = service.findById(productId);
 
@@ -79,9 +78,11 @@ class GetProductServiceImplTest {
 
     @Test
     void findById_returns_empty_photo_list_when_product_has_no_photos() {
-        repository.add(new ProductQuery(
-                productId, "Mug", BigDecimal.ONE, List.of(), List.of(), 0
-        ));
+        repository.add(aProduct()
+                .withProductId(productId)
+                .withName("Mug")
+                .withPrice(BigDecimal.ONE)
+                .build());
 
         Result<GetProductResponse> result = service.findById(productId);
 
@@ -100,8 +101,18 @@ class GetProductServiceImplTest {
     void findAll_maps_every_element_of_the_page_and_preserves_paging_metadata() {
         UUID idA = UUID.randomUUID();
         UUID idB = UUID.randomUUID();
-        repository.add(new ProductQuery(idA, "A", BigDecimal.ONE, List.of(), List.of(), 0));
-        repository.add(new ProductQuery(idB, "B", BigDecimal.TEN, List.of(), List.of("p.jpg"), 5));
+        repository.add(aProduct()
+                .withProductId(idA)
+                .withName("A")
+                .withPrice(BigDecimal.ONE)
+                .build());
+        repository.add(aProduct()
+                .withProductId(idB)
+                .withName("B")
+                .withPrice(BigDecimal.TEN)
+                .withPhotos("p.jpg")
+                .withNumberOfOrders(5)
+                .build());
 
         Pageable pageable = PageRequest.of(0, 10);
         Page<GetProductResponse> page = service.findAll(pageable);
