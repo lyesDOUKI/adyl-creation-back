@@ -5,6 +5,7 @@ import ld.domain.features.product.model.ProductPhoto;
 import ld.domain.features.product.model.ProductPhotoSnapshot;
 import ld.domain.features.product.photos.validation.PhotoRule;
 import ld.domain.features.product.validation.ProductErrorCode;
+import ld.standard.lib.UnitOfWork;
 import ld.standard.lib.validation.BusinessGuard;
 import ld.standard.lib.validation.Result;
 
@@ -17,11 +18,13 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
     private final AddProductPhotosRepository addProductPhotosRepository;
     private final ProductPhotoStoragePort productPhotoStoragePort;
     private final BusinessGuard<AddProductPhotosCommand> addProductPhotosCommandBusinessGuard;
+    private final UnitOfWork unitOfWork;
 
     public AddProductPhotosUseCaseImpl(AddProductPhotosRepository addProductPhotosRepository,
-                                       ProductPhotoStoragePort productPhotoStoragePort) {
+                                       ProductPhotoStoragePort productPhotoStoragePort, UnitOfWork unitOfWork) {
         this.addProductPhotosRepository = addProductPhotosRepository;
         this.productPhotoStoragePort = productPhotoStoragePort;
+        this.unitOfWork = unitOfWork;
         this.addProductPhotosCommandBusinessGuard = BusinessGuard.of(new PhotoRule());
     }
 
@@ -37,14 +40,14 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
                             Product product = Product.from(snapshot);
                             return this.storePhotos(command).flatMap(product::addPhotos).map(_ -> product);
                         })
-                        .map(product -> {
+                        .flatMap(product -> this.unitOfWork.execute(() -> {
                                     var productPhotoSnapshot = new ProductPhotoSnapshot(product.toSnapshot(),
                                             product.getPhotos());
                                     this.addProductPhotosRepository.execute(
                                             productPhotoSnapshot);
-                                    return productPhotoSnapshot;
+                                    return Result.success(productPhotoSnapshot);
                                 }
-                        )
+                        ))
                 );
     }
 

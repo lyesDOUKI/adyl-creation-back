@@ -2,6 +2,7 @@ package ld.application.infra.db.read.jooq;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import ld.application.config.SharedPostgresContainer;
 import ld.application.infra.db.read.ProductQuery;
 import ld.application.infra.db.read.jooq.exception.InvalidSortFieldException;
 import ld.domain.features.product.model.ProductStatus;
@@ -17,8 +18,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.Optional;
@@ -33,11 +32,9 @@ import static ld.application.jooq.tables.Products.PRODUCTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@Testcontainers
 class JooqGetProductQueryRepositoryTest {
 
-    @Container
-    static final PostgreSQLContainer<?> POSTGRES = new PostgreSQLContainer<>("postgres:16");
+    static final PostgreSQLContainer<?> POSTGRES = SharedPostgresContainer.INSTANCE;
 
     static HikariDataSource dataSource;
     static DSLContext dsl;

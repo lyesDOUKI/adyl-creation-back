@@ -22,7 +22,7 @@ public class GetProductJpaRepositoryAdapter implements GetProductRepository {
 
     @Override
     public List<ProductSnapshot> getAllBy(Collection<UUID> productsId) {
-        return productJpaRepository.findAllById(productsId).stream()
+        return productJpaRepository.findAllWithColorsByIdIn(productsId).stream()
                 .map(this::toSnapshot)
                 .toList();
     }

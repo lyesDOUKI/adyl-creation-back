@@ -10,6 +10,7 @@ import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
+import ld.standard.lib.helper.test.InMemoryUnitOfWork;
 import ld.standard.lib.validation.FailureType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -35,7 +36,8 @@ class CreateOrderUseCaseTest {
         this.createOrderUseCase = new CreateOrderUseCaseImpl(
                 createOrderRepository,
                 getProductRepository,
-                aggregateEventDispatcher
+                aggregateEventDispatcher,
+                new InMemoryUnitOfWork()
         );
     }
 

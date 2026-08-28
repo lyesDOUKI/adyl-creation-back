@@ -7,6 +7,7 @@ import ld.domain.features.product.photos.validation.PhotoErrorCode;
 import ld.domain.features.product.photos.validation.PhotoRule;
 import ld.domain.features.product.validation.ProductErrorCode;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
+import ld.standard.lib.helper.test.InMemoryUnitOfWork;
 import ld.standard.lib.validation.FailureType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -28,7 +29,8 @@ class AddProductPhotosUseCaseImplTest {
     AddProductPhotosUseCaseImplTest() {
         this.addProductPhotosUseCase = new AddProductPhotosUseCaseImpl(
                 addProductPhotosRepository,
-                productPhotoStoragePort
+                productPhotoStoragePort,
+                new InMemoryUnitOfWork()
         );
     }
 

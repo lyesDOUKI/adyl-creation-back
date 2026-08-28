@@ -8,6 +8,7 @@ import ld.domain.features.order.validation.ProductsColorsRule;
 import ld.domain.features.product.GetProductRepository;
 import ld.domain.features.product.model.ProductSnapshot;
 import ld.standard.lib.AggregateEventDispatcher;
+import ld.standard.lib.UnitOfWork;
 import ld.standard.lib.validation.BusinessGuard;
 import ld.standard.lib.validation.Result;
 
@@ -24,13 +25,16 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
     private final GetProductRepository getProductRepository;
     private final AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
     private final BusinessGuard<CreateOrderContextValidation> createOrderGuard;
+    private final UnitOfWork unitOfWork;
 
     public CreateOrderUseCaseImpl(CreateOrderRepository createOrderRepository,
                                   GetProductRepository getProductRepository,
-                                  AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher) {
+                                  AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher,
+                                  UnitOfWork unitOfWork) {
         this.createOrderRepository = createOrderRepository;
         this.getProductRepository = getProductRepository;
         this.aggregateEventDispatcher = aggregateEventDispatcher;
+        this.unitOfWork = unitOfWork;
         this.createOrderGuard = BusinessGuard.of(
                 new ProductStatusRule(),
                 new ProductsColorsRule()
@@ -44,7 +48,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                         this.assertGivenProducts(createOrderCommand, givenProducts))
                 .map(productsById ->
                         this.initItems(createOrderCommand.createOrderItems(), productsById))
-                .map(orderItems -> {
+                .flatMap(orderItems -> this.unitOfWork.execute(() -> {
                     var order = Order.create(
                             Customer.from(createOrderCommand.customerInfo()),
                             createOrderCommand.message()
@@ -52,8 +56,8 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                     order.calculateOrder(orderItems);
                     this.createOrderRepository.create(order.toSnapshot());
                     this.aggregateEventDispatcher.dispatch(new OrderCreated(order.getId()));
-                    return order.toSnapshot();
-                });
+                    return Result.success(order.toSnapshot());
+                }));
     }
 
     private Result<Map<UUID, ProductSnapshot>> getGivenProducts(List<CreateOrderCommand.CreateOrderItem> orderItems) {

@@ -6,6 +6,7 @@ import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.product.validation.ProductErrorCode;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
+import ld.standard.lib.helper.test.InMemoryUnitOfWork;
 import ld.standard.lib.validation.FailureType;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +24,8 @@ class CreateProductUseCaseTest {
 
     InMemoryCreateProductRepository createProductRepository = new InMemoryCreateProductRepository();
     InMemoryAggregateEventDispatcher<ProductEvent> aggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
-    CreateProductUseCaseImpl createProductUseCase = new CreateProductUseCaseImpl(createProductRepository, aggregateEventDispatcher);
+    InMemoryUnitOfWork unitOfWork = new InMemoryUnitOfWork();
+    CreateProductUseCaseImpl createProductUseCase = new CreateProductUseCaseImpl(createProductRepository, aggregateEventDispatcher, unitOfWork);
 
     @Nested
     @DisplayName("Quand il existe déjà un produit avec ce nom")
