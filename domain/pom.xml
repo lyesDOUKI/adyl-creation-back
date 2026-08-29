@@ -39,7 +39,6 @@
                         </goals>
                         <configuration>
                             <outputDirectory>${project.build.directory}/jacoco-report</outputDirectory>
-                            <includes>ld/domain/features/**</includes>
                         </configuration>
                     </execution>
                 </executions>

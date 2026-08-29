@@ -7,7 +7,7 @@ public record Price(BigDecimal value) {
     public Price {
         Objects.requireNonNull(value, "Le prix ne peut pas etre null");
         if (value.compareTo(BigDecimal.ZERO) < 0) {
-            throw new IllegalStateException("Le prix ne peut pas etre négatif");
+            throw new IllegalArgumentException("Le prix ne peut pas etre négatif");
         }
     }
 
