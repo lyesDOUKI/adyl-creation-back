@@ -38,8 +38,11 @@ public class CreateProductUseCaseImpl implements CreateProductUseCase {
                             createProductCommand.colors()
                     );
                     this.createProductRepository.create(product.toSnapshot());
+                    return Result.success(product);
+                }))
+                .map(product -> {
                     product.getDomainEvents().forEach(this.aggregateEventDispatcher::dispatch);
-                    return Result.success(product.toSnapshot());
-                }));
+                    return product.toSnapshot();
+                });
     }
 }
