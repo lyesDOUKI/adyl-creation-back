@@ -19,7 +19,7 @@
         <jakarta.servlet.version>6.1.0</jakarta.servlet.version>
         <spring.data.commons.version>3.3.4</spring.data.commons.version>
         <jackson.annotations.version>2.21</jackson.annotations.version>
-        <org.assertions.version>3.26.3</org.assertions.version>
+        <org.assertions.version>3.27.7</org.assertions.version>
     </properties>
 
     <dependencyManagement>
