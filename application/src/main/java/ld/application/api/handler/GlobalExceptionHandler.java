@@ -6,6 +6,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MultipartException;
 
 import java.util.Map;
 import java.util.Optional;
@@ -29,6 +30,14 @@ public class GlobalExceptionHandler {
     public ProblemDetailResponse handleInvalidSortField(InvalidSortFieldException ex) {
         var problemDetail = ProblemDetailResponse.forStatus(HttpStatus.BAD_REQUEST);
         problemDetail.setTitle("Invalid sort field");
+        problemDetail.setDetail(ex.getMessage());
+        return problemDetail;
+    }
+
+    @ExceptionHandler(MultipartException.class)
+    public ProblemDetailResponse handleMultipartException(MultipartException ex) {
+        var problemDetail = ProblemDetailResponse.forStatus(HttpStatus.BAD_REQUEST);
+        problemDetail.setTitle("Invalid multipart request");
         problemDetail.setDetail(ex.getMessage());
         return problemDetail;
     }
