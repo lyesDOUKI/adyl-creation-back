@@ -40,7 +40,7 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
                             Product product = Product.from(snapshot);
                             return this.storePhotos(command).flatMap(product::addPhotos).map(_ -> product);
                         })
-                        .flatMap(product -> this.unitOfWork.execute(() -> {
+                        .flatMap(product -> this.unitOfWork.executeInTransaction(() -> {
                                     var productPhotoSnapshot = new ProductPhotoSnapshot(product.toSnapshot(),
                                             product.getPhotos());
                                     this.addProductPhotosRepository.execute(

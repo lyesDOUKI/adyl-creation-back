@@ -48,16 +48,19 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                         this.assertGivenProducts(createOrderCommand, givenProducts))
                 .map(productsById ->
                         this.initItems(createOrderCommand.createOrderItems(), productsById))
-                .flatMap(orderItems -> this.unitOfWork.execute(() -> {
+                .flatMap(orderItems -> this.unitOfWork.executeInTransaction(() -> {
                     var order = Order.create(
                             Customer.from(createOrderCommand.customerInfo()),
                             createOrderCommand.message()
                     );
                     order.calculateOrder(orderItems);
                     this.createOrderRepository.create(order.toSnapshot());
-                    this.aggregateEventDispatcher.dispatch(new OrderCreated(order.getId()));
-                    return Result.success(order.toSnapshot());
-                }));
+                    return Result.success(order);
+                }))
+                .map(order -> {
+                    order.getDomainEvents().forEach(this.aggregateEventDispatcher::dispatch);
+                    return order.toSnapshot();
+                });
     }
 
     private Result<Map<UUID, ProductSnapshot>> getGivenProducts(List<CreateOrderCommand.CreateOrderItem> orderItems) {

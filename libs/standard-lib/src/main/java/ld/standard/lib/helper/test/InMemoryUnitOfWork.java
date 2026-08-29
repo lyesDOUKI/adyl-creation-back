@@ -7,7 +7,7 @@ import java.util.function.Supplier;
 
 public class InMemoryUnitOfWork implements UnitOfWork {
     @Override
-    public <T> Result<T> execute(Supplier<Result<T>> operation) {
+    public <T> Result<T> executeInTransaction(Supplier<Result<T>> operation) {
         return operation.get();
     }
 }

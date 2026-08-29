@@ -31,7 +31,7 @@ public class CreateProductUseCaseImpl implements CreateProductUseCase {
     @Override
     public Result<ProductSnapshot> execute(CreateProductCommand createProductCommand) {
         return this.createProductGuard.validate(createProductCommand)
-                .flatMap(_ -> this.unitOfWork.execute(() -> {
+                .flatMap(_ -> this.unitOfWork.executeInTransaction(() -> {
                     Product product = Product.create(
                             createProductCommand.name(),
                             createProductCommand.price(),

@@ -21,6 +21,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
         this.customer = customer;
         this.message = message;
         this.orderStatus = OrderStatus.PENDING;
+        this.addDomainEvent(new OrderCreated(getId()));
     }
 
     public static Order create(Customer customer, String message) {
