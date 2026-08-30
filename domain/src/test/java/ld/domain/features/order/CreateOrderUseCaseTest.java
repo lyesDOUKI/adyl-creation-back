@@ -9,9 +9,11 @@ import ld.domain.features.product.InMemoryGetProductRepository;
 import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
+import ld.domain.valueObjects.Price;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.standard.lib.helper.test.InMemoryUnitOfWork;
 import ld.standard.lib.validation.FailureType;
+import org.assertj.core.util.BigDecimalComparator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -158,7 +160,7 @@ class CreateOrderUseCaseTest {
             var item = persistedOrder.items().getFirst();
 
             assertThat(item.total())
-                    .isEqualByComparingTo(BigDecimal.valueOf(50));
+                    .isEqualTo(new Price(BigDecimal.valueOf(50)));
         }
 
         @Test
@@ -247,10 +249,11 @@ class CreateOrderUseCaseTest {
                             OrderSnapshot.OrderItemSnapshot::productId,
                             OrderSnapshot.OrderItemSnapshot::total
                     )
+                    .usingComparatorForType(BigDecimalComparator.BIG_DECIMAL_COMPARATOR, BigDecimal.class)
                     .containsExactlyInAnyOrder(
-                            tuple(productOne, BigDecimal.valueOf(200)),
-                            tuple(productTwo, BigDecimal.valueOf(100)),
-                            tuple(productThree, BigDecimal.valueOf(800))
+                            tuple(productOne, new Price(BigDecimal.valueOf(200))),
+                            tuple(productTwo, new Price(BigDecimal.valueOf(100))),
+                            tuple(productThree, new Price(BigDecimal.valueOf(800)))
                     );
         }
 
@@ -301,7 +304,7 @@ class CreateOrderUseCaseTest {
             assertThat(item.productId())
                     .isEqualTo(productId);
             assertThat(item.total())
-                    .isEqualByComparingTo(BigDecimal.valueOf(50));
+                    .isEqualTo(new Price(BigDecimal.valueOf(50)));
         }
 
         @Test
@@ -353,7 +356,7 @@ class CreateOrderUseCaseTest {
             assertThat(item.color())
                     .isEqualTo(new ProductColor("blue"));
             assertThat(item.total())
-                    .isEqualByComparingTo(BigDecimal.valueOf(50));
+                    .isEqualTo(new Price(BigDecimal.valueOf(50)));
         }
     }
 

@@ -1,6 +1,6 @@
 package ld.domain.features.shared;
 
-import ld.domain.features.order.model.Customer;
+import ld.domain.features.order.model.CustomerInfo;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderStatus;
 
@@ -11,7 +11,7 @@ import java.util.UUID;
 public class OrderSnapshotTestBuilder {
 
     private UUID orderId = UUID.randomUUID();
-    private Customer customer = defaultCustomer();
+    private CustomerInfo customerInfo = defaultCustomer();
     private String message = "no message";
     private BigDecimal total = BigDecimal.TEN;
     private OrderStatus orderStatus = OrderStatus.PENDING;
@@ -21,8 +21,8 @@ public class OrderSnapshotTestBuilder {
         return new OrderSnapshotTestBuilder();
     }
 
-    private static Customer defaultCustomer() {
-        return new Customer("test", "test@test.com", "0123456789", "7 rue test", "avignon");
+    private static CustomerInfo defaultCustomer() {
+        return new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
     }
 
     public OrderSnapshotTestBuilder withOrderId(UUID orderId) {
@@ -30,8 +30,8 @@ public class OrderSnapshotTestBuilder {
         return this;
     }
 
-    public OrderSnapshotTestBuilder withCustomer(Customer customer) {
-        this.customer = customer;
+    public OrderSnapshotTestBuilder withCustomer(CustomerInfo customerInfo) {
+        this.customerInfo = customerInfo;
         return this;
     }
 
@@ -56,6 +56,6 @@ public class OrderSnapshotTestBuilder {
     }
 
     public OrderSnapshot build() {
-        return new OrderSnapshot(orderId, customer, message, total, orderStatus, items);
+        return new OrderSnapshot(orderId, customerInfo, message, total, orderStatus, items);
     }
 }

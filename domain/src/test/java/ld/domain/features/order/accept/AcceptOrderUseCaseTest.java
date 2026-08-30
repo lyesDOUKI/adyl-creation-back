@@ -1,21 +1,17 @@
 package ld.domain.features.order.accept;
 
-
-import ld.domain.features.order.lifecycle.DiscountClaimRepository;
 import ld.domain.features.order.lifecycle.InMemoryDiscountClaimRepository;
 import ld.domain.features.order.lifecycle.InMemoryOrderLifecycleRepository;
-import ld.domain.features.order.lifecycle.OrderLifecycleRepository;
-import ld.domain.features.order.model.Customer;
-import ld.domain.features.order.model.DiscountType;
-import ld.domain.features.order.model.OrderEvent;
-import ld.domain.features.order.model.OrderStatus;
+import ld.domain.features.order.model.*;
 import ld.domain.features.order.validation.OrderErrorCode;
+import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.shared.OrderSnapshotTestBuilder;
 import ld.domain.valueObjects.Percentage;
-import ld.standard.lib.UnitOfWork;
+import ld.domain.valueObjects.Price;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.standard.lib.helper.test.InMemoryUnitOfWork;
 import ld.standard.lib.validation.FailureType;
+import org.assertj.core.util.BigDecimalComparator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -24,6 +20,7 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.UUID;
 
 import static ld.standard.lib.helper.test.ResultTestSupport.*;
@@ -34,18 +31,29 @@ class AcceptOrderUseCaseTest {
     private static final Instant FIXED_INSTANT = Instant.parse("2026-08-30T10:00:00Z");
     private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
 
-    private final OrderLifecycleRepository orderLifecycleRepository = new InMemoryOrderLifecycleRepository();
-    private final DiscountClaimRepository discountClaimRepository = new InMemoryDiscountClaimRepository();
+    private final InMemoryOrderLifecycleRepository inMemoryOrderLifecycleRepository = new InMemoryOrderLifecycleRepository();
+    private final InMemoryDiscountClaimRepository discountClaimRepository = new InMemoryDiscountClaimRepository();
     private final InMemoryAggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
-    private final UnitOfWork unitOfWork = new InMemoryUnitOfWork();
+    private final InMemoryUnitOfWork unitOfWork = new InMemoryUnitOfWork();
 
     private final AcceptOrderUseCase acceptOrderUseCase = new AcceptOrderUseCaseImpl(
-            orderLifecycleRepository,
+            inMemoryOrderLifecycleRepository,
             discountClaimRepository,
             orderEventAggregateEventDispatcher,
             unitOfWork,
             FIXED_CLOCK
     );
+
+    private static OrderSnapshot.OrderItemSnapshot anItem(BigDecimal price, BigDecimal total) {
+        return new OrderSnapshot.OrderItemSnapshot(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                new Price(price),
+                1,
+                new Price(total),
+                new ProductColor("noir")
+        );
+    }
 
     @Nested
     @DisplayName("Quand la commande n'est pas trouvée")
@@ -66,13 +74,10 @@ class AcceptOrderUseCaseTest {
         void shouldNotPersistNorDispatchEvent() {
             var command = new AcceptOrderCommand(UUID.randomUUID());
 
-            assertFailure(acceptOrderUseCase.execute(command));
+            acceptOrderUseCase.execute(command);
 
-            assertThat(orderLifecycleRepository.findById(command.orderId()))
-                    .isEmpty();
-
-            assertThat(orderEventAggregateEventDispatcher.count())
-                    .isZero();
+            assertThat(inMemoryOrderLifecycleRepository.findById(command.orderId())).isEmpty();
+            assertThat(orderEventAggregateEventDispatcher.count()).isZero();
         }
     }
 
@@ -81,14 +86,18 @@ class AcceptOrderUseCaseTest {
     class WhenOrderIsPendingAndFirstAcceptedOrder {
 
         @Test
-        @DisplayName("L'acceptation réussit, la commande passe au statut ACCEPTED avec 10% de remise et la date figée")
+        @DisplayName("L'acceptation réussit, la commande passe au statut ACCEPTED avec 10% de remise répartie sur les articles et la date figée")
         void shouldChangeOrderStatusToAcceptedWithDiscount() {
             var orderId = UUID.randomUUID();
-            orderLifecycleRepository.save(
+            var items = List.of(
+                    anItem(BigDecimal.valueOf(50), BigDecimal.valueOf(50)),
+                    anItem(BigDecimal.valueOf(50), BigDecimal.valueOf(50))
+            );
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.PENDING)
-                            .withTotal(BigDecimal.valueOf(100))
+                            .withItems(items)
                             .build()
             );
 
@@ -97,65 +106,135 @@ class AcceptOrderUseCaseTest {
             assertSuccess(result);
 
             var acceptedOrder = extractValue(result);
-            assertThat(acceptedOrder.orderStatus())
-                    .isInstanceOf(OrderStatus.Accepted.class);
+            assertThat(acceptedOrder.orderStatus()).isInstanceOf(OrderStatus.Accepted.class);
 
             var acceptedStatus = (OrderStatus.Accepted) acceptedOrder.orderStatus();
-            assertThat(acceptedStatus.acceptedAt())
-                    .isEqualTo(FIXED_INSTANT);
-            assertThat(acceptedStatus.discountApplied().value())
-                    .isEqualByComparingTo(BigDecimal.TEN);
+            assertThat(acceptedStatus.acceptedAt()).isEqualTo(FIXED_INSTANT);
+            assertThat(acceptedStatus.discountApplied().value()).isEqualByComparingTo(BigDecimal.TEN);
 
-            assertThat(acceptedOrder.total())
-                    .isEqualByComparingTo(BigDecimal.valueOf(90));
+            assertThat(acceptedOrder.total()).isEqualByComparingTo(BigDecimal.valueOf(90));
+
+            assertThat(acceptedOrder.items())
+                    .hasSize(2)
+                    .allSatisfy(item -> assertThat(item.total().value()).isEqualByComparingTo(BigDecimal.valueOf(45)));
         }
 
         @Test
-        @DisplayName("La commande est persistée avec le nouveau statut et un événement est émis")
+        @DisplayName("La commande est persistée avec le nouveau statut, le total recalculé et un événement est émis")
         void shouldPersistOrderAndDispatchOrderAcceptedEvent() {
+            discountClaimRepository.clear();
             var orderId = UUID.randomUUID();
-            orderLifecycleRepository.save(
+            var items = List.of(
+                    anItem(BigDecimal.valueOf(50), BigDecimal.valueOf(50)),
+                    anItem(BigDecimal.valueOf(50), BigDecimal.valueOf(50))
+            );
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.PENDING)
-                            .withTotal(BigDecimal.valueOf(100))
+                            .withItems(items)
                             .build()
             );
 
             assertSuccess(acceptOrderUseCase.execute(new AcceptOrderCommand(orderId)));
 
-            var persistedOrder = orderLifecycleRepository.findById(orderId);
-            assertThat(persistedOrder)
-                    .isPresent();
-            assertThat(persistedOrder.get().orderStatus())
-                    .isInstanceOf(OrderStatus.Accepted.class);
-            assertThat(persistedOrder.get().total())
-                    .isEqualByComparingTo(BigDecimal.valueOf(90));
+            var persistedOrder = inMemoryOrderLifecycleRepository.findById(orderId).orElseThrow();
 
-            assertThat(orderEventAggregateEventDispatcher.count())
-                    .isOne();
+            assertThat(persistedOrder.orderStatus()).isInstanceOf(OrderStatus.Accepted.class);
+            assertThat(persistedOrder.total()).isEqualByComparingTo(BigDecimal.valueOf(90));
+
+            assertThat(persistedOrder.items())
+                    .extracting(
+                            OrderSnapshot.OrderItemSnapshot::productId,
+                            item -> item.total().value()
+                    )
+                    .usingComparatorForType(BigDecimalComparator.BIG_DECIMAL_COMPARATOR, BigDecimal.class)
+                    .doesNotContainNull();
+
+            var itemTotalsSum = persistedOrder.items().stream()
+                    .map(item -> item.total().value())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            assertThat(itemTotalsSum).isEqualByComparingTo(persistedOrder.total());
+
+            assertThat(orderEventAggregateEventDispatcher.count()).isOne();
+        }
+
+        @Test
+        @DisplayName("La remise de 10% est répartie sur les articles sans perte d'arrondi")
+        void shouldDistributeDiscountAcrossItemsWithoutRoundingLoss() {
+            var orderId = UUID.randomUUID();
+            var items = List.of(
+                    anItem(BigDecimal.valueOf(33.33), BigDecimal.valueOf(33.33)),
+                    anItem(BigDecimal.valueOf(33.33), BigDecimal.valueOf(33.33)),
+                    anItem(BigDecimal.valueOf(33.34), BigDecimal.valueOf(33.34))
+            );
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withOrderStatus(OrderStatus.PENDING)
+                            .withItems(items)
+                            .build()
+            );
+
+            var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
+
+            assertSuccess(result);
+            var acceptedOrder = extractValue(result);
+
+            assertThat(acceptedOrder.total()).isEqualByComparingTo(BigDecimal.valueOf(90));
+
+            var itemTotalsSum = acceptedOrder.items().stream()
+                    .map(item -> item.total().value())
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            assertThat(itemTotalsSum).isEqualByComparingTo(acceptedOrder.total());
+
+            assertThat(acceptedOrder.items())
+                    .allSatisfy(item -> assertThat(item.total().value())
+                            .isLessThan(item.price().value().multiply(BigDecimal.valueOf(item.quantity()))));
+        }
+
+        @Test
+        @DisplayName("Une remise de 0% laisse le total des articles inchangé (garde-fou sur la borne basse)")
+        void shouldKeepItemsUnchangedWhenDiscountIsZeroPercentButStillFirstOrder() {
+            var orderId = UUID.randomUUID();
+            var items = List.of(anItem(BigDecimal.ZERO, BigDecimal.ZERO));
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withOrderStatus(OrderStatus.PENDING)
+                            .withItems(items)
+                            .build()
+            );
+
+            var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
+
+            assertSuccess(result);
+            assertThat(extractValue(result).total()).isEqualByComparingTo(BigDecimal.ZERO);
         }
     }
 
     @Nested
     @DisplayName("Quand le client a déjà consommé la remise première commande")
-    class WhenCustomerAlreadyClaimedFirstOrderDiscount {
+    class WhenCustomerInfoAlreadyClaimedFirstOrderDiscount {
 
         @Test
-        @DisplayName("La remise n'est pas appliquée sur la nouvelle commande acceptée")
+        @DisplayName("La remise n'est pas appliquée et les totaux des articles restent inchangés")
         void shouldNotApplyDiscount() {
-            var customer = new Customer("test", "test@test.com", "0123456789", "7 rue test", "avignon");
+            var customer = new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
 
-            // Simule une remise déjà consommée par ce client
             discountClaimRepository.tryClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.email());
 
             var orderId = UUID.randomUUID();
-            orderLifecycleRepository.save(
+            var items = List.of(
+                    anItem(BigDecimal.valueOf(100), BigDecimal.valueOf(100)),
+                    anItem(BigDecimal.valueOf(100), BigDecimal.valueOf(100))
+            );
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
                             .withCustomer(customer)
                             .withOrderStatus(OrderStatus.PENDING)
-                            .withTotal(BigDecimal.valueOf(200))
+                            .withItems(items)
                             .build()
             );
 
@@ -164,41 +243,42 @@ class AcceptOrderUseCaseTest {
             assertSuccess(result);
 
             var acceptedOrder = extractValue(result);
-            assertThat(acceptedOrder.total())
-                    .isEqualByComparingTo(BigDecimal.valueOf(200));
+            assertThat(acceptedOrder.total()).isEqualByComparingTo(BigDecimal.valueOf(200));
 
             var acceptedStatus = (OrderStatus.Accepted) acceptedOrder.orderStatus();
-            assertThat(acceptedStatus.discountApplied().value())
-                    .isEqualByComparingTo(BigDecimal.ZERO);
+            assertThat(acceptedStatus.discountApplied().value()).isEqualByComparingTo(BigDecimal.ZERO);
+
+            assertThat(acceptedOrder.items())
+                    .allSatisfy(item -> assertThat(item.total().value()).isEqualByComparingTo(BigDecimal.valueOf(100)));
         }
     }
 
     @Nested
     @DisplayName("Quand deux commandes différentes du même client sont acceptées successivement")
-    class WhenSameCustomerAcceptsTwoOrders {
+    class WhenSameCustomerInfoAcceptsTwoOrders {
 
         @Test
         @DisplayName("Seule la première consomme la remise, la seconde n'en bénéficie pas")
         void shouldOnlyApplyDiscountOnce() {
-            var customer = new Customer("test", "test@test.com", "0123456789", "7 rue test", "avignon");
+            var customer = new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
 
             var firstOrderId = UUID.randomUUID();
-            orderLifecycleRepository.save(
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(firstOrderId)
                             .withCustomer(customer)
                             .withOrderStatus(OrderStatus.PENDING)
-                            .withTotal(BigDecimal.valueOf(100))
+                            .withItems(List.of(anItem(BigDecimal.valueOf(100), BigDecimal.valueOf(100))))
                             .build()
             );
 
             var secondOrderId = UUID.randomUUID();
-            orderLifecycleRepository.save(
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(secondOrderId)
                             .withCustomer(customer)
                             .withOrderStatus(OrderStatus.PENDING)
-                            .withTotal(BigDecimal.valueOf(150))
+                            .withItems(List.of(anItem(BigDecimal.valueOf(150), BigDecimal.valueOf(150))))
                             .build()
             );
 
@@ -208,24 +288,21 @@ class AcceptOrderUseCaseTest {
             assertSuccess(firstResult);
             assertSuccess(secondResult);
 
-            assertThat(extractValue(firstResult).total())
-                    .isEqualByComparingTo(BigDecimal.valueOf(90));
-            assertThat(extractValue(secondResult).total())
-                    .isEqualByComparingTo(BigDecimal.valueOf(150));
+            assertThat(extractValue(firstResult).total()).isEqualByComparingTo(BigDecimal.valueOf(90));
+            assertThat(extractValue(secondResult).total()).isEqualByComparingTo(BigDecimal.valueOf(150));
         }
     }
 
     @Nested
     @DisplayName("Quand la commande est déjà en statut ACCEPTED")
     class WhenOrderIsAlreadyAccepted {
-
         @Test
         @DisplayName("L'acceptation réussit sans rien changer (idempotence)")
         void shouldReturnSuccessWithoutChangingAnything() {
             var orderId = UUID.randomUUID();
             var alreadyAcceptedStatus = new OrderStatus.Accepted(FIXED_INSTANT, Percentage.of(10));
 
-            orderLifecycleRepository.save(
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
                             .withOrderStatus(alreadyAcceptedStatus)
@@ -236,8 +313,7 @@ class AcceptOrderUseCaseTest {
             var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
 
             assertSuccess(result);
-            assertThat(extractValue(result).total())
-                    .isEqualByComparingTo(BigDecimal.valueOf(90));
+            assertThat(extractValue(result).total()).isEqualByComparingTo(BigDecimal.valueOf(90));
         }
 
         @Test
@@ -246,7 +322,7 @@ class AcceptOrderUseCaseTest {
             var orderId = UUID.randomUUID();
             var alreadyAcceptedStatus = new OrderStatus.Accepted(FIXED_INSTANT, Percentage.of(10));
 
-            orderLifecycleRepository.save(
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
                             .withOrderStatus(alreadyAcceptedStatus)
@@ -254,9 +330,7 @@ class AcceptOrderUseCaseTest {
             );
 
             assertSuccess(acceptOrderUseCase.execute(new AcceptOrderCommand(orderId)));
-
-            assertThat(orderEventAggregateEventDispatcher.count())
-                    .isZero();
+            assertThat(orderEventAggregateEventDispatcher.count()).isZero();
         }
     }
 
@@ -268,7 +342,7 @@ class AcceptOrderUseCaseTest {
         @DisplayName("L'acceptation échoue avec une erreur business")
         void shouldFailToAcceptOrder() {
             var orderId = UUID.randomUUID();
-            orderLifecycleRepository.save(
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.DELIVERED)
@@ -276,7 +350,6 @@ class AcceptOrderUseCaseTest {
             );
 
             var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
-
             assertFailure(result, FailureType.BUSINESS_RULE, OrderErrorCode.ORDER_HAS_BEEN_DELIVERED);
         }
 
@@ -284,23 +357,18 @@ class AcceptOrderUseCaseTest {
         @DisplayName("Le statut n'est pas modifié et aucun événement n'est publié")
         void shouldNotChangeStatusNorDispatchEvent() {
             var orderId = UUID.randomUUID();
-            orderLifecycleRepository.save(
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.DELIVERED)
                             .build()
             );
 
-            assertFailure(acceptOrderUseCase.execute(new AcceptOrderCommand(orderId)));
+            acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
 
-            var persistedOrder = orderLifecycleRepository.findById(orderId);
-            assertThat(persistedOrder)
-                    .isPresent();
-            assertThat(persistedOrder.get().orderStatus())
-                    .isEqualTo(OrderStatus.DELIVERED);
-
-            assertThat(orderEventAggregateEventDispatcher.count())
-                    .isZero();
+            var persistedOrder = inMemoryOrderLifecycleRepository.findById(orderId).orElseThrow();
+            assertThat(persistedOrder.orderStatus()).isEqualTo(OrderStatus.DELIVERED);
+            assertThat(orderEventAggregateEventDispatcher.count()).isZero();
         }
     }
 
@@ -312,7 +380,7 @@ class AcceptOrderUseCaseTest {
         @DisplayName("L'acceptation échoue avec une erreur business")
         void shouldFailToAcceptOrder() {
             var orderId = UUID.randomUUID();
-            orderLifecycleRepository.save(
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.REJECTED)
@@ -320,7 +388,6 @@ class AcceptOrderUseCaseTest {
             );
 
             var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
-
             assertFailure(result, FailureType.BUSINESS_RULE, OrderErrorCode.ORDER_HAS_BEEN_REJECTED);
         }
 
@@ -328,23 +395,18 @@ class AcceptOrderUseCaseTest {
         @DisplayName("Le statut n'est pas modifié et aucun événement n'est publié")
         void shouldNotChangeStatusNorDispatchEvent() {
             var orderId = UUID.randomUUID();
-            orderLifecycleRepository.save(
+            inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.REJECTED)
                             .build()
             );
 
-            assertFailure(acceptOrderUseCase.execute(new AcceptOrderCommand(orderId)));
+            acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
 
-            var persistedOrder = orderLifecycleRepository.findById(orderId);
-            assertThat(persistedOrder)
-                    .isPresent();
-            assertThat(persistedOrder.get().orderStatus())
-                    .isEqualTo(OrderStatus.REJECTED);
-
-            assertThat(orderEventAggregateEventDispatcher.count())
-                    .isZero();
+            var persistedOrder = inMemoryOrderLifecycleRepository.findById(orderId).orElseThrow();
+            assertThat(persistedOrder.orderStatus()).isEqualTo(OrderStatus.REJECTED);
+            assertThat(orderEventAggregateEventDispatcher.count()).isZero();
         }
     }
 }

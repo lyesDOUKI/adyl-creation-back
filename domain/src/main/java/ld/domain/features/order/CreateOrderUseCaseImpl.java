@@ -50,7 +50,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                         this.initItems(createOrderCommand.createOrderItems(), productsById))
                 .flatMap(orderItems -> this.unitOfWork.executeInTransaction(() -> {
                     var order = Order.create(
-                            Customer.from(createOrderCommand.customerInfo()),
+                            CustomerInfo.from(createOrderCommand.customerInfo()),
                             createOrderCommand.message()
                     );
                     order.calculateOrder(orderItems);

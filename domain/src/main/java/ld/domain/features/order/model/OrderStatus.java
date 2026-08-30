@@ -6,16 +6,13 @@ import ld.domain.valueObjects.Percentage;
 import java.time.Instant;
 
 public sealed interface OrderStatus {
+    enum State implements OrderStatus {
+        PENDING, REJECTED, DELIVERED
+    }
 
-    Pending PENDING = new Pending();
-    Rejected REJECTED = new Rejected();
-    Delivered DELIVERED = new Delivered();
-
-    record Pending() implements OrderStatus {}
+    OrderStatus PENDING = State.PENDING;
+    OrderStatus REJECTED = State.REJECTED;
+    OrderStatus DELIVERED = State.DELIVERED;
 
     record Accepted(Instant acceptedAt, Percentage discountApplied) implements OrderStatus {}
-
-    record Rejected() implements OrderStatus {}
-
-    record Delivered() implements OrderStatus {}
 }

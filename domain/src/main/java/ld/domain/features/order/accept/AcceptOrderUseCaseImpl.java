@@ -54,6 +54,7 @@ public class AcceptOrderUseCaseImpl implements AcceptOrderUseCase {
                             return Result.success(order);
                         })
         );
+
         return orderResult.map(order -> {
             order.getDomainEvents().forEach(this.orderEventAggregateEventDispatcher::dispatch);
             return order.toSnapshot();

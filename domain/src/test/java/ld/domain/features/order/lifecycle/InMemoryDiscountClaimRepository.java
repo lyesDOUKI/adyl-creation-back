@@ -13,4 +13,8 @@ public class InMemoryDiscountClaimRepository implements DiscountClaimRepository 
     public boolean tryClaim(DiscountType type, String claimKey) {
         return claims.add(type.name() + "::" + claimKey.toLowerCase());
     }
+
+    public void clear() {
+        this.claims.clear();
+    }
 }

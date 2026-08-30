@@ -16,6 +16,15 @@ public class OrderItem {
     private final ProductColor color;
 
 
+    public OrderItem(UUID itemId, UUID productId, Price unitPrice, Quantity quantity, Price total, ProductColor color) {
+        this.itemId = itemId;
+        this.productId = productId;
+        this.unitPrice = unitPrice;
+        this.quantity = quantity;
+        this.total = total;
+        this.color = color;
+    }
+
     private OrderItem(UUID productId, Price unitPrice, Quantity quantity, ProductColor color) {
         this.itemId = UUID.randomUUID();
         this.productId = productId;
@@ -28,6 +37,12 @@ public class OrderItem {
         return new OrderItem(productId, new Price(unitPrice), new Quantity(quantity), new ProductColor(color));
     }
 
+    public static OrderItem from(OrderSnapshot.OrderItemSnapshot orderItemSnapshot) {
+        return new OrderItem(orderItemSnapshot.itemId(),
+                orderItemSnapshot.productId(), orderItemSnapshot.price(),
+                new Quantity(orderItemSnapshot.quantity()),
+                orderItemSnapshot.total(), orderItemSnapshot.color());
+    }
     public void calculateTotal() {
         this.total = this.unitPrice.multiply(quantity);
     }
@@ -39,16 +54,9 @@ public class OrderItem {
     public UUID getProductId() {
         return productId;
     }
-    public BigDecimal getTotalValue() {
-        return total.value();
-    }
 
     public UUID getItemId() {
         return itemId;
-    }
-
-    public BigDecimal getUnitPrice() {
-        return unitPrice.value();
     }
 
     public int getQuantity() {
@@ -57,5 +65,13 @@ public class OrderItem {
 
     public ProductColor getColor() {
         return color;
+    }
+
+    void setTotal(Price newTotal) {
+        this.total = newTotal;
+    }
+
+    Price getUnitPrice() {
+        return unitPrice;
     }
 }
