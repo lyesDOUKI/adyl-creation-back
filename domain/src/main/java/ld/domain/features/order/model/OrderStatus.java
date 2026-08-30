@@ -1,8 +1,21 @@
 package ld.domain.features.order.model;
 
-public enum OrderStatus {
-    PENDING,
-    ACCEPTED,
-    REJECTED,
-    DELIVERED
+
+import ld.domain.valueObjects.Percentage;
+
+import java.time.Instant;
+
+public sealed interface OrderStatus {
+
+    Pending PENDING = new Pending();
+    Rejected REJECTED = new Rejected();
+    Delivered DELIVERED = new Delivered();
+
+    record Pending() implements OrderStatus {}
+
+    record Accepted(Instant acceptedAt, Percentage discountApplied) implements OrderStatus {}
+
+    record Rejected() implements OrderStatus {}
+
+    record Delivered() implements OrderStatus {}
 }

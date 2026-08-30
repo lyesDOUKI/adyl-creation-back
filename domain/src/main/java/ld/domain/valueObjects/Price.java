@@ -26,4 +26,12 @@ public record Price(BigDecimal value) {
                 value.add(other.value)
         );
     }
+
+    public Price subtract(Price other) {
+        return new Price(value.subtract(other.value));
+    }
+
+    public Price percentageOf(Percentage percentage) {
+        return new Price(value.multiply(percentage.asFraction()));
+    }
 }

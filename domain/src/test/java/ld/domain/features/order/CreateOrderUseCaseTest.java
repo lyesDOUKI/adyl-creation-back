@@ -148,7 +148,7 @@ class CreateOrderUseCaseTest {
             var persistedOrder = extractValue(result);
 
             assertThat(persistedOrder.orderStatus())
-                    .isEqualByComparingTo(OrderStatus.PENDING);
+                    .isEqualTo(OrderStatus.PENDING);
             assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
 
@@ -227,7 +227,7 @@ class CreateOrderUseCaseTest {
             var persistedOrder = extractValue(result);
             
             assertThat(persistedOrder.orderStatus())
-                    .isEqualByComparingTo(OrderStatus.PENDING);
+                    .isEqualTo(OrderStatus.PENDING);
             assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(1100));
 
@@ -289,7 +289,7 @@ class CreateOrderUseCaseTest {
             var persistedOrder = extractValue(result);
 
             assertThat(persistedOrder.orderStatus())
-                    .isEqualByComparingTo(OrderStatus.PENDING);
+                    .isEqualTo(OrderStatus.PENDING);
             assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
 
@@ -339,7 +339,7 @@ class CreateOrderUseCaseTest {
             var persistedOrder = extractValue(result);
 
             assertThat(persistedOrder.orderStatus())
-                    .isEqualByComparingTo(OrderStatus.PENDING);
+                    .isEqualTo(OrderStatus.PENDING);
             assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
 

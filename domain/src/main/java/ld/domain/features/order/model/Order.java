@@ -1,18 +1,21 @@
 package ld.domain.features.order.model;
 
 import ld.domain.features.order.validation.OrderErrorCode;
+import ld.domain.valueObjects.Percentage;
 import ld.domain.valueObjects.Price;
 import ld.standard.lib.AggregateRoot;
 import ld.standard.lib.Snapshottable;
 import ld.standard.lib.validation.Result;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshottable<OrderSnapshot> {
 
+    private static final Percentage FIRST_ORDER_DISCOUNT_RATE = Percentage.of(10);
     private final Customer customer;
     private final String message;
     private Price total;
@@ -57,19 +60,33 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
         this.orderItems = orderItems;
     }
 
-    public Result<Order> accept() {
-        if (this.orderStatus == OrderStatus.DELIVERED) {
-            return Result.businessFailure(OrderErrorCode.ORDER_HAS_BEEN_DELIVERED, "Commande livré",
-                    "Impossible d'accepter cette commande car elle est déjà livré");
-        }
-        if (this.orderStatus == OrderStatus.REJECTED) {
-            return Result.businessFailure(OrderErrorCode.ORDER_HAS_BEEN_REJECTED, "Commande rejeté",
-                    "Impossible d'accepter cette commande car elle est rejeté");
-        }
-        orderStatus = OrderStatus.ACCEPTED;
-        addDomainEvent(new OrderAccepted(getId()));
-        return Result.success(this);
+    public Result<Order> accept(boolean isFirstAcceptedOrder, Instant acceptedAt) {
+        return switch (this.orderStatus) {
+
+            case OrderStatus.Accepted _ -> Result.success(this);
+
+            case OrderStatus.Pending _ -> {
+                Percentage discount = isFirstAcceptedOrder ? FIRST_ORDER_DISCOUNT_RATE : Percentage.of(0);
+                if (isFirstAcceptedOrder) {
+                    this.total = this.total.subtract(this.total.percentageOf(discount));
+                }
+                this.orderStatus = new OrderStatus.Accepted(acceptedAt, discount);
+                addDomainEvent(new OrderAccepted(getId(), this.total.value()));
+                yield Result.success(this);
+            }
+
+            case OrderStatus.Rejected _ -> Result.businessFailure(
+                    OrderErrorCode.ORDER_HAS_BEEN_REJECTED,
+                    "Commande rejetée",
+                    "Impossible d'accepter cette commande car elle est rejetée");
+
+            case OrderStatus.Delivered _ -> Result.businessFailure(
+                    OrderErrorCode.ORDER_HAS_BEEN_DELIVERED,
+                    "Commande livrée",
+                    "Impossible d'accepter cette commande car elle est déjà livrée");
+        };
     }
+
     @Override
     public OrderSnapshot toSnapshot() {
         return new OrderSnapshot(
@@ -93,5 +110,9 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 item.getTotalValue(),
                 item.getColor()
         );
+    }
+
+    public String customerEmail() {
+        return this.customer.email();
     }
 }

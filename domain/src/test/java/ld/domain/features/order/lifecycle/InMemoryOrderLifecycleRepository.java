@@ -20,5 +20,4 @@ public class InMemoryOrderLifecycleRepository implements OrderLifecycleRepositor
     public void save(OrderSnapshot orderSnapshot) {
         store.put(orderSnapshot.orderId(), orderSnapshot);
     }
-
 }
