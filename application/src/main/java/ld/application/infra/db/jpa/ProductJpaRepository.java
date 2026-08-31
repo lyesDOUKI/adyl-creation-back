@@ -14,7 +14,7 @@ public interface ProductJpaRepository extends JpaRepository<ProductEntity, UUID>
 
     @Query("""
     select distinct p
-    from Product p
+    from ProductEntity p
     left join fetch p.colors
     left join fetch p.photos
     where p.id in :ids

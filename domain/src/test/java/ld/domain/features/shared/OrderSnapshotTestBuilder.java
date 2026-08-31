@@ -14,7 +14,7 @@ public class OrderSnapshotTestBuilder {
     private CustomerInfo customerInfo = defaultCustomer();
     private String message = "no message";
     private BigDecimal total = BigDecimal.TEN;
-    private OrderStatus orderStatus = OrderStatus.PENDING;
+    private OrderStatus orderStatus = new OrderStatus.Pending();
     private List<OrderSnapshot.OrderItemSnapshot> items = List.of();
 
     public static OrderSnapshotTestBuilder anOrder() {

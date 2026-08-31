@@ -26,9 +26,9 @@ public class ProductJpaFinderAdapter implements ProductFinder {
             return List.of();
         }
 
-        List<ProductEntity> produtctEntities = this.productJpaRepository.findAllWithColorsAndPhotosByIdIn(productsId);
+        List<ProductEntity> productEntities = this.productJpaRepository.findAllWithColorsAndPhotosByIdIn(productsId);
 
-        return produtctEntities.stream()
+        return productEntities.stream()
                 .map(ProductMapper::toSnapshot)
                 .toList();
     }

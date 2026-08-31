@@ -2,7 +2,9 @@ package ld.application.infra.db.entity;
 
 import jakarta.persistence.*;
 import ld.application.infra.db.converter.OrderStatusConverter;
+import ld.domain.features.order.model.OrderState;
 import ld.domain.features.order.model.OrderStatus;
+import org.hibernate.annotations.ColumnTransformer;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
@@ -11,6 +13,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+
 @Entity
 @Table(name = "orders")
 public class OrderEntity {
@@ -28,11 +31,14 @@ public class OrderEntity {
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal total = BigDecimal.ZERO;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status_type", nullable = false, length = 30)
-    private String statusType;
+    private OrderState statusType;
+
 
     @Convert(converter = OrderStatusConverter.class)
-    @Column(name = "status_data", columnDefinition = "jsonb", nullable = false)
+    @ColumnTransformer(write = "?::jsonb")
+    @Column(name = "status_data", columnDefinition = "jsonb")
     private OrderStatus statusData;
 
     @CreationTimestamp
@@ -44,7 +50,7 @@ public class OrderEntity {
     private LocalDateTime updatedAt;
 
     @OneToMany(
-            mappedBy = "order",
+            mappedBy = "orderEntity",
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
@@ -139,11 +145,11 @@ public class OrderEntity {
         this.total = total;
     }
 
-    public String getStatusType() {
+    public OrderState getStatusType() {
         return statusType;
     }
 
-    public void setStatusType(String statusType) {
+    public void setStatusType(OrderState statusType) {
         this.statusType = statusType;
     }
 
@@ -159,7 +165,10 @@ public class OrderEntity {
     @PreUpdate
     private void syncStatusType() {
         if (this.statusData != null) {
-            this.statusType = this.statusData.type();
+            OrderState state = this.statusData.type();
+            if (state != null) {
+                this.statusType = state;
+            }
         }
     }
 }

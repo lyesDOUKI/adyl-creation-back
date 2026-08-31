@@ -31,7 +31,7 @@ public class ProductEntity {
     @Column(name = "color")
     private Set<String> colors = new HashSet<>();
 
-    @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @OneToMany(mappedBy = "productEntity", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductPhotoEntity> photos = new ArrayList<>();
 
     public ProductEntity() {}

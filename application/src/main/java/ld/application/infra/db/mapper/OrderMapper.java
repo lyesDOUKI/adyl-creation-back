@@ -15,6 +15,10 @@ public final class OrderMapper {
     private OrderMapper() {}
 
 
+    public static OrderEntity from(OrderSnapshot orderSnapshot) {
+        var customerEntity = toCustomerEntity(orderSnapshot.customerInfo());
+        return toEntity(orderSnapshot, customerEntity);
+    }
     public static OrderEntity toEntity(OrderSnapshot snapshot, CustomerEntity customerEntity) {
         OrderEntity order = new OrderEntity(
                 snapshot.orderId(),
