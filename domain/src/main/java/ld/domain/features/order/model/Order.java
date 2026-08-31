@@ -107,6 +107,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
             Price itemDiscount = expectedTotalDiscount.subtract(runningDiscount);
 
             item.setTotal(currentItemTotal.subtract(itemDiscount));
+            item.setDiscountRate(discount);
             runningDiscount = runningDiscount.add(itemDiscount);
         }
     }
@@ -132,6 +133,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 item.getUnitPrice(),
                 item.getQuantity(),
                 item.getTotal(),
+                item.getDiscountRate(),
                 item.getColor()
         );
     }

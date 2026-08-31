@@ -1,6 +1,7 @@
 package ld.domain.features.order.model;
 
 import ld.domain.features.product.model.ProductColor;
+import ld.domain.valueObjects.Percentage;
 import ld.domain.valueObjects.Price;
 
 import java.math.BigDecimal;
@@ -16,5 +17,6 @@ public record OrderSnapshot(UUID orderId, CustomerInfo customerInfo,
                                     Price price,
                                     int quantity,
                                     Price total,
+                                    Percentage discountRate,
                                     ProductColor color){}
 }

@@ -53,6 +53,7 @@ class AcceptOrderUseCaseTest {
                 new Price(price),
                 1,
                 new Price(total),
+                Percentage.ZERO,
                 new ProductColor("noir")
         );
     }

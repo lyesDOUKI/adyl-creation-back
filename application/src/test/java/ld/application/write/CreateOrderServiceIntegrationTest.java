@@ -35,7 +35,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @OrderIntegrationTest
-class CreateOrderEntityServiceIntegrationTest {
+class CreateOrderServiceIntegrationTest {
 
     @ServiceConnection
     static PostgreSQLContainer<?> POSTGRES = SharedPostgresContainer.INSTANCE;

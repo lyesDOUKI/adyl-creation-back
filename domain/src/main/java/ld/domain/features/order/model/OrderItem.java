@@ -1,6 +1,7 @@
 package ld.domain.features.order.model;
 
 import ld.domain.features.product.model.ProductColor;
+import ld.domain.valueObjects.Percentage;
 import ld.domain.valueObjects.Price;
 import ld.domain.valueObjects.Quantity;
 
@@ -13,6 +14,7 @@ public class OrderItem {
     private final Price unitPrice;
     private final Quantity quantity;
     private Price total;
+    private Percentage discountRate;
     private final ProductColor color;
 
 
@@ -73,5 +75,16 @@ public class OrderItem {
 
     Price getUnitPrice() {
         return unitPrice;
+    }
+
+    public Percentage getDiscountRate() {
+        if (discountRate == null) {
+            return Percentage.ZERO;
+        }
+        return discountRate;
+    }
+
+    public void setDiscountRate(Percentage discountRate) {
+        this.discountRate = discountRate;
     }
 }
