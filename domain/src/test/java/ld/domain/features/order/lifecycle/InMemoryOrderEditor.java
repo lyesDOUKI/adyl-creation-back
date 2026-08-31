@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-public class InMemoryOrderLifecycleRepository implements OrderLifecycleRepository {
+public class InMemoryOrderEditor implements OrderEditor {
 
     private final Map<UUID, OrderSnapshot> store = new HashMap<>();
 

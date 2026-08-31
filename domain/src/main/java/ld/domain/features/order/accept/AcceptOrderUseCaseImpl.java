@@ -1,7 +1,7 @@
 package ld.domain.features.order.accept;
 
 import ld.domain.features.order.lifecycle.DiscountClaimRepository;
-import ld.domain.features.order.lifecycle.OrderLifecycleRepository;
+import ld.domain.features.order.lifecycle.OrderEditor;
 import ld.domain.features.order.model.DiscountType;
 import ld.domain.features.order.model.Order;
 import ld.domain.features.order.model.OrderEvent;
@@ -16,18 +16,18 @@ import java.time.Instant;
 
 public class AcceptOrderUseCaseImpl implements AcceptOrderUseCase {
 
-    private final OrderLifecycleRepository orderLifecycleRepository;
+    private final OrderEditor orderEditor;
     private final DiscountClaimRepository discountClaimRepository;
     private final AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
-    public AcceptOrderUseCaseImpl(OrderLifecycleRepository orderLifecycleRepository,
+    public AcceptOrderUseCaseImpl(OrderEditor orderEditor,
                                   DiscountClaimRepository discountClaimRepository,
                                   AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher,
                                   UnitOfWork unitOfWork,
                                   Clock clock) {
-        this.orderLifecycleRepository = orderLifecycleRepository;
+        this.orderEditor = orderEditor;
         this.discountClaimRepository = discountClaimRepository;
         this.orderEventAggregateEventDispatcher = orderEventAggregateEventDispatcher;
         this.unitOfWork = unitOfWork;
@@ -37,7 +37,7 @@ public class AcceptOrderUseCaseImpl implements AcceptOrderUseCase {
     @Override
     public Result<OrderSnapshot> execute(AcceptOrderCommand acceptOrderCommand) {
         Result<Order> orderResult = unitOfWork.executeInTransaction(() ->
-                this.orderLifecycleRepository.findById(acceptOrderCommand.orderId())
+                this.orderEditor.findById(acceptOrderCommand.orderId())
                         .map(Result::success)
                         .orElseGet(() -> Result.resourceNotFound(OrderErrorCode.ORDER_NOT_FOUND, "Commande introuvable",
                                 String.format("La commande %s est introuvable", acceptOrderCommand.orderId())))
@@ -50,7 +50,7 @@ public class AcceptOrderUseCaseImpl implements AcceptOrderUseCase {
                             return order.accept(isFirstAcceptedOrder, Instant.now(clock));
                         })
                         .flatMap(order -> {
-                            this.orderLifecycleRepository.save(order.toSnapshot());
+                            this.orderEditor.save(order.toSnapshot());
                             return Result.success(order);
                         })
         );

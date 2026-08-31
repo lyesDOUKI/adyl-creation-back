@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.tuple;
 class CreateOrderUseCaseTest {
 
     private final CreateOrderUseCase createOrderUseCase;
-    private final InMemoryCreateOrderRepository createOrderRepository = new InMemoryCreateOrderRepository();
+    private final InMemoryOrderCreator createOrderRepository = new InMemoryOrderCreator();
     private final InMemoryGetProductRepository getProductRepository = new InMemoryGetProductRepository();
     private final InMemoryAggregateEventDispatcher<OrderEvent> aggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
 

@@ -21,17 +21,17 @@ import java.util.stream.Collectors;
 
 public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
 
-    private final CreateOrderRepository createOrderRepository;
+    private final OrderCreator orderCreator;
     private final GetProductRepository getProductRepository;
     private final AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
     private final BusinessGuard<CreateOrderContextValidation> createOrderGuard;
     private final UnitOfWork unitOfWork;
 
-    public CreateOrderUseCaseImpl(CreateOrderRepository createOrderRepository,
+    public CreateOrderUseCaseImpl(OrderCreator orderCreator,
                                   GetProductRepository getProductRepository,
                                   AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher,
                                   UnitOfWork unitOfWork) {
-        this.createOrderRepository = createOrderRepository;
+        this.orderCreator = orderCreator;
         this.getProductRepository = getProductRepository;
         this.aggregateEventDispatcher = aggregateEventDispatcher;
         this.unitOfWork = unitOfWork;
@@ -54,7 +54,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                             createOrderCommand.message()
                     );
                     order.calculateOrder(orderItems);
-                    this.createOrderRepository.create(order.toSnapshot());
+                    this.orderCreator.create(order.toSnapshot());
                     return Result.success(order);
                 }))
                 .map(order -> {

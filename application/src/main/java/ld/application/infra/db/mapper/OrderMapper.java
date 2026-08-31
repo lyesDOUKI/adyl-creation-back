@@ -11,7 +11,7 @@ public class OrderMapper {
     private OrderMapper(){}
 
     public static Order from(OrderSnapshot orderSnapshot) {
-        var customerInfo = orderSnapshot.customer();
+        var customerInfo = orderSnapshot.customerInfo();
         var customer = new Customer(
                 customerInfo.name(),
                 customerInfo.email(),
@@ -36,8 +36,8 @@ public class OrderMapper {
                 itemSnapshot.itemId(),
                 itemSnapshot.productId(),
                 BigDecimal.valueOf(itemSnapshot.quantity()),
-                itemSnapshot.price(),
-                itemSnapshot.total(),
+                itemSnapshot.price().value(),
+                itemSnapshot.total().value(),
                 itemSnapshot.color().value()
         );
     }

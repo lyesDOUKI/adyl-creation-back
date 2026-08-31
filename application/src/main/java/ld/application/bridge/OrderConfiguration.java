@@ -1,6 +1,6 @@
 package ld.application.bridge;
 
-import ld.domain.features.order.CreateOrderRepository;
+import ld.domain.features.order.OrderCreator;
 import ld.domain.features.order.CreateOrderUseCase;
 import ld.domain.features.order.CreateOrderUseCaseImpl;
 import ld.domain.features.order.model.OrderEvent;
@@ -16,12 +16,12 @@ public class OrderConfiguration {
 
     @Bean
     public CreateOrderUseCase createOrderUseCase(
-            CreateOrderRepository createOrderRepository,
+            OrderCreator orderCreator,
             GetProductRepository getProductRepository,
             AggregateEventDispatcher<OrderEvent> orderEventDispatcher,
             UnitOfWork unitOfWork
     ) {
-        return new CreateOrderUseCaseImpl(createOrderRepository, getProductRepository,
+        return new CreateOrderUseCaseImpl(orderCreator, getProductRepository,
                 orderEventDispatcher, unitOfWork);
     }
 

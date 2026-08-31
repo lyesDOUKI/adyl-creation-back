@@ -22,10 +22,12 @@ import static ld.standard.lib.helper.test.ResultTestSupport.*;
 
 class CreateProductUseCaseTest {
 
-    InMemoryCreateProductRepository createProductRepository = new InMemoryCreateProductRepository();
+    InMemoryProductRepository repository = new InMemoryProductRepository();
     InMemoryAggregateEventDispatcher<ProductEvent> aggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
     InMemoryUnitOfWork unitOfWork = new InMemoryUnitOfWork();
-    CreateProductUseCaseImpl createProductUseCase = new CreateProductUseCaseImpl(createProductRepository, aggregateEventDispatcher, unitOfWork);
+    CreateProductUseCaseImpl createProductUseCase = new CreateProductUseCaseImpl(repository,
+            repository,
+            aggregateEventDispatcher, unitOfWork);
 
     @Nested
     @DisplayName("Quand il existe déjà un produit avec ce nom")
@@ -33,7 +35,7 @@ class CreateProductUseCaseTest {
 
         @BeforeEach
         public void setup() {
-            createProductRepository.addProduct(
+            repository.addProduct(
                     ProductSnapshotTestBuilder.aProduct()
                             .withName("product 1")
                             .build()
@@ -52,7 +54,7 @@ class CreateProductUseCaseTest {
         public void shouldNotPersistAndDispatchEvent() {
             assertFailure(createProductUseCase.execute(new CreateProductCommand("product 1",
                     BigDecimal.valueOf(50), List.of("blue"))));
-            Assertions.assertThat(createProductRepository.count())
+            Assertions.assertThat(repository.count())
                     .isEqualTo(1);
             Assertions.assertThat(aggregateEventDispatcher.count())
                     .isEqualTo(0);
@@ -71,7 +73,7 @@ class CreateProductUseCaseTest {
             var result = createProductUseCase.execute(command);
             assertSuccess(result);
 
-            Assertions.assertThat(createProductRepository.count())
+            Assertions.assertThat(repository.count())
                     .isOne();
             Assertions.assertThat(aggregateEventDispatcher.count())
                     .isOne();
@@ -95,7 +97,7 @@ class CreateProductUseCaseTest {
             var result = createProductUseCase.execute(command);
             assertSuccess(result);
 
-            Assertions.assertThat(createProductRepository.count())
+            Assertions.assertThat(repository.count())
                     .isOne();
             Assertions.assertThat(aggregateEventDispatcher.count())
                     .isOne();
@@ -120,7 +122,7 @@ class CreateProductUseCaseTest {
             var result = createProductUseCase.execute(command);
             assertSuccess(result);
 
-            Assertions.assertThat(createProductRepository.count())
+            Assertions.assertThat(repository.count())
                     .isOne();
             Assertions.assertThat(aggregateEventDispatcher.count())
                     .isOne();

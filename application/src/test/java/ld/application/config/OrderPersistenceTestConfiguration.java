@@ -1,10 +1,10 @@
 package ld.application.config;
 
-import ld.application.infra.db.adapter.CreateOrderJpaRepositoryAdapter;
+import ld.application.infra.db.adapter.OrderJpaCreatorAdapter;
 import ld.application.infra.db.adapter.GetProductJpaRepositoryAdapter;
 import ld.application.infra.db.jpa.OrderJpaRepository;
 import ld.application.infra.db.jpa.ProductJpaRepository;
-import ld.domain.features.order.CreateOrderRepository;
+import ld.domain.features.order.OrderCreator;
 import ld.domain.features.product.GetProductRepository;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -18,15 +18,15 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 public class OrderPersistenceTestConfiguration {
 
     @Bean
-    CreateOrderJpaRepositoryAdapter createOrderJpaRepositoryAdapter(
+    OrderJpaCreatorAdapter orderJpaCreatorAdapter(
             OrderJpaRepository repository
     ) {
-        return new CreateOrderJpaRepositoryAdapter(repository);
+        return new OrderJpaCreatorAdapter(repository);
     }
 
     @Bean
-    CreateOrderRepository createOrderRepository(
-            CreateOrderJpaRepositoryAdapter adapter
+    OrderCreator orderCreator(
+            OrderJpaCreatorAdapter adapter
     ) {
         return adapter;
     }

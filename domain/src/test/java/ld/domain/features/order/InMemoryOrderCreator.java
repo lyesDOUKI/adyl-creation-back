@@ -5,7 +5,7 @@ import ld.domain.features.order.model.OrderSnapshot;
 import java.util.HashSet;
 import java.util.Set;
 
-public class InMemoryCreateOrderRepository implements CreateOrderRepository {
+public class InMemoryOrderCreator implements OrderCreator {
 
     private final Set<OrderSnapshot> orders = new HashSet<>();
 

@@ -5,7 +5,7 @@ import ld.domain.features.product.model.ProductSnapshot;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InMemoryCreateProductRepository implements CreateProductRepository {
+public class InMemoryProductRepository implements ProductCreator, ProductChecker {
 
     private final List<ProductSnapshot> products = new ArrayList<>();
 

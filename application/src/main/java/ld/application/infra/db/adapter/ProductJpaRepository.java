@@ -1,17 +1,17 @@
 package ld.application.infra.db.adapter;
 
-import ld.application.infra.db.jpa.ProductJpaRepository;
 import ld.application.infra.db.mapper.ProductMapper;
-import ld.domain.features.product.CreateProductRepository;
+import ld.domain.features.product.ProductChecker;
+import ld.domain.features.product.ProductCreator;
 import ld.domain.features.product.model.ProductSnapshot;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class CreateProductJpaRepositoryAdapter implements CreateProductRepository {
+public class ProductJpaRepository implements ProductCreator, ProductChecker {
 
-    private final ProductJpaRepository productJpaRepository;
+    private final ld.application.infra.db.jpa.ProductJpaRepository productJpaRepository;
 
-    public CreateProductJpaRepositoryAdapter(ProductJpaRepository productJpaRepository) {
+    public ProductJpaRepository(ld.application.infra.db.jpa.ProductJpaRepository productJpaRepository) {
         this.productJpaRepository = productJpaRepository;
     }
 

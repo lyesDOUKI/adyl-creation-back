@@ -1,7 +1,7 @@
 package ld.domain.features.order.accept;
 
 import ld.domain.features.order.lifecycle.InMemoryDiscountClaimRepository;
-import ld.domain.features.order.lifecycle.InMemoryOrderLifecycleRepository;
+import ld.domain.features.order.lifecycle.InMemoryOrderEditor;
 import ld.domain.features.order.model.*;
 import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.product.model.ProductColor;
@@ -31,7 +31,7 @@ class AcceptOrderUseCaseTest {
     private static final Instant FIXED_INSTANT = Instant.parse("2026-08-30T10:00:00Z");
     private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
 
-    private final InMemoryOrderLifecycleRepository inMemoryOrderLifecycleRepository = new InMemoryOrderLifecycleRepository();
+    private final InMemoryOrderEditor inMemoryOrderLifecycleRepository = new InMemoryOrderEditor();
     private final InMemoryDiscountClaimRepository discountClaimRepository = new InMemoryDiscountClaimRepository();
     private final InMemoryAggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
     private final InMemoryUnitOfWork unitOfWork = new InMemoryUnitOfWork();

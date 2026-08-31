@@ -11,21 +11,21 @@ import ld.standard.lib.validation.Result;
 
 public class CreateProductUseCaseImpl implements CreateProductUseCase {
 
-    private final CreateProductRepository createProductRepository;
+    private final ProductCreator productCreator;
     private final AggregateEventDispatcher<ProductEvent> aggregateEventDispatcher;
     private final BusinessGuard<CreateProductCommand> createProductGuard;
     private final UnitOfWork unitOfWork;
-    public CreateProductUseCaseImpl(CreateProductRepository createProductRepository,
+    public CreateProductUseCaseImpl(ProductCreator productCreator, ProductChecker productChecker,
                                     AggregateEventDispatcher<ProductEvent> aggregateEventDispatcher,
                                     UnitOfWork unitOfWork) {
-        this.createProductRepository = createProductRepository;
+        this.productCreator = productCreator;
         this.aggregateEventDispatcher = aggregateEventDispatcher;
-        this.createProductGuard = initGuard(createProductRepository);
+        this.createProductGuard = initGuard(productChecker);
         this.unitOfWork = unitOfWork;
     }
 
-    private static BusinessGuard<CreateProductCommand> initGuard(CreateProductRepository createProductRepository) {
-        return BusinessGuard.of(new ProductNameRule(createProductRepository));
+    private static BusinessGuard<CreateProductCommand> initGuard(ProductChecker productChecker) {
+        return BusinessGuard.of(new ProductNameRule(productChecker));
     }
 
     @Override
@@ -37,7 +37,7 @@ public class CreateProductUseCaseImpl implements CreateProductUseCase {
                             createProductCommand.price(),
                             createProductCommand.colors()
                     );
-                    this.createProductRepository.create(product.toSnapshot());
+                    this.productCreator.create(product.toSnapshot());
                     return Result.success(product);
                 }))
                 .map(product -> {

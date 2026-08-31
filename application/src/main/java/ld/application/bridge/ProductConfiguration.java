@@ -1,6 +1,7 @@
 package ld.application.bridge;
 
-import ld.domain.features.product.CreateProductRepository;
+import ld.domain.features.product.ProductChecker;
+import ld.domain.features.product.ProductCreator;
 import ld.domain.features.product.CreateProductUseCase;
 import ld.domain.features.product.CreateProductUseCaseImpl;
 import ld.domain.features.product.photos.AddProductPhotosRepository;
@@ -16,9 +17,11 @@ import org.springframework.context.annotation.Configuration;
 public class ProductConfiguration {
 
     @Bean
-    public CreateProductUseCase createProductUseCase(CreateProductRepository createProductRepository,
+    public CreateProductUseCase createProductUseCase(ProductCreator productCreator,
+                                                     ProductChecker productChecker,
                                                      UnitOfWork unitOfWork) {
-        return new CreateProductUseCaseImpl(createProductRepository, new InMemoryAggregateEventDispatcher<>(), unitOfWork);
+        return new CreateProductUseCaseImpl(productCreator, productChecker,
+                new InMemoryAggregateEventDispatcher<>(), unitOfWork);
     }
 
     @Bean
