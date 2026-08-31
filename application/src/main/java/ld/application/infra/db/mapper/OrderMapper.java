@@ -1,44 +1,117 @@
 package ld.application.infra.db.mapper;
 
 import ld.application.infra.db.entity.CustomerEntity;
-import ld.application.infra.db.entity.OrderEntity;
 import ld.application.infra.db.entity.OrderDetailEntity;
+import ld.application.infra.db.entity.OrderEntity;
+import ld.domain.features.order.model.CustomerInfo;
 import ld.domain.features.order.model.OrderSnapshot;
+import ld.domain.features.product.model.ProductColor;
+import ld.domain.valueObjects.Price;
 
 import java.math.BigDecimal;
 
-public class OrderMapper {
-    private OrderMapper(){}
+public final class OrderMapper {
 
-    public static OrderEntity from(OrderSnapshot orderSnapshot) {
-        var customerInfo = orderSnapshot.customerInfo();
-        var customer = new CustomerEntity(
-                customerInfo.name(),
-                customerInfo.email(),
-                customerInfo.phoneNumber(),
-                customerInfo.address(),
-                customerInfo.city()
+    private OrderMapper() {}
+
+
+    public static OrderEntity toEntity(OrderSnapshot snapshot, CustomerEntity customerEntity) {
+        OrderEntity order = new OrderEntity(
+                snapshot.orderId(),
+                customerEntity,
+                snapshot.message(),
+                snapshot.total() != null ? snapshot.total() : BigDecimal.ZERO,
+                snapshot.orderStatus()
         );
-        var order = new OrderEntity(
-                orderSnapshot.orderId(),
-                customer
-        );
-        order.setCustomerMessage(orderSnapshot.message());
-        orderSnapshot.items()
-                .stream()
-                .map(OrderMapper::from)
-                .forEach(order::addDetail);
+
+        if (snapshot.items() != null) {
+            snapshot.items().stream()
+                    .map(OrderMapper::toDetailEntity)
+                    .forEach(order::addDetail);
+        }
+
         return order;
     }
 
-    private static OrderDetailEntity from(OrderSnapshot.OrderItemSnapshot itemSnapshot) {
+    public static CustomerEntity toCustomerEntity(CustomerInfo info) {
+        return new CustomerEntity(
+                info.name(),
+                info.email(),
+                info.phoneNumber(),
+                info.address(),
+                info.city()
+        );
+    }
+
+    public static void updateEntity(OrderEntity existingEntity, OrderSnapshot snapshot) {
+        existingEntity.setCustomerMessage(snapshot.message());
+        existingEntity.setTotal(snapshot.total() != null ? snapshot.total() : BigDecimal.ZERO);
+        existingEntity.setStatusData(snapshot.orderStatus());
+
+
+        if (existingEntity.getCustomerEntity() != null && snapshot.customerInfo() != null) {
+            var info = snapshot.customerInfo();
+            var customer = existingEntity.getCustomerEntity();
+            customer.setCustomerName(info.name());
+            customer.setCustomerEmail(info.email());
+            customer.setCustomerPhone(info.phoneNumber());
+            customer.setCustomerAddress(info.address());
+            customer.setCustomerCity(info.city());
+        }
+
+
+        existingEntity.getDetails().clear();
+        if (snapshot.items() != null) {
+            snapshot.items().stream()
+                    .map(OrderMapper::toDetailEntity)
+                    .forEach(existingEntity::addDetail);
+        }
+    }
+
+    public static OrderSnapshot toSnapshot(OrderEntity entity) {
+        var customer = entity.getCustomerEntity();
+        var customerInfo = new CustomerInfo(
+                customer.getCustomerName(),
+                customer.getCustomerEmail(),
+                customer.getCustomerPhone(),
+                customer.getCustomerAddress(),
+                customer.getCustomerCity()
+        );
+
+        var items = entity.getDetails().stream()
+                .map(OrderMapper::toItemSnapshot)
+                .toList();
+
+        return new OrderSnapshot(
+                entity.getId(),
+                customerInfo,
+                entity.getCustomerMessage(),
+                entity.getTotal(),
+                entity.getStatusData(),
+                items
+        );
+    }
+
+
+    private static OrderDetailEntity toDetailEntity(OrderSnapshot.OrderItemSnapshot item) {
         return new OrderDetailEntity(
-                itemSnapshot.itemId(),
-                itemSnapshot.productId(),
-                BigDecimal.valueOf(itemSnapshot.quantity()),
-                itemSnapshot.price().value(),
-                itemSnapshot.total().value(),
-                itemSnapshot.color().value()
+                item.itemId(),
+                item.productId(),
+                BigDecimal.valueOf(item.quantity()),
+                item.price().value(),
+                item.total().value(),
+                item.color().value()
+        );
+    }
+
+    private static OrderSnapshot.OrderItemSnapshot toItemSnapshot(OrderDetailEntity detail) {
+        return new OrderSnapshot.OrderItemSnapshot(
+                detail.getId(),
+                detail.getProductId(),
+                new Price(detail.getUnitPrice()),
+                detail.getQuantity().intValue(),
+                new Price(detail.getTotalAmount()),
+                new ProductColor(detail.getChosenColor())
         );
     }
 }

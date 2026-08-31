@@ -1,14 +1,16 @@
 package ld.application.infra.db.entity;
 
 import jakarta.persistence.*;
+import ld.application.infra.db.converter.OrderStatusConverter;
+import ld.domain.features.order.model.OrderStatus;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-
 @Entity
 @Table(name = "orders")
 public class OrderEntity {
@@ -23,12 +25,22 @@ public class OrderEntity {
     @Column(length = 255)
     private String customerMessage;
 
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal total = BigDecimal.ZERO;
+
+    @Column(name = "status_type", nullable = false, length = 30)
+    private String statusType;
+
+    @Convert(converter = OrderStatusConverter.class)
+    @Column(name = "status_data", columnDefinition = "jsonb", nullable = false)
+    private OrderStatus statusData;
+
     @CreationTimestamp
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @UpdateTimestamp
-    @Column(nullable = false)
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
     @OneToMany(
@@ -39,6 +51,16 @@ public class OrderEntity {
     private List<OrderDetailEntity> details = new ArrayList<>();
 
     public OrderEntity() {}
+
+    public OrderEntity(UUID orderId, CustomerEntity customerEntity, String message,
+                       BigDecimal total, OrderStatus orderStatus) {
+        this.id = orderId;
+        this.customerEntity = customerEntity;
+        this.customerMessage = message;
+        this.total = total;
+        this.statusData = orderStatus;
+    }
+
     public UUID getId() {
         return id;
     }
@@ -99,5 +121,45 @@ public class OrderEntity {
     public void addDetail(OrderDetailEntity detail) {
         details.add(detail);
         detail.assignOrder(this);
+    }
+
+    public CustomerEntity getCustomerEntity() {
+        return customerEntity;
+    }
+
+    public void setCustomerEntity(CustomerEntity customerEntity) {
+        this.customerEntity = customerEntity;
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public String getStatusType() {
+        return statusType;
+    }
+
+    public void setStatusType(String statusType) {
+        this.statusType = statusType;
+    }
+
+    public OrderStatus getStatusData() {
+        return statusData;
+    }
+
+    public void setStatusData(OrderStatus statusData) {
+        this.statusData = statusData;
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void syncStatusType() {
+        if (this.statusData != null) {
+            this.statusType = this.statusData.type();
+        }
     }
 }
