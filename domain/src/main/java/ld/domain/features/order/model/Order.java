@@ -71,7 +71,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
         return switch (this.orderStatus) {
             case OrderStatus.Accepted _ -> Result.success(this);
 
-            case OrderStatus.State.PENDING -> {
+            case OrderStatus.Pending _ -> {
                 Percentage discount = isFirstAcceptedOrder ? FIRST_ORDER_DISCOUNT_RATE : Percentage.ZERO;
 
                 if (isFirstAcceptedOrder) {
@@ -85,11 +85,11 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 yield Result.success(this);
             }
 
-            case OrderStatus.State.REJECTED -> Result.businessFailure(
+            case OrderStatus.Rejected _ -> Result.businessFailure(
                     OrderErrorCode.ORDER_HAS_BEEN_REJECTED,
                     "Commande rejetée", "Impossible d'accepter une commande rejetée");
 
-            case OrderStatus.State.DELIVERED -> Result.businessFailure(
+            case OrderStatus.Delivered _ -> Result.businessFailure(
                     OrderErrorCode.ORDER_HAS_BEEN_DELIVERED,
                     "Commande livrée", "Impossible d'accepter une commande déjà livrée");
         };

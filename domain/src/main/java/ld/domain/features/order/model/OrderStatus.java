@@ -1,31 +1,42 @@
 package ld.domain.features.order.model;
 
-
 import ld.domain.valueObjects.Percentage;
 
 import java.time.Instant;
 
 public sealed interface OrderStatus {
 
-    String type();
+    OrderState type();
 
-    enum State implements OrderStatus {
-        PENDING, REJECTED, DELIVERED;
-
+    record Pending() implements OrderStatus {
         @Override
-        public String type() {
-            return this.name();
+        public OrderState type() {
+            return OrderState.PENDING;
         }
     }
 
-    OrderStatus PENDING = State.PENDING;
-    OrderStatus REJECTED = State.REJECTED;
-    OrderStatus DELIVERED = State.DELIVERED;
+    record Rejected() implements OrderStatus {
+        @Override
+        public OrderState type() {
+            return OrderState.REJECTED;
+        }
+    }
+
+    record Delivered() implements OrderStatus {
+        @Override
+        public OrderState type() {
+            return OrderState.DELIVERED;
+        }
+    }
 
     record Accepted(Instant acceptedAt, Percentage discountApplied) implements OrderStatus {
         @Override
-        public String type() {
-            return "ACCEPTED";
+        public OrderState type() {
+            return OrderState.ACCEPTED;
         }
     }
+
+    OrderStatus PENDING = new Pending();
+    OrderStatus REJECTED = new Rejected();
+    OrderStatus DELIVERED = new Delivered();
 }

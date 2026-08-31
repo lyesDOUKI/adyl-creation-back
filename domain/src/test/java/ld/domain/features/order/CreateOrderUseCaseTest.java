@@ -3,6 +3,7 @@ package ld.domain.features.order;
 
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
+import ld.domain.features.order.model.OrderState;
 import ld.domain.features.order.model.OrderStatus;
 import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.product.InMemoryProductFinder;
@@ -127,7 +128,7 @@ class CreateOrderUseCaseTest {
                             .withId(productId)
                             .withPrice(BigDecimal.valueOf(50))
                             .withColors(List.of(
-                                    new ProductColor("blue")
+                                            new ProductColor("blue")
                                     )
                             )
                             .build()
@@ -146,11 +147,12 @@ class CreateOrderUseCaseTest {
             assertThat(aggregateEventDispatcher.count())
                     .isOne();
 
-
             var persistedOrder = extractValue(result);
 
             assertThat(persistedOrder.orderStatus())
-                    .isEqualTo(OrderStatus.PENDING);
+                    .isInstanceOf(OrderStatus.Pending.class);
+            assertThat(persistedOrder.orderStatus().type())
+                    .isEqualTo(OrderState.PENDING);
             assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
 
@@ -175,7 +177,7 @@ class CreateOrderUseCaseTest {
                             .withId(productOne)
                             .withPrice(BigDecimal.valueOf(100))
                             .withColors(List.of(
-                            new ProductColor("blue")
+                                            new ProductColor("blue")
                                     )
                             )
                             .build()
@@ -185,8 +187,8 @@ class CreateOrderUseCaseTest {
                             .withId(productTwo)
                             .withPrice(BigDecimal.valueOf(100))
                             .withColors(List.of(
-                                    new ProductColor("blue"),
-                                    new ProductColor("noir")
+                                            new ProductColor("blue"),
+                                            new ProductColor("noir")
                                     )
                             )
                             .build()
@@ -227,9 +229,11 @@ class CreateOrderUseCaseTest {
             assertSuccess(result);
 
             var persistedOrder = extractValue(result);
-            
+
             assertThat(persistedOrder.orderStatus())
-                    .isEqualTo(OrderStatus.PENDING);
+                    .isInstanceOf(OrderStatus.Pending.class);
+            assertThat(persistedOrder.orderStatus().type())
+                    .isEqualTo(OrderState.PENDING);
             assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(1100));
 
@@ -292,7 +296,9 @@ class CreateOrderUseCaseTest {
             var persistedOrder = extractValue(result);
 
             assertThat(persistedOrder.orderStatus())
-                    .isEqualTo(OrderStatus.PENDING);
+                    .isInstanceOf(OrderStatus.Pending.class);
+            assertThat(persistedOrder.orderStatus().type())
+                    .isEqualTo(OrderState.PENDING);
             assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
 
@@ -342,7 +348,9 @@ class CreateOrderUseCaseTest {
             var persistedOrder = extractValue(result);
 
             assertThat(persistedOrder.orderStatus())
-                    .isEqualTo(OrderStatus.PENDING);
+                    .isInstanceOf(OrderStatus.Pending.class);
+            assertThat(persistedOrder.orderStatus().type())
+                    .isEqualTo(OrderState.PENDING);
             assertThat(persistedOrder.total())
                     .isEqualByComparingTo(BigDecimal.valueOf(50));
 
@@ -376,7 +384,7 @@ class CreateOrderUseCaseTest {
                             .withId(productOne)
                             .withPrice(BigDecimal.valueOf(100))
                             .withStatus(ProductStatus.UNAVAILABLE)
-                    .withName("unavailable product")
+                            .withName("unavailable product")
                             .build()
             );
             getProductRepository.addProduct(

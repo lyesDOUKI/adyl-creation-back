@@ -143,6 +143,7 @@ class AcceptOrderUseCaseTest {
             var persistedOrder = inMemoryOrderLifecycleRepository.findById(orderId).orElseThrow();
 
             assertThat(persistedOrder.orderStatus()).isInstanceOf(OrderStatus.Accepted.class);
+            assertThat(persistedOrder.orderStatus().type()).isEqualTo(OrderState.ACCEPTED);
             assertThat(persistedOrder.total()).isEqualByComparingTo(BigDecimal.valueOf(90));
 
             assertThat(persistedOrder.items())
@@ -423,7 +424,8 @@ class AcceptOrderUseCaseTest {
             acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
 
             var persistedOrder = inMemoryOrderLifecycleRepository.findById(orderId).orElseThrow();
-            assertThat(persistedOrder.orderStatus()).isEqualTo(OrderStatus.DELIVERED);
+            assertThat(persistedOrder.orderStatus()).isInstanceOf(OrderStatus.Delivered.class);
+            assertThat(persistedOrder.orderStatus().type()).isEqualTo(OrderState.DELIVERED);
             assertThat(orderEventAggregateEventDispatcher.count()).isZero();
         }
     }
@@ -461,7 +463,8 @@ class AcceptOrderUseCaseTest {
             acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
 
             var persistedOrder = inMemoryOrderLifecycleRepository.findById(orderId).orElseThrow();
-            assertThat(persistedOrder.orderStatus()).isEqualTo(OrderStatus.REJECTED);
+            assertThat(persistedOrder.orderStatus()).isInstanceOf(OrderStatus.Rejected.class);
+            assertThat(persistedOrder.orderStatus().type()).isEqualTo(OrderState.REJECTED);
             assertThat(orderEventAggregateEventDispatcher.count()).isZero();
         }
     }
