@@ -32,7 +32,7 @@ import static ld.application.jooq.tables.Products.PRODUCTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class JooqGetProductQueryRepositoryTest {
+class JooqGetProductEntityQueryRepositoryTest {
 
     static final PostgreSQLContainer<?> POSTGRES = SharedPostgresContainer.INSTANCE;
 

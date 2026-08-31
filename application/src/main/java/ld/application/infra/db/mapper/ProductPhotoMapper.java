@@ -1,6 +1,6 @@
 package ld.application.infra.db.mapper;
 
-import ld.application.infra.db.entity.Product;
+import ld.application.infra.db.entity.ProductEntity;
 import ld.application.infra.db.entity.ProductPhotoEntity;
 import ld.domain.features.product.model.ProductPhoto;
 
@@ -18,13 +18,13 @@ public final class ProductPhotoMapper {
         );
     }
 
-    public static ProductPhotoEntity toEntity(ProductPhoto photo, Product productEntity) {
+    public static ProductPhotoEntity toEntity(ProductPhoto photo, ProductEntity productEntityEntity) {
         ProductPhotoEntity entity = new ProductPhotoEntity();
         entity.setId(photo.id());
         entity.setStorageKey(photo.storageKey());
         entity.setPosition(photo.position());
         entity.setCreatedAt(Instant.now());
-        entity.setProduct(productEntity);
+        entity.setProduct(productEntityEntity);
         return entity;
     }
 }

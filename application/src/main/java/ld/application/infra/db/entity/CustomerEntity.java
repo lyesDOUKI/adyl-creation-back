@@ -6,7 +6,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "CUSTOMERS")
-public class Customer {
+public class CustomerEntity {
 
     @Id
     @Column(name = "id", nullable = false, updatable = false)
@@ -34,10 +34,10 @@ public class Customer {
     @Column(name = "customer_city", length = 50)
     private String customerCity;
 
-    public Customer() {
+    public CustomerEntity() {
     }
 
-    public Customer(String customerName, String customerEmail, String customerPhone, String customerAddress, String customerCity) {
+    public CustomerEntity(String customerName, String customerEmail, String customerPhone, String customerAddress, String customerCity) {
         this.customerName = customerName;
         this.customerEmail = customerEmail;
         this.customerPhone = customerPhone;

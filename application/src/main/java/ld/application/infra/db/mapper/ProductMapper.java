@@ -1,6 +1,6 @@
 package ld.application.infra.db.mapper;
 
-import ld.application.infra.db.entity.Product;
+import ld.application.infra.db.entity.ProductEntity;
 import ld.application.infra.db.entity.ProductPhotoEntity;
 import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductPhoto;
@@ -15,7 +15,7 @@ public class ProductMapper {
     private ProductMapper() {}
 
     // 1. Entity JPA -> Domain Snapshot (Lecture)
-    public static ProductSnapshot toSnapshot(Product entity) {
+    public static ProductSnapshot toSnapshot(ProductEntity entity) {
         List<ProductColor> colors = entity.getColors() != null
                 ? entity.getColors().stream().map(ProductColor::new).toList()
                 : List.of();
@@ -37,14 +37,14 @@ public class ProductMapper {
         );
     }
 
-    public static Product toEntity(ProductSnapshot snapshot) {
-        var entity = new Product();
+    public static ProductEntity toEntity(ProductSnapshot snapshot) {
+        var entity = new ProductEntity();
         entity.setId(snapshot.productId());
         updateEntity(snapshot, entity);
         return entity;
     }
 
-    public static void updateEntity(ProductSnapshot snapshot, Product targetEntity) {
+    public static void updateEntity(ProductSnapshot snapshot, ProductEntity targetEntity) {
         targetEntity.setName(snapshot.name());
         targetEntity.setUnitPrice(snapshot.price());
         targetEntity.setStatus(snapshot.productStatus());
@@ -64,8 +64,8 @@ public class ProductMapper {
         }
     }
 
-    private static void updatePhotos(List<ProductPhoto> photoSnapshots, Product productEntity) {
-        Map<UUID, ProductPhotoEntity> existingPhotosById = productEntity.getPhotos().stream()
+    private static void updatePhotos(List<ProductPhoto> photoSnapshots, ProductEntity productEntityEntity) {
+        Map<UUID, ProductPhotoEntity> existingPhotosById = productEntityEntity.getPhotos().stream()
                 .collect(Collectors.toMap(ProductPhotoEntity::getId, Function.identity()));
 
         Set<UUID> snapshotPhotoIds = photoSnapshots.stream()
@@ -73,7 +73,7 @@ public class ProductMapper {
                 .collect(Collectors.toSet());
 
 
-        productEntity.getPhotos().removeIf(entity -> !snapshotPhotoIds.contains(entity.getId()));
+        productEntityEntity.getPhotos().removeIf(entity -> !snapshotPhotoIds.contains(entity.getId()));
 
         // Ajout ou mise à jour des photos
         for (var photoDomain : photoSnapshots) {
@@ -83,8 +83,8 @@ public class ProductMapper {
                 existingPhoto.setPosition(photoDomain.position());
                 existingPhoto.setStorageKey(photoDomain.storageKey());
             } else {
-                ProductPhotoEntity newPhotoEntity = ProductPhotoMapper.toEntity(photoDomain, productEntity);
-                productEntity.getPhotos().add(newPhotoEntity);
+                ProductPhotoEntity newPhotoEntity = ProductPhotoMapper.toEntity(photoDomain, productEntityEntity);
+                productEntityEntity.getPhotos().add(newPhotoEntity);
             }
         }
     }

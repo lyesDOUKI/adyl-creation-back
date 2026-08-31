@@ -21,7 +21,7 @@ import static ld.application.shared.ProductQueryTestBuilder.aProduct;
 import static ld.standard.lib.helper.test.ResultTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class GetProductServiceImplTest {
+class GetProductEntityServiceImplTest {
 
     private final FakeGetProductQueryRepository repository = new FakeGetProductQueryRepository();
     private final FakeProductPhotoUrlResolver photoUrlResolver = new FakeProductPhotoUrlResolver();

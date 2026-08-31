@@ -11,14 +11,14 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "orders")
-public class Order {
+public class OrderEntity {
 
     @Id
     private UUID id;
 
     @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
     @JoinColumn(name = "customer_id", nullable = false)
-    private Customer customer;
+    private CustomerEntity customerEntity;
 
     @Column(length = 255)
     private String customerMessage;
@@ -36,9 +36,9 @@ public class Order {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
-    private List<OrderDetail> details = new ArrayList<>();
+    private List<OrderDetailEntity> details = new ArrayList<>();
 
-    public Order() {}
+    public OrderEntity() {}
     public UUID getId() {
         return id;
     }
@@ -47,12 +47,12 @@ public class Order {
         this.id = id;
     }
 
-    public Customer getCustomer() {
-        return customer;
+    public CustomerEntity getCustomer() {
+        return customerEntity;
     }
 
-    public void setCustomer(Customer customer) {
-        this.customer = customer;
+    public void setCustomer(CustomerEntity customerEntity) {
+        this.customerEntity = customerEntity;
     }
 
     public String getCustomerMessage() {
@@ -79,24 +79,24 @@ public class Order {
         this.updatedAt = updatedAt;
     }
 
-    public List<OrderDetail> getDetails() {
+    public List<OrderDetailEntity> getDetails() {
         return details;
     }
 
-    public void setDetails(List<OrderDetail> details) {
+    public void setDetails(List<OrderDetailEntity> details) {
         this.details = details;
     }
 
-    public Order(
+    public OrderEntity(
             UUID id,
-            Customer customer
+            CustomerEntity customerEntity
     ) {
         this.id = id;
-        this.customer = customer;
+        this.customerEntity = customerEntity;
     }
 
 
-    public void addDetail(OrderDetail detail) {
+    public void addDetail(OrderDetailEntity detail) {
         details.add(detail);
         detail.assignOrder(this);
     }

@@ -1,6 +1,6 @@
 package ld.application.infra.db.jpa;
 
-import ld.application.infra.db.entity.Product;
+import ld.application.infra.db.entity.ProductEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -9,7 +9,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
+public interface ProductJpaRepository extends JpaRepository<ProductEntity, UUID> {
     boolean existsByName(final String name);
 
     @Query("""
@@ -19,5 +19,5 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
     left join fetch p.photos
     where p.id in :ids
 """)
-    List<Product> findAllWithColorsAndPhotosByIdIn(@Param("ids") Collection<UUID> ids);
+    List<ProductEntity> findAllWithColorsAndPhotosByIdIn(@Param("ids") Collection<UUID> ids);
 }

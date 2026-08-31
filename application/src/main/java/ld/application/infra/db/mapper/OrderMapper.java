@@ -1,8 +1,8 @@
 package ld.application.infra.db.mapper;
 
-import ld.application.infra.db.entity.Customer;
-import ld.application.infra.db.entity.Order;
-import ld.application.infra.db.entity.OrderDetail;
+import ld.application.infra.db.entity.CustomerEntity;
+import ld.application.infra.db.entity.OrderEntity;
+import ld.application.infra.db.entity.OrderDetailEntity;
 import ld.domain.features.order.model.OrderSnapshot;
 
 import java.math.BigDecimal;
@@ -10,16 +10,16 @@ import java.math.BigDecimal;
 public class OrderMapper {
     private OrderMapper(){}
 
-    public static Order from(OrderSnapshot orderSnapshot) {
+    public static OrderEntity from(OrderSnapshot orderSnapshot) {
         var customerInfo = orderSnapshot.customerInfo();
-        var customer = new Customer(
+        var customer = new CustomerEntity(
                 customerInfo.name(),
                 customerInfo.email(),
                 customerInfo.phoneNumber(),
                 customerInfo.address(),
                 customerInfo.city()
         );
-        var order = new Order(
+        var order = new OrderEntity(
                 orderSnapshot.orderId(),
                 customer
         );
@@ -31,8 +31,8 @@ public class OrderMapper {
         return order;
     }
 
-    private static OrderDetail from(OrderSnapshot.OrderItemSnapshot itemSnapshot) {
-        return new OrderDetail(
+    private static OrderDetailEntity from(OrderSnapshot.OrderItemSnapshot itemSnapshot) {
+        return new OrderDetailEntity(
                 itemSnapshot.itemId(),
                 itemSnapshot.productId(),
                 BigDecimal.valueOf(itemSnapshot.quantity()),

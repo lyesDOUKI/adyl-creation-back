@@ -7,7 +7,7 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "order_details")
-public class OrderDetail {
+public class OrderDetailEntity {
 
 
     @Id
@@ -19,7 +19,7 @@ public class OrderDetail {
             name = "order_id",
             nullable = false
     )
-    private Order order;
+    private OrderEntity orderEntity;
 
 
     @Column(nullable = false)
@@ -40,7 +40,7 @@ public class OrderDetail {
 
     private String chosenColor;
 
-    public OrderDetail() {}
+    public OrderDetailEntity() {}
     public UUID getId() {
         return id;
     }
@@ -49,12 +49,12 @@ public class OrderDetail {
         this.id = id;
     }
 
-    public Order getOrder() {
-        return order;
+    public OrderEntity getOrder() {
+        return orderEntity;
     }
 
-    public void setOrder(Order order) {
-        this.order = order;
+    public void setOrder(OrderEntity orderEntity) {
+        this.orderEntity = orderEntity;
     }
 
     public UUID getProductId() {
@@ -97,7 +97,7 @@ public class OrderDetail {
         this.chosenColor = chosenColor;
     }
 
-    public OrderDetail(
+    public OrderDetailEntity(
             UUID id,
             UUID productId,
             BigDecimal quantity,
@@ -114,7 +114,7 @@ public class OrderDetail {
     }
 
 
-    protected void assignOrder(Order order) {
-        this.order = order;
+    protected void assignOrder(OrderEntity orderEntity) {
+        this.orderEntity = orderEntity;
     }
 }

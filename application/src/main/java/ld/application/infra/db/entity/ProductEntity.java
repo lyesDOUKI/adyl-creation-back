@@ -8,7 +8,7 @@ import java.util.*;
 
 @Entity
 @Table(name = "products")
-public class Product {
+public class ProductEntity {
 
     @Id
     private UUID id;
@@ -34,7 +34,7 @@ public class Product {
     @OneToMany(mappedBy = "product", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductPhotoEntity> photos = new ArrayList<>();
 
-    public Product() {}
+    public ProductEntity() {}
     public UUID getId() {
         return id;
     }

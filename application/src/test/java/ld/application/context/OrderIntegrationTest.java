@@ -4,10 +4,10 @@ import ld.application.bridge.OrderConfiguration;
 import ld.application.config.JooqDslConfiguration;
 import ld.application.config.OrderPersistenceTestConfiguration;
 import ld.application.config.UnitOfWorkTestConfiguration;
-import ld.application.infra.db.entity.Customer;
-import ld.application.infra.db.entity.Order;
-import ld.application.infra.db.entity.OrderDetail;
-import ld.application.infra.db.entity.Product;
+import ld.application.infra.db.entity.CustomerEntity;
+import ld.application.infra.db.entity.OrderEntity;
+import ld.application.infra.db.entity.OrderDetailEntity;
+import ld.application.infra.db.entity.ProductEntity;
 import ld.application.shared.ProductTestFixture;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
@@ -38,10 +38,10 @@ import java.lang.annotation.Target;
         FlywayAutoConfiguration.class
 })
 @EntityScan(basePackageClasses = {
-        Product.class,
-        Order.class,
-        OrderDetail.class,
-        Customer.class
+        ProductEntity.class,
+        OrderEntity.class,
+        OrderDetailEntity.class,
+        CustomerEntity.class
 })
 @Testcontainers
 @ActiveProfiles("test")

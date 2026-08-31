@@ -23,7 +23,7 @@ public class ProductPhotoEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "product_id", nullable = false)
-    private Product product;
+    private ProductEntity productEntity;
 
     public ProductPhotoEntity(){}
 
@@ -43,8 +43,8 @@ public class ProductPhotoEntity {
         return createdAt;
     }
 
-    public Product getProduct() {
-        return product;
+    public ProductEntity getProduct() {
+        return productEntity;
     }
 
     public void setPosition(int position) {
@@ -63,7 +63,7 @@ public class ProductPhotoEntity {
         this.createdAt = createdAt;
     }
 
-    public void setProduct(Product product) {
-        this.product = product;
+    public void setProduct(ProductEntity productEntity) {
+        this.productEntity = productEntity;
     }
 }

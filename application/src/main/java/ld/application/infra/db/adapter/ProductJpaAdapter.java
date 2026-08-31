@@ -1,6 +1,6 @@
 package ld.application.infra.db.adapter;
 
-import ld.application.infra.db.entity.Product;
+import ld.application.infra.db.entity.ProductEntity;
 import ld.application.infra.db.jpa.ProductJpaRepository;
 import ld.application.infra.db.mapper.ProductMapper;
 import ld.domain.features.product.ProductChecker;
@@ -42,7 +42,7 @@ public class ProductJpaAdapter implements ProductCreator, ProductChecker, Produc
     @Override
     public void save(ProductSnapshot snapshot) {
 
-        Product productEntity = productJpaRepository.findById(snapshot.productId())
+        ProductEntity productEntityEntity = productJpaRepository.findById(snapshot.productId())
                 .orElseThrow(() -> new IllegalStateException(
                         String.format(
                                 "Le produit %s doit exister pour persister sa mise à jour",
@@ -50,8 +50,8 @@ public class ProductJpaAdapter implements ProductCreator, ProductChecker, Produc
                         )
                 ));
 
-        ProductMapper.updateEntity(snapshot, productEntity);
+        ProductMapper.updateEntity(snapshot, productEntityEntity);
 
-        productJpaRepository.saveAndFlush(productEntity);
+        productJpaRepository.saveAndFlush(productEntityEntity);
     }
 }

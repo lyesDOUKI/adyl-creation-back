@@ -1,6 +1,6 @@
 package ld.application.infra.db.adapter;
 
-import ld.application.infra.db.entity.Product;
+import ld.application.infra.db.entity.ProductEntity;
 import ld.application.infra.db.jpa.ProductJpaRepository;
 import ld.application.infra.db.mapper.ProductMapper;
 import ld.domain.features.product.ProductFinder;
@@ -26,9 +26,9 @@ public class ProductJpaFinderAdapter implements ProductFinder {
             return List.of();
         }
 
-        List<Product> products = this.productJpaRepository.findAllWithColorsAndPhotosByIdIn(productsId);
+        List<ProductEntity> produtctEntities = this.productJpaRepository.findAllWithColorsAndPhotosByIdIn(productsId);
 
-        return products.stream()
+        return produtctEntities.stream()
                 .map(ProductMapper::toSnapshot)
                 .toList();
     }
