@@ -76,14 +76,21 @@ public class AcceptOrderUseCaseImpl implements AcceptOrderUseCase {
             return order.accept(false, Percentage.ZERO, Instant.now(clock));
         }
 
-        boolean claimed = discountClaimer.tryAddClaim(
-                DiscountType.FIRST_ACCEPTED_ORDER,
-                order.customerEmail()
-        );
+        var rate =
+                discountProvider.provide(DiscountType.FIRST_ACCEPTED_ORDER);
 
-        return order.accept(claimed,
-                this.discountProvider.provide(DiscountType.FIRST_ACCEPTED_ORDER).orElse(Percentage.ZERO)
-                , Instant.now(clock));
+        boolean claimed = rate
+                .map(_ -> discountClaimer.tryAddClaim(
+                        DiscountType.FIRST_ACCEPTED_ORDER,
+                        order.customerEmail()
+                ))
+                .orElse(false);
+
+        return order.accept(
+                claimed,
+                rate.orElse(Percentage.ZERO),
+                Instant.now(clock)
+        );
     }
 
     private boolean isEligibleForFirstOrderDiscount(Order order) {
