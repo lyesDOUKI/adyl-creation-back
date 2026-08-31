@@ -6,9 +6,15 @@ import ld.application.infra.db.entity.OrderEntity;
 import ld.domain.features.order.model.CustomerInfo;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.product.model.ProductColor;
+import ld.domain.valueObjects.Percentage;
 import ld.domain.valueObjects.Price;
 
 import java.math.BigDecimal;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 public final class OrderMapper {
 
@@ -64,11 +70,25 @@ public final class OrderMapper {
         }
 
 
-        existingEntity.getDetails().clear();
-        if (snapshot.items() != null) {
-            snapshot.items().stream()
-                    .map(OrderMapper::toDetailEntity)
-                    .forEach(existingEntity::addDetail);
+        if (snapshot.items() == null || snapshot.items().isEmpty()) {
+            existingEntity.getDetails().clear();
+        } else {
+            Set<UUID> snapshotIds = snapshot.items().stream()
+                    .map(OrderSnapshot.OrderItemSnapshot::itemId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+
+            existingEntity.getDetails().removeIf(detail -> !snapshotIds.contains(detail.getId()));
+
+            for (var item : snapshot.items()) {
+                Optional<OrderDetailEntity> existingDetail = existingEntity.getDetails().stream()
+                        .filter(detail -> Objects.equals(detail.getId(), item.itemId()))
+                        .findFirst();
+
+                existingDetail.ifPresentOrElse(
+                        entity -> entity.updateFromSnapshot(item),
+                        () -> existingEntity.addDetail(OrderMapper.toDetailEntity(item)));
+            }
         }
     }
 
@@ -104,6 +124,7 @@ public final class OrderMapper {
                 BigDecimal.valueOf(item.quantity()),
                 item.price().value(),
                 item.total().value(),
+                item.discountRate().value(),
                 item.color().value()
         );
     }
@@ -115,6 +136,7 @@ public final class OrderMapper {
                 new Price(detail.getUnitPrice()),
                 detail.getQuantity().intValue(),
                 new Price(detail.getTotalAmount()),
+                new Percentage(detail.getDiscountRate()),
                 new ProductColor(detail.getChosenColor())
         );
     }

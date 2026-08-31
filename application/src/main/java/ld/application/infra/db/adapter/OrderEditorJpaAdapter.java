@@ -7,7 +7,6 @@ import ld.application.infra.db.mapper.OrderMapper;
 import ld.domain.features.order.lifecycle.OrderEditor;
 import ld.domain.features.order.model.OrderSnapshot;
 import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -22,7 +21,6 @@ public class OrderEditorJpaAdapter implements OrderEditor {
     }
 
     @Override
-    @Transactional
     public void save(OrderSnapshot orderSnapshot) {
         orderJpaRepository.findById(orderSnapshot.orderId())
                 .ifPresentOrElse(

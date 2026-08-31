@@ -1,6 +1,7 @@
 package ld.application.infra.db.entity;
 
 import jakarta.persistence.*;
+import ld.domain.features.order.model.OrderSnapshot;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -37,6 +38,8 @@ public class OrderDetailEntity {
     @Column(nullable = false, precision = 15, scale = 2)
     private BigDecimal totalAmount;
 
+    @Column(nullable = false, precision = 5, scale = 4)
+    private BigDecimal discountRate;
 
     private String chosenColor;
 
@@ -103,6 +106,7 @@ public class OrderDetailEntity {
             BigDecimal quantity,
             BigDecimal unitPrice,
             BigDecimal totalAmount,
+            BigDecimal discountRate,
             String chosenColor
     ) {
         this.id = id;
@@ -110,9 +114,26 @@ public class OrderDetailEntity {
         this.quantity = quantity;
         this.unitPrice = unitPrice;
         this.totalAmount = totalAmount;
+        this.discountRate = discountRate;
         this.chosenColor = chosenColor;
     }
 
+    public void updateFromSnapshot(OrderSnapshot.OrderItemSnapshot item) {
+        this.productId = item.productId();
+        this.quantity = BigDecimal.valueOf(item.quantity());
+        this.unitPrice = item.price().value();
+        this.totalAmount = item.total().value();
+        this.discountRate = item.discountRate().asFraction();
+        this.chosenColor = item.color().value();
+    }
+
+    public BigDecimal getDiscountRate() {
+        return discountRate;
+    }
+
+    public void setDiscountRate(BigDecimal discountRate) {
+        this.discountRate = discountRate;
+    }
 
     protected void assignOrder(OrderEntity orderEntity) {
         this.orderEntity = orderEntity;
