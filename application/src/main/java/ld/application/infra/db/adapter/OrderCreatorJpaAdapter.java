@@ -7,10 +7,10 @@ import ld.domain.features.order.model.OrderSnapshot;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class OrderJpaCreatorAdapter implements OrderCreator {
+public class OrderCreatorJpaAdapter implements OrderCreator {
 
     private final OrderJpaRepository orderJpaRepository;
-    public OrderJpaCreatorAdapter(OrderJpaRepository orderJpaRepository) {
+    public OrderCreatorJpaAdapter(OrderJpaRepository orderJpaRepository) {
         this.orderJpaRepository = orderJpaRepository;
     }
 

@@ -1,11 +1,14 @@
 package ld.application.config;
 
-import ld.application.infra.db.adapter.OrderJpaCreatorAdapter;
+import ld.application.infra.db.adapter.DiscountClaimerJpaAdapter;
+import ld.application.infra.db.adapter.OrderCreatorJpaAdapter;
+import ld.application.infra.db.adapter.OrderEditorJpaAdapter;
 import ld.application.infra.db.adapter.ProductJpaFinderAdapter;
+import ld.application.infra.db.jpa.DiscountClaimJpaRepository;
 import ld.application.infra.db.jpa.OrderJpaRepository;
 import ld.application.infra.db.jpa.ProductJpaRepository;
-import ld.domain.features.order.OrderCreator;
-import ld.domain.features.product.ProductFinder;
+import ld.application.infra.db.read.CustomerOrderHistoryFinderJooqAdapter;
+import org.jooq.DSLContext;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
@@ -18,17 +21,15 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 public class OrderPersistenceTestConfiguration {
 
     @Bean
-    OrderJpaCreatorAdapter orderJpaCreatorAdapter(
+    OrderCreatorJpaAdapter orderCreatorJpaAdapter(
             OrderJpaRepository repository
     ) {
-        return new OrderJpaCreatorAdapter(repository);
+        return new OrderCreatorJpaAdapter(repository);
     }
 
     @Bean
-    OrderCreator orderCreator(
-            OrderJpaCreatorAdapter adapter
-    ) {
-        return adapter;
+    OrderEditorJpaAdapter orderEditorJpaAdapter(OrderJpaRepository orderJpaRepository) {
+        return new OrderEditorJpaAdapter(orderJpaRepository);
     }
 
     @Bean
@@ -38,10 +39,15 @@ public class OrderPersistenceTestConfiguration {
         return new ProductJpaFinderAdapter(repository);
     }
 
+
     @Bean
-    ProductFinder productFinder(
-            ProductJpaFinderAdapter adapter
-    ) {
-        return adapter;
+    DiscountClaimerJpaAdapter discountClaimerJpaAdapter(DiscountClaimJpaRepository discountClaimJpaRepository) {
+        return new DiscountClaimerJpaAdapter(discountClaimJpaRepository);
+    }
+
+
+    @Bean
+    CustomerOrderHistoryFinderJooqAdapter customerOrderHistoryFinderJooqAdapter(DSLContext dslContext) {
+        return new CustomerOrderHistoryFinderJooqAdapter(dslContext);
     }
 }

@@ -2,7 +2,7 @@ package ld.application.write;
 
 import ld.application.config.SharedPostgresContainer;
 import ld.application.context.OrderIntegrationTest;
-import ld.application.infra.db.adapter.OrderJpaCreatorAdapter;
+import ld.application.infra.db.adapter.OrderCreatorJpaAdapter;
 import ld.application.shared.CreateOrderCommandFixture;
 import ld.application.shared.ProductTestFixture;
 import ld.domain.features.order.OrderCreator;
@@ -110,7 +110,7 @@ class CreateOrderServiceIntegrationTest {
 
             @Bean
             @Primary
-            OrderCreator failingCreateOrderRepository(OrderJpaCreatorAdapter realRepository) {
+            OrderCreator failingCreateOrderRepository(OrderCreatorJpaAdapter realRepository) {
                 return snapshot -> {
                     realRepository.create(snapshot);
                     throw new RuntimeException("Simulated failure after insert");

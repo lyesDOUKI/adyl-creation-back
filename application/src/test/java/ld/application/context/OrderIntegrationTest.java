@@ -3,10 +3,11 @@ package ld.application.context;
 import ld.application.bridge.OrderConfiguration;
 import ld.application.config.JooqDslConfiguration;
 import ld.application.config.OrderPersistenceTestConfiguration;
+import ld.application.config.TestClockConfiguration;
 import ld.application.config.UnitOfWorkTestConfiguration;
 import ld.application.infra.db.entity.CustomerEntity;
-import ld.application.infra.db.entity.OrderEntity;
 import ld.application.infra.db.entity.OrderDetailEntity;
+import ld.application.infra.db.entity.OrderEntity;
 import ld.application.infra.db.entity.ProductEntity;
 import ld.application.shared.ProductTestFixture;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -30,7 +31,8 @@ import java.lang.annotation.Target;
         OrderConfiguration.class,
         JooqDslConfiguration.class,
         OrderPersistenceTestConfiguration.class,
-        UnitOfWorkTestConfiguration.class
+        UnitOfWorkTestConfiguration.class,
+        TestClockConfiguration.class
 })
 @ImportAutoConfiguration({
         DataSourceAutoConfiguration.class,
