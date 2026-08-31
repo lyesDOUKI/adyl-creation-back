@@ -1,4 +1,4 @@
-package ld.application.infra.db.read;
+package ld.application.infra.db.jooq;
 
 import ld.domain.features.order.lifecycle.DiscountProvider;
 import ld.domain.features.order.model.DiscountType;

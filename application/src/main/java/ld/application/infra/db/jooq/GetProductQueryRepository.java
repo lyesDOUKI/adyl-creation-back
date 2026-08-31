@@ -1,4 +1,4 @@
-package ld.application.infra.db.read;
+package ld.application.infra.db.jooq;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

@@ -1,4 +1,4 @@
-package ld.application.infra.db.read;
+package ld.application.infra.db.jooq;
 
 import java.math.BigDecimal;
 import java.util.List;

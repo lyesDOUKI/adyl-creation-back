@@ -1,4 +1,4 @@
-package ld.application.bridge;
+package ld.application.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

@@ -1,7 +1,7 @@
-package ld.application.infra.db.adapter;
+package ld.application.infra.db.jpa.adapter;
 
 import ld.application.infra.db.jpa.OrderJpaRepository;
-import ld.application.infra.db.mapper.OrderMapper;
+import ld.application.infra.db.jpa.mapper.OrderMapper;
 import ld.domain.features.order.OrderCreator;
 import ld.domain.features.order.model.OrderSnapshot;
 import org.springframework.stereotype.Repository;

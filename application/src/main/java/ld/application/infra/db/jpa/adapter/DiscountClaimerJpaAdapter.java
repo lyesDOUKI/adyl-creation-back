@@ -1,4 +1,4 @@
-package ld.application.infra.db.adapter;
+package ld.application.infra.db.jpa.adapter;
 
 import ld.application.infra.db.entity.DiscountClaimEntity;
 import ld.application.infra.db.jpa.DiscountClaimJpaRepository;

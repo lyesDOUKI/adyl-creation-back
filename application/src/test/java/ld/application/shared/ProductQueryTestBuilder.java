@@ -1,6 +1,6 @@
 package ld.application.shared;
 
-import ld.application.infra.db.read.ProductQuery;
+import ld.application.infra.db.jooq.ProductQuery;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;

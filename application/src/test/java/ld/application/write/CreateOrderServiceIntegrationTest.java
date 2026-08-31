@@ -2,7 +2,7 @@ package ld.application.write;
 
 import ld.application.config.SharedPostgresContainer;
 import ld.application.context.OrderIntegrationTest;
-import ld.application.infra.db.adapter.OrderCreatorJpaAdapter;
+import ld.application.infra.db.jpa.adapter.OrderCreatorJpaAdapter;
 import ld.application.shared.CreateOrderCommandFixture;
 import ld.application.shared.ProductTestFixture;
 import ld.domain.features.order.OrderCreator;

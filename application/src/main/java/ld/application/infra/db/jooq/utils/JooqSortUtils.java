@@ -1,6 +1,6 @@
-package ld.application.infra.db.read.jooq.utils;
+package ld.application.infra.db.jooq.utils;
 
-import ld.application.infra.db.read.jooq.exception.InvalidSortFieldException;
+import ld.application.infra.db.jooq.exception.InvalidSortFieldException;
 import org.jooq.Field;
 import org.jooq.SortField;
 import org.springframework.data.domain.Sort;

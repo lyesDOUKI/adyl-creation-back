@@ -1,8 +1,8 @@
-package ld.application.infra.db.adapter;
+package ld.application.infra.db.jpa.adapter;
 
 import ld.application.infra.db.entity.ProductEntity;
 import ld.application.infra.db.jpa.ProductJpaRepository;
-import ld.application.infra.db.mapper.ProductMapper;
+import ld.application.infra.db.jpa.mapper.ProductMapper;
 import ld.domain.features.product.ProductChecker;
 import ld.domain.features.product.ProductCreator;
 import ld.domain.features.product.lifecycle.ProductEditor;

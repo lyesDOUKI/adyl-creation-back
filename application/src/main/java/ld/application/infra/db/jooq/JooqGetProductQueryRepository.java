@@ -1,8 +1,6 @@
-package ld.application.infra.db.read.jooq;
+package ld.application.infra.db.jooq;
 
-import ld.application.infra.db.read.GetProductQueryRepository;
-import ld.application.infra.db.read.ProductQuery;
-import ld.application.infra.db.read.jooq.utils.JooqSortUtils;
+import ld.application.infra.db.jooq.utils.JooqSortUtils;
 import org.jooq.*;
 import org.jooq.Record;
 import org.springframework.data.domain.Page;

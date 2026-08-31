@@ -1,4 +1,4 @@
-package ld.application.infra.db.mapper;
+package ld.application.infra.db.jpa.mapper;
 
 import ld.application.infra.db.entity.ProductEntity;
 import ld.application.infra.db.entity.ProductPhotoEntity;

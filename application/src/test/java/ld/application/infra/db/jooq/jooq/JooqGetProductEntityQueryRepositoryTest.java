@@ -1,10 +1,11 @@
-package ld.application.infra.db.read.jooq;
+package ld.application.infra.db.jooq.jooq;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import ld.application.config.SharedPostgresContainer;
-import ld.application.infra.db.read.ProductQuery;
-import ld.application.infra.db.read.jooq.exception.InvalidSortFieldException;
+import ld.application.infra.db.jooq.JooqGetProductQueryRepository;
+import ld.application.infra.db.jooq.ProductQuery;
+import ld.application.infra.db.jooq.exception.InvalidSortFieldException;
 import ld.domain.features.product.model.ProductStatus;
 import org.flywaydb.core.Flyway;
 import org.jooq.DSLContext;

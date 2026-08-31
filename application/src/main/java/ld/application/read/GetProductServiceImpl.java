@@ -1,7 +1,7 @@
 package ld.application.read;
 
-import ld.application.infra.db.read.GetProductQueryRepository;
-import ld.application.infra.db.read.ProductQuery;
+import ld.application.infra.db.jooq.GetProductQueryRepository;
+import ld.application.infra.db.jooq.ProductQuery;
 import ld.application.response.GetProductResponse;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
 import ld.domain.features.product.validation.ProductErrorCode;
