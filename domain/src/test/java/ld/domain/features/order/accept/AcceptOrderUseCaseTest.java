@@ -32,12 +32,14 @@ class AcceptOrderUseCaseTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
 
     private final InMemoryOrderEditor inMemoryOrderLifecycleRepository = new InMemoryOrderEditor();
+    private final InMemoryCustomerOrderHistoryFinder customerOrderHistoryFinder = new InMemoryCustomerOrderHistoryFinder();
     private final InMemoryDiscountClaimer discountClaimRepository = new InMemoryDiscountClaimer();
     private final InMemoryAggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
     private final InMemoryUnitOfWork unitOfWork = new InMemoryUnitOfWork();
 
     private final AcceptOrderUseCase acceptOrderUseCase = new AcceptOrderUseCaseImpl(
             inMemoryOrderLifecycleRepository,
+            customerOrderHistoryFinder,
             discountClaimRepository,
             orderEventAggregateEventDispatcher,
             unitOfWork,
@@ -250,6 +252,60 @@ class AcceptOrderUseCaseTest {
 
             assertThat(acceptedOrder.items())
                     .allSatisfy(item -> assertThat(item.total().value()).isEqualByComparingTo(BigDecimal.valueOf(100)));
+        }
+    }
+
+    @Nested
+    @DisplayName("Quand le client possède déjà une commande effective (ni PENDING, ni REJECTED)")
+    class WhenCustomerHasEffectiveOrderHistory {
+
+        @Test
+        @DisplayName("La remise n'est pas appliquée, même si le claim de remise n'a jamais été consommé")
+        void shouldNotApplyDiscountWhenCustomerHasEffectiveOrder() {
+            var customer = new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
+            customerOrderHistoryFinder.markEffectiveOrder(customer.email());
+
+            var orderId = UUID.randomUUID();
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withCustomer(customer)
+                            .withOrderStatus(OrderStatus.PENDING)
+                            .withItems(List.of(anItem(BigDecimal.valueOf(100), BigDecimal.valueOf(100))))
+                            .build()
+            );
+
+            var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
+
+            assertSuccess(result);
+
+            var acceptedOrder = extractValue(result);
+            assertThat(acceptedOrder.total()).isEqualByComparingTo(BigDecimal.valueOf(100));
+
+            var acceptedStatus = (OrderStatus.Accepted) acceptedOrder.orderStatus();
+            assertThat(acceptedStatus.discountApplied().value()).isEqualByComparingTo(BigDecimal.ZERO);
+        }
+
+        @Test
+        @DisplayName("Le court-circuit évite même de solliciter le discountClaimer")
+        void shouldNotConsumeDiscountClaimWhenCustomerHasEffectiveOrder() {
+            var customer = new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
+            customerOrderHistoryFinder.markEffectiveOrder(customer.email());
+
+            var orderId = UUID.randomUUID();
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withCustomer(customer)
+                            .withOrderStatus(OrderStatus.PENDING)
+                            .withItems(List.of(anItem(BigDecimal.valueOf(100), BigDecimal.valueOf(100))))
+                            .build()
+            );
+
+            assertSuccess(acceptOrderUseCase.execute(new AcceptOrderCommand(orderId)));
+
+            assertThat(discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.email()))
+                    .isTrue();
         }
     }
 

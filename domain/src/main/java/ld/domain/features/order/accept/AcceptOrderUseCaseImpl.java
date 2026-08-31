@@ -13,51 +13,85 @@ import ld.standard.lib.validation.Result;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.util.UUID;
 
 public class AcceptOrderUseCaseImpl implements AcceptOrderUseCase {
-
     private final OrderEditor orderEditor;
+    private final CustomerOrderHistoryFinder customerOrderHistoryFinder;
     private final DiscountClaimer discountClaimer;
-    private final AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher;
+    private final AggregateEventDispatcher<OrderEvent> orderEventDispatcher;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
-    public AcceptOrderUseCaseImpl(OrderEditor orderEditor,
-                                  DiscountClaimer discountClaimer,
-                                  AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher,
-                                  UnitOfWork unitOfWork,
-                                  Clock clock) {
+    public AcceptOrderUseCaseImpl(
+            OrderEditor orderEditor,
+            CustomerOrderHistoryFinder customerOrderHistoryFinder,
+            DiscountClaimer discountClaimer,
+            AggregateEventDispatcher<OrderEvent> orderEventDispatcher,
+            UnitOfWork unitOfWork,
+            Clock clock) {
         this.orderEditor = orderEditor;
+        this.customerOrderHistoryFinder = customerOrderHistoryFinder;
         this.discountClaimer = discountClaimer;
-        this.orderEventAggregateEventDispatcher = orderEventAggregateEventDispatcher;
+        this.orderEventDispatcher = orderEventDispatcher;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
     }
 
     @Override
-    public Result<OrderSnapshot> execute(AcceptOrderCommand acceptOrderCommand) {
-        Result<Order> orderResult = unitOfWork.executeInTransaction(() ->
-                this.orderEditor.findById(acceptOrderCommand.orderId())
-                        .map(Result::success)
-                        .orElseGet(() -> Result.resourceNotFound(OrderErrorCode.ORDER_NOT_FOUND, "Commande introuvable",
-                                String.format("La commande %s est introuvable", acceptOrderCommand.orderId())))
-                        .map(Order::from)
-                        .flatMap(order -> {
-                            boolean isFirstAcceptedOrder = this.discountClaimer.tryAddClaim(
-                                    DiscountType.FIRST_ACCEPTED_ORDER,
-                                    order.customerEmail()
-                            );
-                            return order.accept(isFirstAcceptedOrder, Instant.now(clock));
-                        })
-                        .flatMap(order -> {
-                            this.orderEditor.save(order.toSnapshot());
-                            return Result.success(order);
-                        })
+    public Result<OrderSnapshot> execute(AcceptOrderCommand command) {
+        Result<Order> result = unitOfWork.executeInTransaction(
+                () -> acceptOrder(command)
+        );
+        return result
+                .map(this::dispatchEvents)
+                .map(Order::toSnapshot);
+    }
+
+    private Result<Order> acceptOrder(AcceptOrderCommand command) {
+        return findOrder(command.orderId())
+                .map(Order::from)
+                .flatMap(this::acceptWithDiscountHandling)
+                .map(this::save);
+    }
+
+    private Result<OrderSnapshot> findOrder(UUID orderId) {
+        return orderEditor.findById(orderId)
+                .map(Result::success)
+                .orElseGet(() -> Result.resourceNotFound(
+                        OrderErrorCode.ORDER_NOT_FOUND,
+                        "Commande introuvable",
+                        String.format("La commande %s est introuvable", orderId)
+                ));
+    }
+
+    private Result<Order> acceptWithDiscountHandling(Order order) {
+        boolean eligibleForFirstOrderDiscount = isEligibleForFirstOrderDiscount(order);
+
+        if (!eligibleForFirstOrderDiscount) {
+            return order.accept(false, Instant.now(clock));
+        }
+
+        boolean claimed = discountClaimer.tryAddClaim(
+                DiscountType.FIRST_ACCEPTED_ORDER,
+                order.customerEmail()
         );
 
-        return orderResult.map(order -> {
-            order.getDomainEvents().forEach(this.orderEventAggregateEventDispatcher::dispatch);
-            return order.toSnapshot();
-        });
+        return order.accept(claimed, Instant.now(clock));
+    }
+
+    private boolean isEligibleForFirstOrderDiscount(Order order) {
+        return !customerOrderHistoryFinder.hasEffectiveOrder(order.customerEmail());
+    }
+
+    private Order save(Order order) {
+        orderEditor.save(order.toSnapshot());
+        return order;
+    }
+
+    private Order dispatchEvents(Order order) {
+        order.getDomainEvents().forEach(orderEventDispatcher::dispatch);
+        order.clearDomainEvents();
+        return order;
     }
 }
