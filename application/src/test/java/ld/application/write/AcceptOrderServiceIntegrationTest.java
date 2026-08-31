@@ -9,6 +9,7 @@ import ld.domain.features.order.accept.AcceptOrderCommand;
 import ld.domain.features.order.accept.AcceptOrderUseCase;
 import ld.domain.features.order.lifecycle.OrderEditor;
 import ld.domain.features.order.model.*;
+import ld.domain.valueObjects.Percentage;
 import ld.standard.lib.AggregateEventDispatcher;
 import org.jooq.DSLContext;
 import org.jooq.JSON;
@@ -23,6 +24,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -58,6 +60,7 @@ class AcceptOrderServiceIntegrationTest {
     @MockitoBean
     private AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
 
+    private final OrderStatusConverter converter = new OrderStatusConverter();
     @BeforeEach
     void setUp() {
         dsl.deleteFrom(DISCOUNT_CLAIMS).execute();
@@ -208,7 +211,6 @@ class AcceptOrderServiceIntegrationTest {
 
     private void insertPendingOrderInDb(UUID orderId, String customerEmail, UUID productId) {
         UUID customerId = insertCustomerInDb(customerEmail);
-        var converter = new OrderStatusConverter();
         dsl.insertInto(ORDERS)
                 .set(ORDERS.ID, orderId)
                 .set(ORDERS.CUSTOMER_ID, customerId)
@@ -216,7 +218,7 @@ class AcceptOrderServiceIntegrationTest {
                 .set(
                         ORDERS.STATUS_DATA,
                         JSON.json(converter.convertToDatabaseColumn(OrderStatus.PENDING))
-                        )
+                )
                 .set(ORDERS.TOTAL, new BigDecimal("100.00"))
                 .set(ORDERS.CREATED_AT, LocalDateTime.now())
                 .set(ORDERS.UPDATED_AT, LocalDateTime.now())
@@ -240,6 +242,10 @@ class AcceptOrderServiceIntegrationTest {
                 .set(ORDERS.ID, orderId)
                 .set(ORDERS.CUSTOMER_ID, customerId)
                 .set(ORDERS.STATUS_TYPE, OrderState.ACCEPTED.name())
+                .set(
+                        ORDERS.STATUS_DATA,
+                        JSON.json(converter.convertToDatabaseColumn(new OrderStatus.Accepted(Instant.now(), Percentage.ZERO)))
+                )
                 .set(ORDERS.TOTAL, new BigDecimal("100.00"))
                 .set(ORDERS.CREATED_AT, LocalDateTime.now())
                 .set(ORDERS.UPDATED_AT, LocalDateTime.now())

@@ -18,10 +18,6 @@ public class CustomerOrderHistoryFinderJooqAdapter implements CustomerOrderHisto
 
     @Override
     public boolean hasEffectiveOrder(String customerEmail) {
-        if (customerEmail == null || customerEmail.isBlank()) {
-            return false;
-        }
-
         return dsl.fetchExists(
                 dsl.selectOne()
                         .from(ORDERS)
