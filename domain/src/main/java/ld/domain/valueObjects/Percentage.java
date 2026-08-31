@@ -16,12 +16,8 @@ public record Percentage(BigDecimal value) {
         return new Percentage(BigDecimal.valueOf(value));
     }
 
-    public static Percentage fromFraction(BigDecimal fraction) {
-        if (fraction == null) {
-            return ZERO;
-        }
-        return new Percentage(fraction.multiply(BigDecimal.valueOf(100)));
-    }
+    public static Percentage of(BigDecimal value) { return new Percentage(value); }
+
     public BigDecimal asFraction() {
         return value.multiply(BigDecimal.valueOf(0.01));
     }

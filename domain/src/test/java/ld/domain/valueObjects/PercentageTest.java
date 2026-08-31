@@ -35,7 +35,7 @@ class PercentageTest {
     @DisplayName("Doit accepter des pourcentages valides entre 0 et 100 inclus")
     void should_accept_valid_values() {
         var p0 = new Percentage(BigDecimal.ZERO);
-        var p50 = new Percentage(BigDecimal.valueOf(50));
+        var p50 = Percentage.of(BigDecimal.valueOf(50));
         var p100 = new Percentage(BigDecimal.valueOf(100));
 
         assertThat(p0.value()).isEqualByComparingTo(BigDecimal.ZERO);

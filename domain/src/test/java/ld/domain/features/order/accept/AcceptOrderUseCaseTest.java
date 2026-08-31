@@ -1,6 +1,7 @@
 package ld.domain.features.order.accept;
 
 import ld.domain.features.order.lifecycle.InMemoryDiscountClaimer;
+import ld.domain.features.order.lifecycle.InMemoryDiscountProvider;
 import ld.domain.features.order.lifecycle.InMemoryOrderEditor;
 import ld.domain.features.order.model.*;
 import ld.domain.features.order.validation.OrderErrorCode;
@@ -41,6 +42,7 @@ class AcceptOrderUseCaseTest {
             inMemoryOrderLifecycleRepository,
             customerOrderHistoryFinder,
             discountClaimRepository,
+            new InMemoryDiscountProvider(),
             orderEventAggregateEventDispatcher,
             unitOfWork,
             FIXED_CLOCK

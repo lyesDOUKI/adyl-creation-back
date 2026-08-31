@@ -15,8 +15,6 @@ import java.util.UUID;
 
 public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshottable<OrderSnapshot> {
 
-    private static final Percentage FIRST_ORDER_DISCOUNT_RATE = Percentage.of(10);
-
     private final CustomerInfo customerInfo;
     private final String message;
     private Price total;
@@ -67,12 +65,12 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 .reduce(Price.zero(), Price::add);
     }
 
-    public Result<Order> accept(boolean isFirstAcceptedOrder, Instant acceptedAt) {
+    public Result<Order> accept(boolean isFirstAcceptedOrder, Percentage provide, Instant acceptedAt) {
         return switch (this.orderStatus) {
             case OrderStatus.Accepted _ -> Result.success(this);
 
             case OrderStatus.Pending _ -> {
-                Percentage discount = isFirstAcceptedOrder ? FIRST_ORDER_DISCOUNT_RATE : Percentage.ZERO;
+                Percentage discount = isFirstAcceptedOrder ? provide : Percentage.ZERO;
 
                 if (isFirstAcceptedOrder) {
                     applyDiscountToItems(discount);

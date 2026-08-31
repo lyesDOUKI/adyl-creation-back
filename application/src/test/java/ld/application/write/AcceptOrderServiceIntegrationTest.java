@@ -12,9 +12,7 @@ import ld.domain.features.order.model.*;
 import ld.standard.lib.AggregateEventDispatcher;
 import org.jooq.DSLContext;
 import org.jooq.JSON;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -26,10 +24,14 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Optional;
 import java.util.UUID;
 
 import static ld.application.jooq.tables.Customers.CUSTOMERS;
 import static ld.application.jooq.tables.DiscountClaims.DISCOUNT_CLAIMS;
+import static ld.application.jooq.tables.DiscountRates.DISCOUNT_RATES;
 import static ld.application.jooq.tables.OrderDetails.ORDER_DETAILS;
 import static ld.application.jooq.tables.Orders.ORDERS;
 import static ld.application.jooq.tables.Products.PRODUCTS;
@@ -63,8 +65,21 @@ class AcceptOrderServiceIntegrationTest {
         dsl.deleteFrom(ORDERS).execute();
         dsl.deleteFrom(CUSTOMERS).execute();
         dsl.deleteFrom(PRODUCTS).execute();
+        configureDiscountRate();
     }
 
+    private void configureDiscountRate() {
+        dsl.deleteFrom(DISCOUNT_RATES).execute();
+        dsl.insertInto(DISCOUNT_RATES)
+                .set(DISCOUNT_RATES.ID, UUID.randomUUID())
+                .set(
+                        DISCOUNT_RATES.DISCOUNT_TYPE,
+                        DiscountType.FIRST_ACCEPTED_ORDER.name()
+                )
+                .set(DISCOUNT_RATES.RATE, BigDecimal.TEN)
+                .set(DISCOUNT_RATES.CREATED_AT, OffsetDateTime.now(ZoneOffset.UTC))
+                .execute();
+    }
     @Test
     void should_accept_first_order_apply_discount_and_dispatch_event() {
         var product = productTestFixture.createExistingProduct();
@@ -166,7 +181,7 @@ class AcceptOrderServiceIntegrationTest {
             OrderEditor failingOrderEditor(OrderEditorJpaAdapter realRepository) {
                 return new OrderEditor() {
                     @Override
-                    public java.util.Optional<OrderSnapshot> findById(UUID id) {
+                    public Optional<OrderSnapshot> findById(UUID id) {
                         return realRepository.findById(id);
                     }
 

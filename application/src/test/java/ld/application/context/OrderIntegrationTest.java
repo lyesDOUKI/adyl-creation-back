@@ -1,10 +1,7 @@
 package ld.application.context;
 
 import ld.application.bridge.OrderConfiguration;
-import ld.application.config.JooqDslConfiguration;
-import ld.application.config.OrderPersistenceTestConfiguration;
-import ld.application.config.TestClockConfiguration;
-import ld.application.config.UnitOfWorkTestConfiguration;
+import ld.application.config.*;
 import ld.application.infra.db.entity.CustomerEntity;
 import ld.application.infra.db.entity.OrderDetailEntity;
 import ld.application.infra.db.entity.OrderEntity;
@@ -32,7 +29,8 @@ import java.lang.annotation.Target;
         JooqDslConfiguration.class,
         OrderPersistenceTestConfiguration.class,
         UnitOfWorkTestConfiguration.class,
-        TestClockConfiguration.class
+        TestClockConfiguration.class,
+        DiscountProviderTestConfiguration.class
 })
 @ImportAutoConfiguration({
         DataSourceAutoConfiguration.class,

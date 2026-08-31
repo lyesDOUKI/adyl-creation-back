@@ -7,6 +7,7 @@ import ld.domain.features.order.accept.AcceptOrderUseCase;
 import ld.domain.features.order.accept.AcceptOrderUseCaseImpl;
 import ld.domain.features.order.accept.CustomerOrderHistoryFinder;
 import ld.domain.features.order.lifecycle.DiscountClaimer;
+import ld.domain.features.order.lifecycle.DiscountProvider;
 import ld.domain.features.order.lifecycle.OrderEditor;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.product.ProductFinder;
@@ -42,6 +43,7 @@ public class OrderConfiguration {
             OrderEditor orderEditor,
             CustomerOrderHistoryFinder customerOrderHistoryFinder,
             DiscountClaimer discountClaimer,
+            DiscountProvider discountProvider,
             AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher,
             UnitOfWork unitOfWork,
             Clock clock) {
@@ -49,6 +51,7 @@ public class OrderConfiguration {
                 orderEditor,
                 customerOrderHistoryFinder,
                 discountClaimer,
+                discountProvider,
                 orderEventAggregateEventDispatcher,
                 unitOfWork,
                 clock
