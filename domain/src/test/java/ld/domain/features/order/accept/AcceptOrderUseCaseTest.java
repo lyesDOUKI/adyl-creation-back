@@ -444,7 +444,7 @@ class AcceptOrderUseCaseTest {
             inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
-                            .withOrderStatus(OrderStatus.REJECTED)
+                            .withOrderStatus(new OrderStatus.Rejected("reject", Instant.now(FIXED_CLOCK)))
                             .build()
             );
 
@@ -459,7 +459,7 @@ class AcceptOrderUseCaseTest {
             inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
-                            .withOrderStatus(OrderStatus.REJECTED)
+                            .withOrderStatus(new OrderStatus.Rejected("reject", Instant.now(FIXED_CLOCK)))
                             .build()
             );
 

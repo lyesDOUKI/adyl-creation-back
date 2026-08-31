@@ -15,7 +15,7 @@ public sealed interface OrderStatus {
         }
     }
 
-    record Rejected() implements OrderStatus {
+    record Rejected(String reason, Instant rejectedAt) implements OrderStatus {
         @Override
         public OrderState type() {
             return OrderState.REJECTED;
@@ -37,6 +37,5 @@ public sealed interface OrderStatus {
     }
 
     OrderStatus PENDING = new Pending();
-    OrderStatus REJECTED = new Rejected();
     OrderStatus DELIVERED = new Delivered();
 }

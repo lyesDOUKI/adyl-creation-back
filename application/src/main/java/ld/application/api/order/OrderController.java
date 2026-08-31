@@ -10,11 +10,14 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import ld.application.request.CreateOrderRequest;
+import ld.application.request.RejectOrderRequest;
 import ld.application.response.CreateOrderResponse;
 import ld.application.response.OrderAcceptedResponse;
+import ld.application.response.OrderRejectedResponse;
 import ld.domain.features.order.CreateOrderUseCase;
 import ld.domain.features.order.accept.AcceptOrderCommand;
 import ld.domain.features.order.accept.AcceptOrderUseCase;
+import ld.domain.features.order.reject.RejectOrderUseCase;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
 import org.springframework.http.ResponseEntity;
@@ -29,10 +32,14 @@ public class OrderController {
 
     private final CreateOrderUseCase createOrderUseCase;
     private final AcceptOrderUseCase acceptOrderUseCase;
+    private final RejectOrderUseCase rejectOrderUseCase;
+
     public OrderController(CreateOrderUseCase createOrderUseCase,
-                           AcceptOrderUseCase acceptOrderUseCase) {
+                           AcceptOrderUseCase acceptOrderUseCase,
+                           RejectOrderUseCase rejectOrderUseCase) {
         this.createOrderUseCase = createOrderUseCase;
         this.acceptOrderUseCase = acceptOrderUseCase;
+        this.rejectOrderUseCase = rejectOrderUseCase;
     }
 
     @PostMapping
@@ -125,6 +132,59 @@ public class OrderController {
         return ResultToResponse.created(
                 response,
                 OrderAcceptedResponse::orderId,
+                httpServletRequest
+        );
+    }
+
+    @PostMapping("{id}/reject")
+    @Operation(
+            summary = "Rejeter une commande"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Commande rejetée avec succès",
+                    content = @Content(
+                            schema = @Schema(implementation = OrderAcceptedResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identifiant de commande invalide",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Commande inexistante",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "422",
+                    description = "La commande ne peut pas être rejetée dans son état actuel",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Erreur interne du serveur",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponseBody> rejectOrder(
+            @Parameter(
+                    description = "Identifiant de la commande à rejeter",
+                    required = true
+            )
+            @PathVariable("id") UUID orderId,
+            @RequestBody RejectOrderRequest rejectOrderRequest,
+            HttpServletRequest httpServletRequest
+    ) {
+        var response = this.rejectOrderUseCase
+                .execute(rejectOrderRequest.to(orderId))
+                .map(OrderRejectedResponse::from);
+
+        return ResultToResponse.created(
+                response,
+                OrderRejectedResponse::orderId,
                 httpServletRequest
         );
     }

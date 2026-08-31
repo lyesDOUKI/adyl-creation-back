@@ -10,6 +10,8 @@ import ld.domain.features.order.lifecycle.DiscountClaimer;
 import ld.domain.features.order.lifecycle.DiscountProvider;
 import ld.domain.features.order.lifecycle.OrderEditor;
 import ld.domain.features.order.model.OrderEvent;
+import ld.domain.features.order.reject.RejectOrderUseCase;
+import ld.domain.features.order.reject.RejectOrderUseCaseImpl;
 import ld.domain.features.product.ProductFinder;
 import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.UnitOfWork;
@@ -56,5 +58,15 @@ public class OrderConfiguration {
                 unitOfWork,
                 clock
         );
+    }
+
+    @Bean
+    public RejectOrderUseCase rejectOrderUseCase(
+            OrderEditor orderEditor,
+            AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher,
+            UnitOfWork unitOfWork,
+            Clock clock
+    ) {
+        return new RejectOrderUseCaseImpl(orderEditor, orderEventAggregateEventDispatcher, unitOfWork, clock);
     }
 }

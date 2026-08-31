@@ -92,7 +92,23 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                     "Commande livrée", "Impossible d'accepter une commande déjà livrée");
         };
     }
+    public Result<Order> reject(String reason, Instant rejectedAt) {
+        return switch (this.orderStatus) {
+            case OrderStatus.Accepted _, OrderStatus.Pending _ -> {
+                this.orderStatus = new OrderStatus.Rejected(reason, rejectedAt);
+                addDomainEvent(new OrderRejected(getId(), reason));
+                yield Result.success(this);
+            }
 
+            case OrderStatus.Delivered _ -> Result.businessFailure(
+                    OrderErrorCode.ORDER_HAS_BEEN_DELIVERED,
+                    "Commande livrée",
+                    "Impossible de rejeter une commande déjà livrée"
+            );
+
+            case OrderStatus.Rejected _ -> Result.success(this);
+        };
+    }
     private void applyDiscountToItems(Percentage discount) {
         Price runningOriginalTotal = Price.zero();
         Price runningDiscount = Price.zero();
