@@ -1,5 +1,6 @@
 package ld.domain.features.product.photos;
 
+import ld.domain.features.product.lifecycle.ProductEditor;
 import ld.domain.features.product.model.Product;
 import ld.domain.features.product.model.ProductPhoto;
 import ld.domain.features.product.model.ProductPhotoSnapshot;
@@ -15,14 +16,16 @@ import java.util.UUID;
 
 public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
 
-    private final AddProductPhotosRepository addProductPhotosRepository;
+    private final ProductEditor productEditor;
     private final ProductPhotoStoragePort productPhotoStoragePort;
     private final BusinessGuard<AddProductPhotosCommand> addProductPhotosCommandBusinessGuard;
     private final UnitOfWork unitOfWork;
 
-    public AddProductPhotosUseCaseImpl(AddProductPhotosRepository addProductPhotosRepository,
-                                       ProductPhotoStoragePort productPhotoStoragePort, UnitOfWork unitOfWork) {
-        this.addProductPhotosRepository = addProductPhotosRepository;
+    public AddProductPhotosUseCaseImpl(
+            ProductEditor productEditor,
+            ProductPhotoStoragePort productPhotoStoragePort,
+            UnitOfWork unitOfWork) {
+        this.productEditor = productEditor;
         this.productPhotoStoragePort = productPhotoStoragePort;
         this.unitOfWork = unitOfWork;
         this.addProductPhotosCommandBusinessGuard = BusinessGuard.of(new PhotoRule());
@@ -31,23 +34,29 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
     @Override
     public Result<ProductPhotoSnapshot> execute(AddProductPhotosCommand command) {
         return this.addProductPhotosCommandBusinessGuard.validate(command)
-                .flatMap(_ -> this.addProductPhotosRepository.findById(command.productId())
+                .flatMap(_ -> this.productEditor.findById(command.productId())
                         .map(Result::success)
-                        .orElseGet(() -> Result.resourceNotFound(ProductErrorCode.PRODUCTS_NOT_FOUND, "Produit introuvable",
-                                String.format("Le produit %s est introuvable", command.productId()))
-                        )
+                        .orElseGet(() -> Result.resourceNotFound(
+                                ProductErrorCode.PRODUCTS_NOT_FOUND,
+                                "Produit introuvable",
+                                String.format("Le produit %s est introuvable", command.productId())
+                        ))
                         .flatMap(snapshot -> {
                             Product product = Product.from(snapshot);
-                            return this.storePhotos(command).flatMap(product::addPhotos).map(_ -> product);
+                            return this.storePhotos(command)
+                                    .flatMap(product::addPhotos)
+                                    .map(_ -> product);
                         })
                         .flatMap(product -> this.unitOfWork.executeInTransaction(() -> {
-                                    var productPhotoSnapshot = new ProductPhotoSnapshot(product.toSnapshot(),
-                                            product.getPhotos());
-                                    this.addProductPhotosRepository.execute(
-                                            productPhotoSnapshot);
-                                    return Result.success(productPhotoSnapshot);
-                                }
-                        ))
+                            // On sauvegarde l'agrégat Product complet via son port d'édition
+                            this.productEditor.save(product.toSnapshot());
+
+                            var productPhotoSnapshot = new ProductPhotoSnapshot(
+                                    product.toSnapshot(),
+                                    product.getPhotos()
+                            );
+                            return Result.success(productPhotoSnapshot);
+                        }))
                 );
     }
 

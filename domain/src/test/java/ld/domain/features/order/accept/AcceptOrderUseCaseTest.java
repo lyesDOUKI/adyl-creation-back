@@ -1,6 +1,6 @@
 package ld.domain.features.order.accept;
 
-import ld.domain.features.order.lifecycle.InMemoryDiscountClaimRepository;
+import ld.domain.features.order.lifecycle.InMemoryDiscountClaimer;
 import ld.domain.features.order.lifecycle.InMemoryOrderEditor;
 import ld.domain.features.order.model.*;
 import ld.domain.features.order.validation.OrderErrorCode;
@@ -32,7 +32,7 @@ class AcceptOrderUseCaseTest {
     private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
 
     private final InMemoryOrderEditor inMemoryOrderLifecycleRepository = new InMemoryOrderEditor();
-    private final InMemoryDiscountClaimRepository discountClaimRepository = new InMemoryDiscountClaimRepository();
+    private final InMemoryDiscountClaimer discountClaimRepository = new InMemoryDiscountClaimer();
     private final InMemoryAggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
     private final InMemoryUnitOfWork unitOfWork = new InMemoryUnitOfWork();
 
@@ -222,7 +222,7 @@ class AcceptOrderUseCaseTest {
         void shouldNotApplyDiscount() {
             var customer = new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
 
-            discountClaimRepository.tryClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.email());
+            discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.email());
 
             var orderId = UUID.randomUUID();
             var items = List.of(

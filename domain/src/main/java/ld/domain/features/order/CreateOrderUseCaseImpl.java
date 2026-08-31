@@ -5,7 +5,7 @@ import ld.domain.features.order.validation.CreateOrderContextValidation;
 import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.order.validation.ProductStatusRule;
 import ld.domain.features.order.validation.ProductsColorsRule;
-import ld.domain.features.product.GetProductRepository;
+import ld.domain.features.product.ProductFinder;
 import ld.domain.features.product.model.ProductSnapshot;
 import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.UnitOfWork;
@@ -22,17 +22,17 @@ import java.util.stream.Collectors;
 public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
 
     private final OrderCreator orderCreator;
-    private final GetProductRepository getProductRepository;
+    private final ProductFinder productFinder;
     private final AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
     private final BusinessGuard<CreateOrderContextValidation> createOrderGuard;
     private final UnitOfWork unitOfWork;
 
     public CreateOrderUseCaseImpl(OrderCreator orderCreator,
-                                  GetProductRepository getProductRepository,
+                                  ProductFinder productFinder,
                                   AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher,
                                   UnitOfWork unitOfWork) {
         this.orderCreator = orderCreator;
-        this.getProductRepository = getProductRepository;
+        this.productFinder = productFinder;
         this.aggregateEventDispatcher = aggregateEventDispatcher;
         this.unitOfWork = unitOfWork;
         this.createOrderGuard = BusinessGuard.of(
@@ -68,8 +68,8 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                 .map(CreateOrderCommand.CreateOrderItem::productId)
                 .toList();
 
-        Map<UUID, ProductSnapshot> productsById = this.getProductRepository
-                .getAllBy(requestedIds)
+        Map<UUID, ProductSnapshot> productsById = this.productFinder
+                .findAllBy(requestedIds)
                 .stream()
                 .collect(Collectors.toMap(ProductSnapshot::productId, Function.identity()));
 

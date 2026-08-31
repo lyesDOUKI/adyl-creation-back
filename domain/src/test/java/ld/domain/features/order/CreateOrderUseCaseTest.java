@@ -5,7 +5,7 @@ import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderStatus;
 import ld.domain.features.order.validation.OrderErrorCode;
-import ld.domain.features.product.InMemoryGetProductRepository;
+import ld.domain.features.product.InMemoryProductFinder;
 import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductStatus;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
@@ -31,7 +31,7 @@ class CreateOrderUseCaseTest {
 
     private final CreateOrderUseCase createOrderUseCase;
     private final InMemoryOrderCreator createOrderRepository = new InMemoryOrderCreator();
-    private final InMemoryGetProductRepository getProductRepository = new InMemoryGetProductRepository();
+    private final InMemoryProductFinder getProductRepository = new InMemoryProductFinder();
     private final InMemoryAggregateEventDispatcher<OrderEvent> aggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
 
     CreateOrderUseCaseTest() {

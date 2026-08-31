@@ -26,13 +26,6 @@ public class ProductPhotoEntity {
     private Product product;
 
     public ProductPhotoEntity(){}
-    public ProductPhotoEntity(UUID id, String storageKey, int position, Product product) {
-        this.id = id;
-        this.storageKey = storageKey;
-        this.position = position;
-        this.product = product;
-        this.createdAt = Instant.now();
-    }
 
     public UUID getId() {
         return id;
@@ -56,5 +49,21 @@ public class ProductPhotoEntity {
 
     public void setPosition(int position) {
         this.position = position;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public void setStorageKey(String storageKey) {
+        this.storageKey = storageKey;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public void setProduct(Product product) {
+        this.product = product;
     }
 }

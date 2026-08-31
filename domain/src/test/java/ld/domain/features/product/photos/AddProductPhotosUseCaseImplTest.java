@@ -2,7 +2,6 @@ package ld.domain.features.product.photos;
 
 
 import ld.domain.features.product.model.ProductPhoto;
-import ld.domain.features.product.model.ProductPhotoSnapshot;
 import ld.domain.features.product.photos.validation.PhotoErrorCode;
 import ld.domain.features.product.photos.validation.PhotoRule;
 import ld.domain.features.product.validation.ProductErrorCode;
@@ -23,7 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 class AddProductPhotosUseCaseImplTest {
 
     private final AddProductPhotosUseCase addProductPhotosUseCase;
-    private final InMemoryAddProductPhotosRepository addProductPhotosRepository = new InMemoryAddProductPhotosRepository();
+    private final InMemoryProductEditor addProductPhotosRepository = new InMemoryProductEditor();
     private final InMemoryProductPhotoStoragePort productPhotoStoragePort = new InMemoryProductPhotoStoragePort();
 
     AddProductPhotosUseCaseImplTest() {
@@ -53,11 +52,10 @@ class AddProductPhotosUseCaseImplTest {
     private void registerProduct(UUID productId, List<ProductPhoto> existingPhotos) {
         var productSnapshot = ProductSnapshotTestBuilder.aProduct()
                 .withId(productId)
+                .withPhotos(existingPhotos)
                 .build();
 
-        addProductPhotosRepository.addProduct(
-                new ProductPhotoSnapshot(productSnapshot, existingPhotos)
-        );
+        addProductPhotosRepository.addProduct(productSnapshot);
     }
 
     @Nested

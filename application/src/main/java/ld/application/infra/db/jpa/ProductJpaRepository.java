@@ -13,10 +13,11 @@ public interface ProductJpaRepository extends JpaRepository<Product, UUID> {
     boolean existsByName(final String name);
 
     @Query("""
-        select distinct p
-        from Product p
-        left join fetch p.colors
-        where p.id in :ids
-    """)
-    List<Product> findAllWithColorsByIdIn(@Param("ids") Collection<UUID> ids);
+    select distinct p
+    from Product p
+    left join fetch p.colors
+    left join fetch p.photos
+    where p.id in :ids
+""")
+    List<Product> findAllWithColorsAndPhotosByIdIn(@Param("ids") Collection<UUID> ids);
 }

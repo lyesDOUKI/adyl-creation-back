@@ -45,13 +45,13 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
         return new Product(name, new Price(price), colors.stream().map(ProductColor::new).toList());
     }
 
-    public static Product from(ProductPhotoSnapshot snapshot) {
+    public static Product from(ProductSnapshot snapshot) {
         return new Product(
-                snapshot.productSnapshot().productId(),
-                snapshot.productSnapshot().name(),
-                new Price(snapshot.productSnapshot().price()),
-                snapshot.productSnapshot().colors(),
-                snapshot.productSnapshot().productStatus(),
+                snapshot.productId(),
+                snapshot.name(),
+                new Price(snapshot.price()),
+                snapshot.colors(),
+                snapshot.productStatus(),
                 snapshot.photos()
         );
     }
@@ -79,7 +79,8 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
                 this.name,
                 this.price.value(),
                 this.colors,
-                this.productStatus);
+                this.productStatus,
+                this.photos);
     }
 
     public List<ProductPhoto> getPhotos() {

@@ -4,7 +4,7 @@ import ld.domain.features.product.ProductChecker;
 import ld.domain.features.product.ProductCreator;
 import ld.domain.features.product.CreateProductUseCase;
 import ld.domain.features.product.CreateProductUseCaseImpl;
-import ld.domain.features.product.photos.AddProductPhotosRepository;
+import ld.domain.features.product.lifecycle.ProductEditor;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
 import ld.domain.features.product.photos.AddProductPhotosUseCaseImpl;
 import ld.domain.features.product.photos.ProductPhotoStoragePort;
@@ -25,9 +25,9 @@ public class ProductConfiguration {
     }
 
     @Bean
-    public AddProductPhotosUseCase addProductPhotosUseCase(AddProductPhotosRepository addProductPhotosRepository,
+    public AddProductPhotosUseCase addProductPhotosUseCase(ProductEditor productEditor,
                                                            ProductPhotoStoragePort productPhotoStoragePort,
                                                            UnitOfWork unitOfWork) {
-        return new AddProductPhotosUseCaseImpl(addProductPhotosRepository, productPhotoStoragePort, unitOfWork);
+        return new AddProductPhotosUseCaseImpl(productEditor, productPhotoStoragePort, unitOfWork);
     }
 }

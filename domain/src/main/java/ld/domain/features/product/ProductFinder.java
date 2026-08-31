@@ -6,6 +6,6 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-public interface GetProductRepository {
-    List<ProductSnapshot> getAllBy(Collection<UUID> productsId);
+public interface ProductFinder {
+    List<ProductSnapshot> findAllBy(Collection<UUID> productsId);
 }

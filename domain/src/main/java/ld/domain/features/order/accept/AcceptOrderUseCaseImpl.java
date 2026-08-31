@@ -1,6 +1,6 @@
 package ld.domain.features.order.accept;
 
-import ld.domain.features.order.lifecycle.DiscountClaimRepository;
+import ld.domain.features.order.lifecycle.DiscountClaimer;
 import ld.domain.features.order.lifecycle.OrderEditor;
 import ld.domain.features.order.model.DiscountType;
 import ld.domain.features.order.model.Order;
@@ -17,18 +17,18 @@ import java.time.Instant;
 public class AcceptOrderUseCaseImpl implements AcceptOrderUseCase {
 
     private final OrderEditor orderEditor;
-    private final DiscountClaimRepository discountClaimRepository;
+    private final DiscountClaimer discountClaimer;
     private final AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
     public AcceptOrderUseCaseImpl(OrderEditor orderEditor,
-                                  DiscountClaimRepository discountClaimRepository,
+                                  DiscountClaimer discountClaimer,
                                   AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher,
                                   UnitOfWork unitOfWork,
                                   Clock clock) {
         this.orderEditor = orderEditor;
-        this.discountClaimRepository = discountClaimRepository;
+        this.discountClaimer = discountClaimer;
         this.orderEventAggregateEventDispatcher = orderEventAggregateEventDispatcher;
         this.unitOfWork = unitOfWork;
         this.clock = clock;
@@ -43,7 +43,7 @@ public class AcceptOrderUseCaseImpl implements AcceptOrderUseCase {
                                 String.format("La commande %s est introuvable", acceptOrderCommand.orderId())))
                         .map(Order::from)
                         .flatMap(order -> {
-                            boolean isFirstAcceptedOrder = this.discountClaimRepository.tryClaim(
+                            boolean isFirstAcceptedOrder = this.discountClaimer.tryAddClaim(
                                     DiscountType.FIRST_ACCEPTED_ORDER,
                                     order.customerEmail()
                             );

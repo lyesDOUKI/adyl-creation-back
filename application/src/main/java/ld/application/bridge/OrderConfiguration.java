@@ -4,7 +4,7 @@ import ld.domain.features.order.OrderCreator;
 import ld.domain.features.order.CreateOrderUseCase;
 import ld.domain.features.order.CreateOrderUseCaseImpl;
 import ld.domain.features.order.model.OrderEvent;
-import ld.domain.features.product.GetProductRepository;
+import ld.domain.features.product.ProductFinder;
 import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.UnitOfWork;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
@@ -17,11 +17,11 @@ public class OrderConfiguration {
     @Bean
     public CreateOrderUseCase createOrderUseCase(
             OrderCreator orderCreator,
-            GetProductRepository getProductRepository,
+            ProductFinder productFinder,
             AggregateEventDispatcher<OrderEvent> orderEventDispatcher,
             UnitOfWork unitOfWork
     ) {
-        return new CreateOrderUseCaseImpl(orderCreator, getProductRepository,
+        return new CreateOrderUseCaseImpl(orderCreator, productFinder,
                 orderEventDispatcher, unitOfWork);
     }
 

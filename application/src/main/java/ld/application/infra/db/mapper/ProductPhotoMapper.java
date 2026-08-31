@@ -3,23 +3,12 @@ package ld.application.infra.db.mapper;
 import ld.application.infra.db.entity.Product;
 import ld.application.infra.db.entity.ProductPhotoEntity;
 import ld.domain.features.product.model.ProductPhoto;
-import ld.domain.features.product.model.ProductPhotoSnapshot;
 
-import java.util.Comparator;
-import java.util.List;
+import java.time.Instant;
 
-public class ProductPhotoMapper {
+public final class ProductPhotoMapper {
 
     private ProductPhotoMapper() {}
-
-    public static ProductPhotoEntity from(ProductPhoto photo, Product product) {
-        return new ProductPhotoEntity(
-                photo.id(),
-                photo.storageKey(),
-                photo.position(),
-                product
-        );
-    }
 
     public static ProductPhoto toDomain(ProductPhotoEntity entity) {
         return new ProductPhoto(
@@ -29,12 +18,13 @@ public class ProductPhotoMapper {
         );
     }
 
-    public static ProductPhotoSnapshot toSnapshot(Product product) {
-        List<ProductPhoto> photos = product.getPhotos().stream()
-                .sorted(Comparator.comparingInt(ProductPhotoEntity::getPosition))
-                .map(ProductPhotoMapper::toDomain)
-                .toList();
-
-        return new ProductPhotoSnapshot(ProductMapper.toSnapshot(product), photos);
+    public static ProductPhotoEntity toEntity(ProductPhoto photo, Product productEntity) {
+        ProductPhotoEntity entity = new ProductPhotoEntity();
+        entity.setId(photo.id());
+        entity.setStorageKey(photo.storageKey());
+        entity.setPosition(photo.position());
+        entity.setCreatedAt(Instant.now());
+        entity.setProduct(productEntity);
+        return entity;
     }
 }
