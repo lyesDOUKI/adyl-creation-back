@@ -4,8 +4,6 @@ import ld.application.infra.db.entity.ProductEntity;
 import ld.application.infra.db.entity.ProductPhotoEntity;
 import ld.domain.features.product.model.ProductPhoto;
 
-import java.time.Instant;
-
 public final class ProductPhotoMapper {
 
     private ProductPhotoMapper() {}
@@ -23,7 +21,6 @@ public final class ProductPhotoMapper {
         entity.setId(photo.id());
         entity.setStorageKey(photo.storageKey());
         entity.setPosition(photo.position());
-        entity.setCreatedAt(Instant.now());
         entity.setProduct(productEntityEntity);
         return entity;
     }

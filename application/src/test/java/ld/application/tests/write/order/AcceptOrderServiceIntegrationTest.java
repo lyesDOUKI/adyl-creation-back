@@ -2,8 +2,8 @@ package ld.application.tests.write.order;
 
 import ld.application.config.common.SharedPostgresContainer;
 import ld.application.context.OrderIntegrationTest;
-import ld.application.infra.db.jpa.adapter.OrderEditorJpaAdapter;
 import ld.application.infra.db.converter.OrderStatusConverter;
+import ld.application.infra.db.jpa.adapter.OrderEditorJpaAdapter;
 import ld.application.shared.product.ProductTestFixture;
 import ld.domain.features.order.accept.AcceptOrderCommand;
 import ld.domain.features.order.accept.AcceptOrderUseCase;
@@ -13,7 +13,9 @@ import ld.domain.valueObjects.Percentage;
 import ld.standard.lib.AggregateEventDispatcher;
 import org.jooq.DSLContext;
 import org.jooq.JSON;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
@@ -24,10 +26,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
+import java.time.*;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -57,6 +56,8 @@ class AcceptOrderServiceIntegrationTest {
     @Autowired
     private ProductTestFixture productTestFixture;
 
+    @Autowired
+    private Clock clock;
     @MockitoBean
     private AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
 
@@ -244,7 +245,7 @@ class AcceptOrderServiceIntegrationTest {
                 .set(ORDERS.STATUS_TYPE, OrderState.ACCEPTED.name())
                 .set(
                         ORDERS.STATUS_DATA,
-                        JSON.json(converter.convertToDatabaseColumn(new OrderStatus.Accepted(Instant.now(), Percentage.ZERO)))
+                        JSON.json(converter.convertToDatabaseColumn(new OrderStatus.Accepted(Instant.now(clock), Percentage.ZERO)))
                 )
                 .set(ORDERS.TOTAL, new BigDecimal("100.00"))
                 .set(ORDERS.CREATED_AT, LocalDateTime.now())

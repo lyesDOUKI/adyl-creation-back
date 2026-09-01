@@ -26,6 +26,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -53,6 +54,9 @@ class RejectOrderServiceIntegrationTest {
 
     @Autowired
     private ProductTestFixture productTestFixture;
+
+    @Autowired
+    private Clock clock;
 
     @MockitoBean
     private AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
@@ -291,7 +295,7 @@ class RejectOrderServiceIntegrationTest {
                 productId,
                 OrderState.ACCEPTED,
                 new OrderStatus.Accepted(
-                        Instant.now(),
+                        Instant.now(clock),
                         Percentage.ZERO
                 )
         );
@@ -308,7 +312,7 @@ class RejectOrderServiceIntegrationTest {
                 productId,
                 OrderState.DELIVERED,
                 new OrderStatus.Delivered("Bonne commande",
-                        DeliveryMethod.HAND_DELIVERY, Instant.now())
+                        DeliveryMethod.HAND_DELIVERY, Instant.now(clock))
         );
     }
 

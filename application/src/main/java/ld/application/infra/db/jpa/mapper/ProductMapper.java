@@ -14,7 +14,6 @@ public class ProductMapper {
 
     private ProductMapper() {}
 
-    // 1. Entity JPA -> Domain Snapshot (Lecture)
     public static ProductSnapshot toSnapshot(ProductEntity entity) {
         List<ProductColor> colors = entity.getColors() != null
                 ? entity.getColors().stream().map(ProductColor::new).toList()
@@ -49,7 +48,6 @@ public class ProductMapper {
         targetEntity.setUnitPrice(snapshot.price());
         targetEntity.setStatus(snapshot.productStatus());
 
-        // Synchronisation des couleurs (@ElementCollection)
         if (snapshot.colors() != null) {
             Set<String> newColors = snapshot.colors().stream()
                     .map(ProductColor::value)
@@ -58,7 +56,6 @@ public class ProductMapper {
             targetEntity.getColors().addAll(newColors);
         }
 
-        // Synchronisation des photos (@OneToMany + orphanRemoval)
         if (snapshot.photos() != null) {
             updatePhotos(snapshot.photos(), targetEntity);
         }
@@ -75,7 +72,6 @@ public class ProductMapper {
 
         productEntityEntity.getPhotos().removeIf(entity -> !snapshotPhotoIds.contains(entity.getId()));
 
-        // Ajout ou mise à jour des photos
         for (var photoDomain : photoSnapshots) {
             ProductPhotoEntity existingPhoto = existingPhotosById.get(photoDomain.id());
 

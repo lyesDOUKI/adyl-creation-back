@@ -1,6 +1,7 @@
 package ld.application.infra.db.entity;
 
 import jakarta.persistence.*;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -18,6 +19,7 @@ public class ProductPhotoEntity {
     @Column(nullable = false)
     private int position;
 
+    @CreationTimestamp
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
