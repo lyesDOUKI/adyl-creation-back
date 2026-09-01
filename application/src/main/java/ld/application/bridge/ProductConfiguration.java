@@ -1,13 +1,16 @@
 package ld.application.bridge;
 
+import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.product.ProductChecker;
 import ld.domain.features.product.ProductCreator;
 import ld.domain.features.product.CreateProductUseCase;
 import ld.domain.features.product.CreateProductUseCaseImpl;
 import ld.domain.features.product.lifecycle.ProductEditor;
+import ld.domain.features.product.model.ProductEvent;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
 import ld.domain.features.product.photos.AddProductPhotosUseCaseImpl;
 import ld.domain.features.product.photos.ProductPhotoStoragePort;
+import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.UnitOfWork;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import org.springframework.context.annotation.Bean;
@@ -19,9 +22,10 @@ public class ProductConfiguration {
     @Bean
     public CreateProductUseCase createProductUseCase(ProductCreator productCreator,
                                                      ProductChecker productChecker,
+                                                     AggregateEventDispatcher<ProductEvent> productEventAggregateEventDispatcher,
                                                      UnitOfWork unitOfWork) {
         return new CreateProductUseCaseImpl(productCreator, productChecker,
-                new InMemoryAggregateEventDispatcher<>(), unitOfWork);
+                productEventAggregateEventDispatcher, unitOfWork);
     }
 
     @Bean
@@ -29,5 +33,10 @@ public class ProductConfiguration {
                                                            ProductPhotoStoragePort productPhotoStoragePort,
                                                            UnitOfWork unitOfWork) {
         return new AddProductPhotosUseCaseImpl(productEditor, productPhotoStoragePort, unitOfWork);
+    }
+
+    @Bean
+    AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher() {
+        return new InMemoryAggregateEventDispatcher<>();
     }
 }

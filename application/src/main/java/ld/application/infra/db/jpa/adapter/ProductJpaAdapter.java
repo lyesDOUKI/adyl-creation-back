@@ -35,7 +35,7 @@ public class ProductJpaAdapter implements ProductCreator, ProductChecker, Produc
 
     @Override
     public Optional<ProductSnapshot> findById(UUID productId) {
-        return productJpaRepository.findById(productId)
+        return productJpaRepository.findByIdWithColorsAndPhotos(productId)
                 .map(ProductMapper::toSnapshot);
     }
 

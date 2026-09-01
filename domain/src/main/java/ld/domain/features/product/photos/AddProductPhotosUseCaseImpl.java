@@ -48,7 +48,6 @@ public class AddProductPhotosUseCaseImpl implements AddProductPhotosUseCase {
                                     .map(_ -> product);
                         })
                         .flatMap(product -> this.unitOfWork.executeInTransaction(() -> {
-                            // On sauvegarde l'agrégat Product complet via son port d'édition
                             this.productEditor.save(product.toSnapshot());
 
                             var productPhotoSnapshot = new ProductPhotoSnapshot(
