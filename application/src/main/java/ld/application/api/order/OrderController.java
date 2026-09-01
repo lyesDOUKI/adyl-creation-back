@@ -13,7 +13,7 @@ import ld.application.request.CreateOrderRequest;
 import ld.application.request.DeliverOrderRequest;
 import ld.application.request.RejectOrderRequest;
 import ld.application.response.CreateOrderResponse;
-import ld.application.response.DeliverOrderResponse;
+import ld.application.response.OrderDeliveredResponse;
 import ld.application.response.OrderAcceptedResponse;
 import ld.application.response.OrderRejectedResponse;
 import ld.domain.features.order.CreateOrderUseCase;
@@ -238,7 +238,7 @@ public class OrderController {
             HttpServletRequest httpServletRequest
     ) {
         var result = this.deliverOrderUseCase.execute(deliverOrderRequest.toCommand(orderId))
-                .map(DeliverOrderResponse::from);
-        return ResultToResponse.created(result, DeliverOrderResponse::orderId, httpServletRequest);
+                .map(OrderDeliveredResponse::from);
+        return ResultToResponse.created(result, OrderDeliveredResponse::orderId, httpServletRequest);
     }
 }

@@ -1,7 +1,6 @@
 package ld.application.response;
 
 import ld.domain.features.order.model.OrderSnapshot;
-import ld.domain.features.order.model.OrderState;
 import ld.domain.features.order.model.OrderStatus;
 import ld.domain.valueObjects.Percentage;
 import ld.spring.web.lib.ApiResponseBody;
@@ -12,15 +11,15 @@ import java.util.UUID;
 
 public record OrderAcceptedResponse(
         UUID orderId,
-        OrderState orderState,
-        Instant acceptedAt,
-        BigDecimal discountRate
+        BigDecimal discountRate,
+        OrderStateResponse orderState,
+        Instant acceptedAt
 ) implements ApiResponseBody {
 
     public static OrderAcceptedResponse from(OrderSnapshot orderSnapshot) {
 
         if (!(orderSnapshot.orderStatus() instanceof OrderStatus.Accepted(
-                Instant at, Percentage discountApplied
+                Instant acceptedAt, Percentage discountApplied
         ))) {
             throw new IllegalArgumentException(
                     "Order snapshot must have an ACCEPTED status"
@@ -29,9 +28,9 @@ public record OrderAcceptedResponse(
 
         return new OrderAcceptedResponse(
                 orderSnapshot.orderId(),
-                OrderState.ACCEPTED,
-                at,
-                discountApplied.value()
+                discountApplied.value(),
+                OrderStateResponse.from(orderSnapshot.orderStatus().type()),
+                acceptedAt
         );
     }
 }

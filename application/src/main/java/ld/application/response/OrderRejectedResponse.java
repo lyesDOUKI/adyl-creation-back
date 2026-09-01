@@ -11,8 +11,9 @@ import java.util.UUID;
 public record OrderRejectedResponse(
         UUID orderId,
         String reason,
-        Instant rejectedAt,
-        BigDecimal total
+        BigDecimal total,
+        OrderStateResponse orderState,
+        Instant rejectedAt
 ) implements ApiResponseBody {
 
     public static OrderRejectedResponse from(OrderSnapshot orderSnapshot) {
@@ -24,8 +25,9 @@ public record OrderRejectedResponse(
         return new OrderRejectedResponse(
                 orderSnapshot.orderId(),
                 reason,
-                rejectedAt,
-                orderSnapshot.total()
+                orderSnapshot.total(),
+                OrderStateResponse.from(orderSnapshot.orderStatus().type()),
+                rejectedAt
         );
     }
 }
