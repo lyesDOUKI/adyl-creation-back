@@ -25,7 +25,7 @@ public class ProductPhotoStorageAdapter implements ProductPhotoStoragePort {
         String storageKey = "%s%s".formatted(UUID.randomUUID(), extension);
 
         Path productDirectory = this.rootDirectory.resolve(productId.toString());
-        Path targetPath = productDirectory.resolve(storageKey).normalize();
+        Path targetPath = productDirectory.resolve(storageKey);
 
         if (!targetPath.startsWith(this.rootDirectory)) {
             throw new ProductPhotoStorageException(
