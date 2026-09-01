@@ -4,7 +4,6 @@ import ld.application.bridge.ProductConfiguration;
 import ld.application.config.common.JooqDslConfiguration;
 import ld.application.config.common.TestClockConfiguration;
 import ld.application.config.common.UnitOfWorkTestConfiguration;
-import ld.application.config.product.ProductEventDispatcherTestConfiguration;
 import ld.application.config.product.ProductPersistenceTestConfiguration;
 import ld.application.config.product.ProductPhotoStorageTestConfiguration;
 import ld.application.infra.db.entity.ProductEntity;
@@ -33,8 +32,7 @@ import java.lang.annotation.Target;
         ProductPersistenceTestConfiguration.class,
         UnitOfWorkTestConfiguration.class,
         TestClockConfiguration.class,
-        ProductPhotoStorageTestConfiguration.class,
-        ProductEventDispatcherTestConfiguration.class
+        ProductPhotoStorageTestConfiguration.class
 })
 @ImportAutoConfiguration({
         DataSourceAutoConfiguration.class,

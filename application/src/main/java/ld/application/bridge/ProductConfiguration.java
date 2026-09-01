@@ -1,10 +1,9 @@
 package ld.application.bridge;
 
-import ld.domain.features.order.model.OrderEvent;
-import ld.domain.features.product.ProductChecker;
-import ld.domain.features.product.ProductCreator;
 import ld.domain.features.product.CreateProductUseCase;
 import ld.domain.features.product.CreateProductUseCaseImpl;
+import ld.domain.features.product.ProductChecker;
+import ld.domain.features.product.ProductCreator;
 import ld.domain.features.product.lifecycle.ProductEditor;
 import ld.domain.features.product.model.ProductEvent;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
@@ -36,7 +35,7 @@ public class ProductConfiguration {
     }
 
     @Bean
-    AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher() {
+    AggregateEventDispatcher<ProductEvent> productEventAggregateEventDispatcher() {
         return new InMemoryAggregateEventDispatcher<>();
     }
 }
