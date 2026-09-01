@@ -25,12 +25,12 @@ public abstract class AbstractOrderLifecycleUseCase {
         this.unitOfWork = unitOfWork;
     }
 
-    protected Result<OrderSnapshot> executeTransition(
-            UUID orderId, Function<Order, Result<Order>> transition) {
+    protected Result<OrderSnapshot> executeOperation(
+            UUID orderId, Function<Order, Result<Order>> operation) {
         Result<Order> result = unitOfWork.executeInTransaction(() ->
                 findOrder(orderId)
                         .map(Order::from)
-                        .flatMap(transition)
+                        .flatMap(operation)
                         .map(this::save)
         );
         return result.map(this::dispatchEvents).map(Order::toSnapshot);

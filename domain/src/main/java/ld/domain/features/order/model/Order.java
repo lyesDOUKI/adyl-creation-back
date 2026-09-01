@@ -109,6 +109,21 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
             case OrderStatus.Rejected _ -> Result.success(this);
         };
     }
+    public Result<Order> deliver(String observation, DeliveryMethod deliveryMethod, Instant deliveredAt) {
+        return switch (this.orderStatus) {
+            case OrderStatus.Accepted _ -> {
+                this.orderStatus = new OrderStatus.Delivered(observation, deliveryMethod, deliveredAt);
+                addDomainEvent(new OrderDelivered(getId(), deliveryMethod));
+                yield Result.success(this);
+            }
+            case OrderStatus.Delivered _ -> Result.success(this);
+            case OrderStatus.Pending _ -> Result.businessFailure(OrderErrorCode.PENDING_ORDER,
+                    "Commande en attente", "Impossible de livrer une commande en attente");
+            case OrderStatus.Rejected _ -> Result.businessFailure(OrderErrorCode.ORDER_HAS_BEEN_REJECTED,
+                    "Commande rejetée", "Impossible de livrer une commande rejetée");
+        };
+    }
+
     private void applyDiscountToItems(Percentage discount) {
         Price runningOriginalTotal = Price.zero();
         Price runningDiscount = Price.zero();

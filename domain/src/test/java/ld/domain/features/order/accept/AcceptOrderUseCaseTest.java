@@ -405,7 +405,8 @@ class AcceptOrderUseCaseTest {
             inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
-                            .withOrderStatus(OrderStatus.DELIVERED)
+                            .withOrderStatus(new OrderStatus.Delivered("bonne commande",
+                                    DeliveryMethod.HAND_DELIVERY, Instant.now(FIXED_CLOCK)))
                             .build()
             );
 
@@ -420,7 +421,8 @@ class AcceptOrderUseCaseTest {
             inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
-                            .withOrderStatus(OrderStatus.DELIVERED)
+                            .withOrderStatus(new OrderStatus.Delivered("bonne commande",
+                                    DeliveryMethod.HAND_DELIVERY, Instant.now(FIXED_CLOCK)))
                             .build()
             );
 

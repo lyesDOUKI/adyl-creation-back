@@ -1,6 +1,7 @@
-package ld.domain.features.order.reject;
+package ld.domain.features.order.deliver;
 
 import ld.domain.features.order.lifecycle.InMemoryOrderEditor;
+import ld.domain.features.order.model.DeliveryMethod;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderState;
 import ld.domain.features.order.model.OrderStatus;
@@ -22,7 +23,7 @@ import java.util.UUID;
 import static ld.standard.lib.helper.test.ResultTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
-class RejectOrderUseCaseTest {
+class DeliverOrderUseCaseTest {
 
     private static final Instant FIXED_INSTANT = Instant.parse("2026-08-30T10:00:00Z");
     private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
@@ -31,7 +32,7 @@ class RejectOrderUseCaseTest {
     private final InMemoryAggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
     private final InMemoryUnitOfWork unitOfWork = new InMemoryUnitOfWork();
 
-    private final RejectOrderUseCase rejectOrderUseCase = new RejectOrderUseCaseImpl(
+    private final DeliverOrderUseCase deliverOrderUseCase = new DeliverOrderUseCaseImpl(
             inMemoryOrderLifecycleRepository,
             orderEventAggregateEventDispatcher,
             unitOfWork,
@@ -43,14 +44,15 @@ class RejectOrderUseCaseTest {
     class WhenOrderNotFound {
 
         @Test
-        @DisplayName("Le rejet échoue avec une erreur resource introuvable")
-        void shouldFailToRejectOrder() {
-            var command = new RejectOrderCommand(
+        @DisplayName("La livraison échoue avec une erreur resource introuvable")
+        void shouldFailToDeliverOrder() {
+            var command = new DeliverOrderCommand(
                     UUID.randomUUID(),
-                    "Produit indisponible"
+                    DeliveryMethod.HAND_DELIVERY,
+                    "Remis en main propre"
             );
 
-            var result = rejectOrderUseCase.execute(command);
+            var result = deliverOrderUseCase.execute(command);
 
             assertFailure(
                     result,
@@ -62,12 +64,13 @@ class RejectOrderUseCaseTest {
         @Test
         @DisplayName("Rien n'est persisté et aucun événement n'est publié")
         void shouldNotPersistNorDispatchEvent() {
-            var command = new RejectOrderCommand(
+            var command = new DeliverOrderCommand(
                     UUID.randomUUID(),
-                    "Produit indisponible"
+                    DeliveryMethod.HAND_DELIVERY,
+                    "Remis en main propre"
             );
 
-            rejectOrderUseCase.execute(command);
+            deliverOrderUseCase.execute(command);
 
             assertThat(inMemoryOrderLifecycleRepository.findById(command.orderId()))
                     .isEmpty();
@@ -81,10 +84,9 @@ class RejectOrderUseCaseTest {
     class WhenOrderIsPending {
 
         @Test
-        @DisplayName("Le rejet réussit, la commande passe au statut REJECTED avec la raison et la date figée")
-        void shouldChangeOrderStatusToRejected() {
+        @DisplayName("La livraison échoue avec une erreur business")
+        void shouldFailToDeliverOrder() {
             var orderId = UUID.randomUUID();
-            var reason = "Produit indisponible";
 
             inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
@@ -93,166 +95,14 @@ class RejectOrderUseCaseTest {
                             .build()
             );
 
-            var result = rejectOrderUseCase.execute(
-                    new RejectOrderCommand(orderId, reason)
-            );
-
-            assertSuccess(result);
-
-            var rejectedOrder = extractValue(result);
-
-            assertThat(rejectedOrder.orderStatus())
-                    .isInstanceOf(OrderStatus.Rejected.class);
-
-            var rejectedStatus = (OrderStatus.Rejected) rejectedOrder.orderStatus();
-
-            assertThat(rejectedStatus.reason())
-                    .isEqualTo(reason);
-
-            assertThat(rejectedStatus.rejectedAt())
-                    .isEqualTo(FIXED_INSTANT);
-        }
-
-        @Test
-        @DisplayName("La commande est persistée avec le nouveau statut et un événement est émis")
-        void shouldPersistOrderAndDispatchOrderRejectedEvent() {
-            var orderId = UUID.randomUUID();
-            var reason = "Produit indisponible";
-
-            inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
-                            .withOrderId(orderId)
-                            .withOrderStatus(OrderStatus.PENDING)
-                            .build()
-            );
-
-            assertSuccess(
-                    rejectOrderUseCase.execute(
-                            new RejectOrderCommand(orderId, reason)
-                    )
-            );
-
-            var persistedOrder = inMemoryOrderLifecycleRepository
-                    .findById(orderId)
-                    .orElseThrow();
-
-            assertThat(persistedOrder.orderStatus())
-                    .isInstanceOf(OrderStatus.Rejected.class);
-
-            assertThat(persistedOrder.orderStatus().type())
-                    .isEqualTo(OrderState.REJECTED);
-
-            var rejectedStatus = (OrderStatus.Rejected) persistedOrder.orderStatus();
-
-            assertThat(rejectedStatus.reason())
-                    .isEqualTo(reason);
-
-            assertThat(rejectedStatus.rejectedAt())
-                    .isEqualTo(FIXED_INSTANT);
-
-            assertThat(orderEventAggregateEventDispatcher.count())
-                    .isOne();
-        }
-    }
-
-    @Nested
-    @DisplayName("Quand la commande est en statut ACCEPTED")
-    class WhenOrderIsAccepted {
-
-        @Test
-        @DisplayName("Le rejet réussit, la commande passe au statut REJECTED")
-        void shouldChangeOrderStatusToRejected() {
-            var orderId = UUID.randomUUID();
-            var reason = "Client non joignable";
-
-            inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
-                            .withOrderId(orderId)
-                            .withOrderStatus(
-                                    new OrderStatus.Accepted(
-                                            FIXED_INSTANT,
-                                            Percentage.ZERO
-                                    )
-                            )
-                            .build()
-            );
-
-            var result = rejectOrderUseCase.execute(
-                    new RejectOrderCommand(orderId, reason)
-            );
-
-            assertSuccess(result);
-
-            var rejectedOrder = extractValue(result);
-
-            assertThat(rejectedOrder.orderStatus())
-                    .isInstanceOf(OrderStatus.Rejected.class);
-
-            var rejectedStatus = (OrderStatus.Rejected) rejectedOrder.orderStatus();
-
-            assertThat(rejectedStatus.reason())
-                    .isEqualTo(reason);
-
-            assertThat(rejectedStatus.rejectedAt())
-                    .isEqualTo(FIXED_INSTANT);
-        }
-
-        @Test
-        @DisplayName("Un événement OrderRejected est publié")
-        void shouldDispatchOrderRejectedEvent() {
-            var orderId = UUID.randomUUID();
-            var reason = "Client non joignable";
-
-            inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
-                            .withOrderId(orderId)
-                            .withOrderStatus(
-                                    new OrderStatus.Accepted(
-                                            FIXED_INSTANT,
-                                            Percentage.ZERO
-                                    )
-                            )
-                            .build()
-            );
-
-            assertSuccess(
-                    rejectOrderUseCase.execute(
-                            new RejectOrderCommand(orderId, reason)
-                    )
-            );
-
-            assertThat(orderEventAggregateEventDispatcher.count())
-                    .isOne();
-        }
-    }
-
-    @Nested
-    @DisplayName("Quand la commande est déjà en statut DELIVERED")
-    class WhenOrderIsAlreadyDelivered {
-
-        @Test
-        @DisplayName("Le rejet échoue avec une erreur business")
-        void shouldFailToRejectOrder() {
-            var orderId = UUID.randomUUID();
-
-            inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
-                            .withOrderId(orderId)
-                            .withOrderStatus(OrderStatus.DELIVERED)
-                            .build()
-            );
-
-            var result = rejectOrderUseCase.execute(
-                    new RejectOrderCommand(
-                            orderId,
-                            "Produit indisponible"
-                    )
+            var result = deliverOrderUseCase.execute(
+                    new DeliverOrderCommand(orderId, DeliveryMethod.HAND_DELIVERY, "Remis en main propre")
             );
 
             assertFailure(
                     result,
                     FailureType.BUSINESS_RULE,
-                    OrderErrorCode.ORDER_HAS_BEEN_DELIVERED
+                    OrderErrorCode.PENDING_ORDER
             );
         }
 
@@ -264,14 +114,94 @@ class RejectOrderUseCaseTest {
             inMemoryOrderLifecycleRepository.save(
                     OrderSnapshotTestBuilder.anOrder()
                             .withOrderId(orderId)
-                            .withOrderStatus(OrderStatus.DELIVERED)
+                            .withOrderStatus(OrderStatus.PENDING)
                             .build()
             );
 
-            rejectOrderUseCase.execute(
-                    new RejectOrderCommand(
-                            orderId,
-                            "Produit indisponible"
+            deliverOrderUseCase.execute(
+                    new DeliverOrderCommand(orderId, DeliveryMethod.HAND_DELIVERY, "Remis en main propre")
+            );
+
+            var persistedOrder = inMemoryOrderLifecycleRepository
+                    .findById(orderId)
+                    .orElseThrow();
+
+            assertThat(persistedOrder.orderStatus())
+                    .isEqualTo(OrderStatus.PENDING);
+
+            assertThat(orderEventAggregateEventDispatcher.count())
+                    .isZero();
+        }
+    }
+
+    @Nested
+    @DisplayName("Quand la commande est en statut ACCEPTED")
+    class WhenOrderIsAccepted {
+
+        @Test
+        @DisplayName("La livraison réussit, la commande passe au statut DELIVERED avec les informations et la date figée")
+        void shouldChangeOrderStatusToDelivered() {
+            var orderId = UUID.randomUUID();
+            var observation = "Remis en main propre";
+            var deliveryMethod = DeliveryMethod.HAND_DELIVERY;
+
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withOrderStatus(
+                                    new OrderStatus.Accepted(
+                                            FIXED_INSTANT,
+                                            Percentage.ZERO
+                                    )
+                            )
+                            .build()
+            );
+
+            var result = deliverOrderUseCase.execute(
+                    new DeliverOrderCommand(orderId, deliveryMethod, observation)
+            );
+
+            assertSuccess(result);
+
+            var deliveredOrder = extractValue(result);
+
+            assertThat(deliveredOrder.orderStatus())
+                    .isInstanceOf(OrderStatus.Delivered.class);
+
+            var deliveredStatus = (OrderStatus.Delivered) deliveredOrder.orderStatus();
+
+            assertThat(deliveredStatus.observation())
+                    .isEqualTo(observation);
+
+            assertThat(deliveredStatus.deliveryMethod())
+                    .isEqualTo(deliveryMethod);
+
+            assertThat(deliveredStatus.deliveredAt())
+                    .isEqualTo(FIXED_INSTANT);
+        }
+
+        @Test
+        @DisplayName("La commande est persistée avec le nouveau statut et un événement OrderDelivered est publié")
+        void shouldPersistOrderAndDispatchOrderDeliveredEvent() {
+            var orderId = UUID.randomUUID();
+            var observation = "Remis en main propre";
+            var deliveryMethod = DeliveryMethod.HAND_DELIVERY;
+
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withOrderStatus(
+                                    new OrderStatus.Accepted(
+                                            FIXED_INSTANT,
+                                            Percentage.ZERO
+                                    )
+                            )
+                            .build()
+            );
+
+            assertSuccess(
+                    deliverOrderUseCase.execute(
+                            new DeliverOrderCommand(orderId, deliveryMethod, observation)
                     )
             );
 
@@ -285,6 +215,97 @@ class RejectOrderUseCaseTest {
             assertThat(persistedOrder.orderStatus().type())
                     .isEqualTo(OrderState.DELIVERED);
 
+            var deliveredStatus = (OrderStatus.Delivered) persistedOrder.orderStatus();
+
+            assertThat(deliveredStatus.observation())
+                    .isEqualTo(observation);
+
+            assertThat(deliveredStatus.deliveryMethod())
+                    .isEqualTo(deliveryMethod);
+
+            assertThat(deliveredStatus.deliveredAt())
+                    .isEqualTo(FIXED_INSTANT);
+
+            assertThat(orderEventAggregateEventDispatcher.count())
+                    .isOne();
+        }
+    }
+
+    @Nested
+    @DisplayName("Quand la commande est déjà en statut DELIVERED")
+    class WhenOrderIsAlreadyDelivered {
+
+        @Test
+        @DisplayName("La livraison réussit sans modifier la commande")
+        void shouldReturnSuccessWithoutChangingAnything() {
+            var orderId = UUID.randomUUID();
+            var existingObservation = "bonne commande";
+            var existingDeliveryMethod = DeliveryMethod.HAND_DELIVERY;
+
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withOrderStatus(new OrderStatus.Delivered(
+                                    existingObservation,
+                                    existingDeliveryMethod,
+                                    FIXED_INSTANT
+                            ))
+                            .build()
+            );
+
+            var result = deliverOrderUseCase.execute(
+                    new DeliverOrderCommand(
+                            orderId,
+                            DeliveryMethod.HAND_DELIVERY,
+                            "Nouvelle observation"
+                    )
+            );
+
+            assertSuccess(result);
+
+            var deliveredOrder = extractValue(result);
+
+            assertThat(deliveredOrder.orderStatus())
+                    .isInstanceOf(OrderStatus.Delivered.class);
+
+            var deliveredStatus = (OrderStatus.Delivered) deliveredOrder.orderStatus();
+
+            assertThat(deliveredStatus.observation())
+                    .isEqualTo(existingObservation);
+
+            assertThat(deliveredStatus.deliveryMethod())
+                    .isEqualTo(existingDeliveryMethod);
+
+            assertThat(deliveredStatus.deliveredAt())
+                    .isEqualTo(FIXED_INSTANT);
+        }
+
+        @Test
+        @DisplayName("Aucun événement supplémentaire n'est publié")
+        void shouldNotDispatchDuplicateEvent() {
+            var orderId = UUID.randomUUID();
+
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withOrderStatus(new OrderStatus.Delivered(
+                                    "bonne commande",
+                                    DeliveryMethod.HAND_DELIVERY,
+                                    FIXED_INSTANT
+                            ))
+                            .build()
+            );
+
+            assertSuccess(
+                    deliverOrderUseCase.execute(
+                            new DeliverOrderCommand(
+                                    orderId,
+                                    DeliveryMethod.HAND_DELIVERY,
+                                    "Nouvelle observation"
+                            )
+                    )
+            );
+
             assertThat(orderEventAggregateEventDispatcher.count())
                     .isZero();
         }
@@ -295,49 +316,8 @@ class RejectOrderUseCaseTest {
     class WhenOrderIsAlreadyRejected {
 
         @Test
-        @DisplayName("Le rejet réussit sans modifier la commande")
-        void shouldReturnSuccessWithoutChangingAnything() {
-            var orderId = UUID.randomUUID();
-            var existingReason = "Produit indisponible";
-
-            inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
-                            .withOrderId(orderId)
-                            .withOrderStatus(
-                                    new OrderStatus.Rejected(
-                                            existingReason,
-                                            FIXED_INSTANT
-                                    )
-                            )
-                            .build()
-            );
-
-            var result = rejectOrderUseCase.execute(
-                    new RejectOrderCommand(
-                            orderId,
-                            "Nouvelle raison"
-                    )
-            );
-
-            assertSuccess(result);
-
-            var rejectedOrder = extractValue(result);
-
-            assertThat(rejectedOrder.orderStatus())
-                    .isInstanceOf(OrderStatus.Rejected.class);
-
-            var rejectedStatus = (OrderStatus.Rejected) rejectedOrder.orderStatus();
-
-            assertThat(rejectedStatus.reason())
-                    .isEqualTo(existingReason);
-
-            assertThat(rejectedStatus.rejectedAt())
-                    .isEqualTo(FIXED_INSTANT);
-        }
-
-        @Test
-        @DisplayName("Aucun événement supplémentaire n'est publié")
-        void shouldNotDispatchDuplicateEvent() {
+        @DisplayName("La livraison échoue avec une erreur business")
+        void shouldFailToDeliverOrder() {
             var orderId = UUID.randomUUID();
 
             inMemoryOrderLifecycleRepository.save(
@@ -352,14 +332,55 @@ class RejectOrderUseCaseTest {
                             .build()
             );
 
-            assertSuccess(
-                    rejectOrderUseCase.execute(
-                            new RejectOrderCommand(
-                                    orderId,
-                                    "Nouvelle raison"
-                            )
+            var result = deliverOrderUseCase.execute(
+                    new DeliverOrderCommand(
+                            orderId,
+                            DeliveryMethod.HAND_DELIVERY,
+                            "Remis en main propre"
                     )
             );
+
+            assertFailure(
+                    result,
+                    FailureType.BUSINESS_RULE,
+                    OrderErrorCode.ORDER_HAS_BEEN_REJECTED
+            );
+        }
+
+        @Test
+        @DisplayName("Le statut n'est pas modifié et aucun événement n'est publié")
+        void shouldNotChangeStatusNorDispatchEvent() {
+            var orderId = UUID.randomUUID();
+
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withOrderStatus(
+                                    new OrderStatus.Rejected(
+                                            "Produit indisponible",
+                                            FIXED_INSTANT
+                                    )
+                            )
+                            .build()
+            );
+
+            deliverOrderUseCase.execute(
+                    new DeliverOrderCommand(
+                            orderId,
+                            DeliveryMethod.HAND_DELIVERY,
+                            "Remis en main propre"
+                    )
+            );
+
+            var persistedOrder = inMemoryOrderLifecycleRepository
+                    .findById(orderId)
+                    .orElseThrow();
+
+            assertThat(persistedOrder.orderStatus())
+                    .isInstanceOf(OrderStatus.Rejected.class);
+
+            assertThat(persistedOrder.orderStatus().type())
+                    .isEqualTo(OrderState.REJECTED);
 
             assertThat(orderEventAggregateEventDispatcher.count())
                     .isZero();

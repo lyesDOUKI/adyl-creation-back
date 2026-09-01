@@ -27,7 +27,7 @@ public class RejectOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
 
     @Override
     public Result<OrderSnapshot> execute(RejectOrderCommand command) {
-        return executeTransition(command.orderId(),
+        return executeOperation(command.orderId(),
                 order -> order.reject(command.reason(), Instant.now(clock)));
     }
 }

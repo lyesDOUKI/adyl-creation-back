@@ -22,7 +22,7 @@ public sealed interface OrderStatus {
         }
     }
 
-    record Delivered() implements OrderStatus {
+    record Delivered(String observation, DeliveryMethod deliveryMethod, Instant deliveredAt) implements OrderStatus {
         @Override
         public OrderState type() {
             return OrderState.DELIVERED;
@@ -37,5 +37,4 @@ public sealed interface OrderStatus {
     }
 
     OrderStatus PENDING = new Pending();
-    OrderStatus DELIVERED = new Delivered();
 }

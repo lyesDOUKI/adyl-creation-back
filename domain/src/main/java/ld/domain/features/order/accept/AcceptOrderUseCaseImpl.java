@@ -41,7 +41,7 @@ public class AcceptOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
 
     @Override
     public Result<OrderSnapshot> execute(AcceptOrderCommand command) {
-        return executeTransition(command.orderId(), this::acceptWithDiscountHandling);
+        return executeOperation(command.orderId(), this::acceptWithDiscountHandling);
     }
 
     private Result<Order> acceptWithDiscountHandling(Order order) {

@@ -5,10 +5,10 @@ import ld.application.context.OrderIntegrationTest;
 import ld.application.infra.db.converter.OrderStatusConverter;
 import ld.application.infra.db.jpa.adapter.OrderEditorJpaAdapter;
 import ld.application.shared.product.ProductTestFixture;
+import ld.domain.features.order.deliver.DeliverOrderCommand;
+import ld.domain.features.order.deliver.DeliverOrderUseCase;
 import ld.domain.features.order.lifecycle.OrderEditor;
 import ld.domain.features.order.model.*;
-import ld.domain.features.order.reject.RejectOrderCommand;
-import ld.domain.features.order.reject.RejectOrderUseCase;
 import ld.domain.valueObjects.Percentage;
 import ld.standard.lib.AggregateEventDispatcher;
 import org.jooq.DSLContext;
@@ -31,8 +31,8 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
-import static ld.application.jooq.tables.Customers.CUSTOMERS;
-import static ld.application.jooq.tables.OrderDetails.ORDER_DETAILS;
+import static ld.application.jooq.Tables.CUSTOMERS;
+import static ld.application.jooq.Tables.ORDER_DETAILS;
 import static ld.application.jooq.tables.Orders.ORDERS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -40,13 +40,13 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @OrderIntegrationTest
-class RejectOrderServiceIntegrationTest {
+public class DeliverOrderServiceIntegrationTest {
 
     @ServiceConnection
     static PostgreSQLContainer<?> POSTGRES = SharedPostgresContainer.INSTANCE;
 
     @Autowired
-    private RejectOrderUseCase rejectOrderUseCase;
+    private DeliverOrderUseCase deliverOrderUseCase;
 
     @Autowired
     private DSLContext dsl;
@@ -67,57 +67,18 @@ class RejectOrderServiceIntegrationTest {
     }
 
     @Test
-    void should_reject_pending_order_and_dispatch_event() {
+    void should_deliver_accepted_order_and_dispatch_event() {
         var product = productTestFixture.createExistingProduct();
         UUID orderId = UUID.randomUUID();
         String customerEmail = "jean.dupont@example.com";
-        String reason = "Produit indisponible";
-
-        insertPendingOrderInDb(orderId, customerEmail, product.id());
-
-        var command = new RejectOrderCommand(orderId, reason);
-
-        var result = rejectOrderUseCase.execute(command);
-
-        assertThat(result.isSuccess()).isTrue();
-
-        var orderRecord = dsl.fetchOne(ORDERS, ORDERS.ID.eq(orderId));
-
-        assertThat(orderRecord).isNotNull();
-        assertThat(orderRecord.getStatusType())
-                .isEqualTo(OrderState.REJECTED.name());
-
-        var rejectedStatus = converter.convertToEntityAttribute(
-                orderRecord.getStatusData().data()
-        );
-
-        assertThat(rejectedStatus)
-                .isInstanceOf(OrderStatus.Rejected.class);
-
-        var rejected = (OrderStatus.Rejected) rejectedStatus;
-
-        assertThat(rejected.reason())
-                .isEqualTo(reason);
-
-        assertThat(rejected.rejectedAt())
-                .isNotNull();
-
-        verify(aggregateEventDispatcher, times(1))
-                .dispatch(argThat(event -> event instanceof OrderRejected));
-    }
-
-    @Test
-    void should_reject_accepted_order_and_dispatch_event() {
-        var product = productTestFixture.createExistingProduct();
-        UUID orderId = UUID.randomUUID();
-        String customerEmail = "accepted.user@example.com";
-        String reason = "Commande annulée";
+        String observation = "Remis en main propre";
+        DeliveryMethod deliveryMethod = DeliveryMethod.HAND_DELIVERY;
 
         insertAcceptedOrderInDb(orderId, customerEmail, product.id());
 
-        var command = new RejectOrderCommand(orderId, reason);
+        var command = new DeliverOrderCommand(orderId, deliveryMethod, observation);
 
-        var result = rejectOrderUseCase.execute(command);
+        var result = deliverOrderUseCase.execute(command);
 
         assertThat(result.isSuccess()).isTrue();
 
@@ -125,34 +86,41 @@ class RejectOrderServiceIntegrationTest {
 
         assertThat(orderRecord).isNotNull();
         assertThat(orderRecord.getStatusType())
-                .isEqualTo(OrderState.REJECTED.name());
+                .isEqualTo(OrderState.DELIVERED.name());
 
-        var rejectedStatus = converter.convertToEntityAttribute(
+        var deliveredStatus = converter.convertToEntityAttribute(
                 orderRecord.getStatusData().data()
         );
 
-        assertThat(rejectedStatus)
-                .isInstanceOf(OrderStatus.Rejected.class);
+        assertThat(deliveredStatus)
+                .isInstanceOf(OrderStatus.Delivered.class);
 
-        var rejected = (OrderStatus.Rejected) rejectedStatus;
+        var delivered = (OrderStatus.Delivered) deliveredStatus;
 
-        assertThat(rejected.reason())
-                .isEqualTo(reason);
+        assertThat(delivered.observation())
+                .isEqualTo(observation);
+
+        assertThat(delivered.deliveryMethod())
+                .isEqualTo(deliveryMethod);
+
+        assertThat(delivered.deliveredAt())
+                .isNotNull();
 
         verify(aggregateEventDispatcher, times(1))
-                .dispatch(argThat(event -> event instanceof OrderRejected));
+                .dispatch(argThat(event -> event instanceof OrderDelivered));
     }
 
     @Test
     void should_return_not_found_and_not_dispatch_event_when_order_does_not_exist() {
         UUID unknownOrderId = UUID.randomUUID();
 
-        var command = new RejectOrderCommand(
+        var command = new DeliverOrderCommand(
                 unknownOrderId,
-                "Produit indisponible"
+                DeliveryMethod.HAND_DELIVERY,
+                "Remis en main propre"
         );
 
-        var result = rejectOrderUseCase.execute(command);
+        var result = deliverOrderUseCase.execute(command);
 
         assertThat(result.isFailure()).isTrue();
 
@@ -160,23 +128,20 @@ class RejectOrderServiceIntegrationTest {
     }
 
     @Test
-    void should_not_reject_delivered_order_and_not_dispatch_event() {
+    void should_not_deliver_pending_order_and_not_dispatch_event() {
         var product = productTestFixture.createExistingProduct();
         UUID orderId = UUID.randomUUID();
-        String customerEmail = "delivered.user@example.com";
+        String customerEmail = "pending.user@example.com";
 
-        insertDeliveredOrderInDb(
+        insertPendingOrderInDb(orderId, customerEmail, product.id());
+
+        var command = new DeliverOrderCommand(
                 orderId,
-                customerEmail,
-                product.id()
+                DeliveryMethod.HAND_DELIVERY,
+                "Remis en main propre"
         );
 
-        var command = new RejectOrderCommand(
-                orderId,
-                "Produit indisponible"
-        );
-
-        var result = rejectOrderUseCase.execute(command);
+        var result = deliverOrderUseCase.execute(command);
 
         assertThat(result.isFailure()).isTrue();
 
@@ -184,7 +149,34 @@ class RejectOrderServiceIntegrationTest {
 
         assertThat(orderRecord).isNotNull();
         assertThat(orderRecord.getStatusType())
-                .isEqualTo(OrderState.DELIVERED.name());
+                .isEqualTo(OrderState.PENDING.name());
+
+        verifyNoInteractions(aggregateEventDispatcher);
+    }
+
+    @Test
+    void should_not_deliver_rejected_order_and_not_dispatch_event() {
+        var product = productTestFixture.createExistingProduct();
+        UUID orderId = UUID.randomUUID();
+        String customerEmail = "rejected.user@example.com";
+
+        insertRejectedOrderInDb(orderId, customerEmail, product.id());
+
+        var command = new DeliverOrderCommand(
+                orderId,
+                DeliveryMethod.HAND_DELIVERY,
+                "Remis en main propre"
+        );
+
+        var result = deliverOrderUseCase.execute(command);
+
+        assertThat(result.isFailure()).isTrue();
+
+        var orderRecord = dsl.fetchOne(ORDERS, ORDERS.ID.eq(orderId));
+
+        assertThat(orderRecord).isNotNull();
+        assertThat(orderRecord.getStatusType())
+                .isEqualTo(OrderState.REJECTED.name());
 
         verifyNoInteractions(aggregateEventDispatcher);
     }
@@ -194,24 +186,25 @@ class RejectOrderServiceIntegrationTest {
     class RollbackScenario {
 
         @Test
-        void should_rollback_order_rejection_when_persistence_fails() {
+        void should_rollback_order_delivery_when_persistence_fails() {
             var product = productTestFixture.createExistingProduct();
             UUID orderId = UUID.randomUUID();
             String customerEmail = "rollback.user@example.com";
 
-            insertPendingOrderInDb(
+            insertAcceptedOrderInDb(
                     orderId,
                     customerEmail,
                     product.id()
             );
 
-            var command = new RejectOrderCommand(
+            var command = new DeliverOrderCommand(
                     orderId,
-                    "Produit indisponible"
+                    DeliveryMethod.HAND_DELIVERY,
+                    "Remis en main propre"
             );
 
             assertThatThrownBy(
-                    () -> rejectOrderUseCase.execute(command)
+                    () -> deliverOrderUseCase.execute(command)
             ).isInstanceOf(RuntimeException.class);
 
             var orderRecord = dsl.fetchOne(
@@ -221,7 +214,7 @@ class RejectOrderServiceIntegrationTest {
 
             assertThat(orderRecord).isNotNull();
             assertThat(orderRecord.getStatusType())
-                    .isEqualTo(OrderState.PENDING.name());
+                    .isEqualTo(OrderState.ACCEPTED.name());
 
             verifyNoInteractions(aggregateEventDispatcher);
         }
@@ -297,7 +290,7 @@ class RejectOrderServiceIntegrationTest {
         );
     }
 
-    private void insertDeliveredOrderInDb(
+    private void insertRejectedOrderInDb(
             UUID orderId,
             String customerEmail,
             UUID productId
@@ -306,9 +299,11 @@ class RejectOrderServiceIntegrationTest {
                 orderId,
                 customerEmail,
                 productId,
-                OrderState.DELIVERED,
-                new OrderStatus.Delivered("Bonne commande",
-                        DeliveryMethod.HAND_DELIVERY, Instant.now())
+                OrderState.REJECTED,
+                new OrderStatus.Rejected(
+                        "Produit indisponible",
+                        Instant.now()
+                )
         );
     }
 
