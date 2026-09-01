@@ -151,7 +151,7 @@ public class OrderController {
                     responseCode = "201",
                     description = "Commande rejetée avec succès",
                     content = @Content(
-                            schema = @Schema(implementation = OrderAcceptedResponse.class)
+                            schema = @Schema(implementation = OrderRejectedResponse.class)
                     )
             ),
             @ApiResponse(
@@ -204,7 +204,7 @@ public class OrderController {
                     responseCode = "201",
                     description = "Commande livrée avec succès",
                     content = @Content(
-                            schema = @Schema(implementation = OrderAcceptedResponse.class)
+                            schema = @Schema(implementation = OrderDeliveredResponse.class)
                     )
             ),
             @ApiResponse(
