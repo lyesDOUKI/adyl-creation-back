@@ -1,9 +1,9 @@
-package ld.application.write;
+package ld.application.tests.write.product;
 
-import ld.application.config.SharedPostgresContainer;
+import ld.application.config.common.SharedPostgresContainer;
 import ld.application.context.ProductIntegrationTest;
-import ld.application.shared.CreateProductCommandFixture;
-import ld.application.shared.ProductTestFixture;
+import ld.application.shared.product.CreateProductCommandFixture;
+import ld.application.shared.product.ProductTestFixture;
 import ld.domain.features.product.CreateProductUseCase;
 import ld.domain.features.product.ProductCreator;
 import ld.domain.features.product.model.ProductCreated;

@@ -1,10 +1,10 @@
-package ld.application.write;
+package ld.application.tests.write.order;
 
-import ld.application.config.SharedPostgresContainer;
+import ld.application.config.common.SharedPostgresContainer;
 import ld.application.context.OrderIntegrationTest;
 import ld.application.infra.db.jpa.adapter.OrderCreatorJpaAdapter;
-import ld.application.shared.CreateOrderCommandFixture;
-import ld.application.shared.ProductTestFixture;
+import ld.application.shared.order.CreateOrderCommandFixture;
+import ld.application.shared.product.ProductTestFixture;
 import ld.domain.features.order.OrderCreator;
 import ld.domain.features.order.CreateOrderUseCase;
 import ld.domain.features.order.model.OrderCreated;

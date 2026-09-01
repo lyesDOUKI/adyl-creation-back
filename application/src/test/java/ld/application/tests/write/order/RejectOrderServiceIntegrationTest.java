@@ -1,10 +1,10 @@
-package ld.application.write;
+package ld.application.tests.write.order;
 
-import ld.application.config.SharedPostgresContainer;
+import ld.application.config.common.SharedPostgresContainer;
 import ld.application.context.OrderIntegrationTest;
 import ld.application.infra.db.converter.OrderStatusConverter;
 import ld.application.infra.db.jpa.adapter.OrderEditorJpaAdapter;
-import ld.application.shared.ProductTestFixture;
+import ld.application.shared.product.ProductTestFixture;
 import ld.domain.features.order.lifecycle.OrderEditor;
 import ld.domain.features.order.model.*;
 import ld.domain.features.order.reject.RejectOrderCommand;

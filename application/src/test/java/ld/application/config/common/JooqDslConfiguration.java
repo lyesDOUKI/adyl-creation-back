@@ -1,4 +1,4 @@
-package ld.application.config;
+package ld.application.config.common;
 
 import org.jooq.DSLContext;
 import org.jooq.SQLDialect;

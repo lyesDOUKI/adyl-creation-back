@@ -1,4 +1,4 @@
-package ld.application.config;
+package ld.application.config.product;
 
 import ld.domain.features.product.model.ProductEvent;
 import ld.standard.lib.AggregateEventDispatcher;

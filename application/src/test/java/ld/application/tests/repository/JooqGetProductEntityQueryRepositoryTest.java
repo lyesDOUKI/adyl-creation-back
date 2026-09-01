@@ -1,8 +1,8 @@
-package ld.application.infra.db.jooq.jooq;
+package ld.application.tests.repository;
 
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import ld.application.config.SharedPostgresContainer;
+import ld.application.config.common.SharedPostgresContainer;
 import ld.application.infra.db.jooq.JooqGetProductQueryRepository;
 import ld.application.infra.db.jooq.ProductQuery;
 import ld.application.infra.db.jooq.exception.InvalidSortFieldException;

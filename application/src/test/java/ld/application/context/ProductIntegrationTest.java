@@ -1,10 +1,15 @@
 package ld.application.context;
 
 import ld.application.bridge.ProductConfiguration;
-import ld.application.config.*;
+import ld.application.config.common.JooqDslConfiguration;
+import ld.application.config.common.TestClockConfiguration;
+import ld.application.config.common.UnitOfWorkTestConfiguration;
+import ld.application.config.product.ProductEventDispatcherTestConfiguration;
+import ld.application.config.product.ProductPersistenceTestConfiguration;
+import ld.application.config.product.ProductPhotoStorageTestConfiguration;
 import ld.application.infra.db.entity.ProductEntity;
 import ld.application.infra.db.entity.ProductPhotoEntity;
-import ld.application.shared.ProductTestFixture;
+import ld.application.shared.product.ProductTestFixture;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
 import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;

@@ -1,4 +1,4 @@
-package ld.application.shared;
+package ld.application.shared.product;
 
 import ld.domain.features.product.model.ProductStatus;
 import org.jooq.DSLContext;

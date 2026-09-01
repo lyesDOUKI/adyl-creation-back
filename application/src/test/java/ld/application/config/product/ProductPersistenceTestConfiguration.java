@@ -1,4 +1,4 @@
-package ld.application.config;
+package ld.application.config.product;
 
 import ld.application.infra.db.jpa.ProductJpaRepository;
 import ld.application.infra.db.jpa.adapter.ProductJpaAdapter;

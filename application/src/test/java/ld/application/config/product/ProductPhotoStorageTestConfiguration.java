@@ -1,4 +1,4 @@
-package ld.application.config;
+package ld.application.config.product;
 
 import ld.domain.features.product.photos.ProductPhotoStoragePort;
 import org.springframework.boot.test.context.TestConfiguration;

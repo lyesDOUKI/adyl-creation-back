@@ -1,4 +1,4 @@
-package ld.application.config;
+package ld.application.config.common;
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;

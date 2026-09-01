@@ -1,9 +1,9 @@
-package ld.application.write;
+package ld.application.tests.write.product;
 
-import ld.application.config.SharedPostgresContainer;
+import ld.application.config.common.SharedPostgresContainer;
 import ld.application.context.ProductIntegrationTest;
-import ld.application.shared.AddProductPhotosCommandFixture;
-import ld.application.shared.ProductTestFixture;
+import ld.application.shared.product.AddProductPhotosCommandFixture;
+import ld.application.shared.product.ProductTestFixture;
 import ld.domain.features.product.lifecycle.ProductEditor;
 import ld.domain.features.product.model.ProductPhotoSnapshot;
 import ld.domain.features.product.model.ProductSnapshot;

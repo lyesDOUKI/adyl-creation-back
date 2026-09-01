@@ -1,7 +1,8 @@
-package ld.application.read;
+package ld.application.tests.read;
 
 import ld.application.infra.db.jooq.GetProductQueryRepository;
 import ld.application.infra.db.jooq.ProductQuery;
+import ld.application.read.GetProductServiceImpl;
 import ld.application.response.GetProductResponse;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
 import ld.domain.features.product.validation.ProductErrorCode;
@@ -17,7 +18,7 @@ import org.springframework.data.domain.Pageable;
 import java.math.BigDecimal;
 import java.util.*;
 
-import static ld.application.shared.ProductQueryTestBuilder.aProduct;
+import static ld.application.shared.product.ProductQueryTestBuilder.aProduct;
 import static ld.standard.lib.helper.test.ResultTestSupport.*;
 import static org.assertj.core.api.Assertions.assertThat;
 

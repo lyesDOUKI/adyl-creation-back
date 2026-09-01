@@ -1,4 +1,4 @@
-package ld.application.shared;
+package ld.application.shared.order;
 
 import ld.domain.features.order.CreateOrderCommand;
 

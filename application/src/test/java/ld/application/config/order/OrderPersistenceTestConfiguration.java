@@ -1,4 +1,4 @@
-package ld.application.config;
+package ld.application.config.order;
 
 import ld.application.infra.db.jpa.adapter.DiscountClaimerJpaAdapter;
 import ld.application.infra.db.jpa.adapter.OrderCreatorJpaAdapter;
