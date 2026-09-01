@@ -96,7 +96,7 @@ public class OrderController {
     )
     @ApiResponses(value = {
             @ApiResponse(
-                    responseCode = "201",
+                    responseCode = "200",
                     description = "Commande acceptée avec succès",
                     content = @Content(
                             schema = @Schema(implementation = OrderAcceptedResponse.class)
@@ -135,9 +135,8 @@ public class OrderController {
                 .execute(new AcceptOrderCommand(orderId))
                 .map(OrderAcceptedResponse::from);
 
-        return ResultToResponse.created(
+        return ResultToResponse.ok(
                 response,
-                OrderAcceptedResponse::orderId,
                 httpServletRequest
         );
     }
@@ -148,7 +147,7 @@ public class OrderController {
     )
     @ApiResponses(value = {
             @ApiResponse(
-                    responseCode = "201",
+                    responseCode = "200",
                     description = "Commande rejetée avec succès",
                     content = @Content(
                             schema = @Schema(implementation = OrderRejectedResponse.class)
@@ -188,9 +187,8 @@ public class OrderController {
                 .execute(rejectOrderRequest.to(orderId))
                 .map(OrderRejectedResponse::from);
 
-        return ResultToResponse.created(
+        return ResultToResponse.ok(
                 response,
-                OrderRejectedResponse::orderId,
                 httpServletRequest
         );
     }
@@ -201,7 +199,7 @@ public class OrderController {
     )
     @ApiResponses(value = {
             @ApiResponse(
-                    responseCode = "201",
+                    responseCode = "200",
                     description = "Commande livrée avec succès",
                     content = @Content(
                             schema = @Schema(implementation = OrderDeliveredResponse.class)
@@ -239,6 +237,6 @@ public class OrderController {
     ) {
         var result = this.deliverOrderUseCase.execute(deliverOrderRequest.toCommand(orderId))
                 .map(OrderDeliveredResponse::from);
-        return ResultToResponse.created(result, OrderDeliveredResponse::orderId, httpServletRequest);
+        return ResultToResponse.ok(result, httpServletRequest);
     }
 }
