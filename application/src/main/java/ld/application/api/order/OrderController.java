@@ -10,13 +10,16 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import ld.application.request.CreateOrderRequest;
+import ld.application.request.DeliverOrderRequest;
 import ld.application.request.RejectOrderRequest;
 import ld.application.response.CreateOrderResponse;
+import ld.application.response.DeliverOrderResponse;
 import ld.application.response.OrderAcceptedResponse;
 import ld.application.response.OrderRejectedResponse;
 import ld.domain.features.order.CreateOrderUseCase;
 import ld.domain.features.order.accept.AcceptOrderCommand;
 import ld.domain.features.order.accept.AcceptOrderUseCase;
+import ld.domain.features.order.deliver.DeliverOrderUseCase;
 import ld.domain.features.order.reject.RejectOrderUseCase;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
@@ -33,13 +36,16 @@ public class OrderController {
     private final CreateOrderUseCase createOrderUseCase;
     private final AcceptOrderUseCase acceptOrderUseCase;
     private final RejectOrderUseCase rejectOrderUseCase;
+    private final DeliverOrderUseCase deliverOrderUseCase;
 
     public OrderController(CreateOrderUseCase createOrderUseCase,
                            AcceptOrderUseCase acceptOrderUseCase,
-                           RejectOrderUseCase rejectOrderUseCase) {
+                           RejectOrderUseCase rejectOrderUseCase,
+                           DeliverOrderUseCase deliverOrderUseCase) {
         this.createOrderUseCase = createOrderUseCase;
         this.acceptOrderUseCase = acceptOrderUseCase;
         this.rejectOrderUseCase = rejectOrderUseCase;
+        this.deliverOrderUseCase = deliverOrderUseCase;
     }
 
     @PostMapping
@@ -187,5 +193,52 @@ public class OrderController {
                 OrderRejectedResponse::orderId,
                 httpServletRequest
         );
+    }
+
+    @PostMapping("{id}/deliver")
+    @Operation(
+            summary = "Livrer une commande"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "201",
+                    description = "Commande livrée avec succès",
+                    content = @Content(
+                            schema = @Schema(implementation = OrderAcceptedResponse.class)
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Identifiant de commande invalide",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Commande inexistante",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "422",
+                    description = "La commande ne peut pas être livrée dans son état actuel",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Erreur interne du serveur",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponseBody> deliverOrder(
+            @Parameter(
+                    description = "Identifiant de la commande à livrer",
+                    required = true
+            )
+            @PathVariable("id") UUID orderId,
+            @RequestBody @Valid DeliverOrderRequest deliverOrderRequest,
+            HttpServletRequest httpServletRequest
+    ) {
+        var result = this.deliverOrderUseCase.execute(deliverOrderRequest.toCommand(orderId))
+                .map(DeliverOrderResponse::from);
+        return ResultToResponse.created(result, DeliverOrderResponse::orderId, httpServletRequest);
     }
 }
