@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import ld.application.infra.security.AdminOnly;
 import ld.application.request.CreateOrderRequest;
 import ld.application.request.DeliverOrderRequest;
 import ld.application.request.RejectOrderRequest;
@@ -89,6 +90,7 @@ public class OrderController {
         return ResultToResponse.created(response, CreateOrderResponse::orderId, httpServletRequest);
     }
 
+    @AdminOnly
     @PostMapping("{id}/accept")
     @Operation(
             summary = "Accepter une commande",
@@ -141,6 +143,7 @@ public class OrderController {
         );
     }
 
+    @AdminOnly
     @PostMapping("{id}/reject")
     @Operation(
             summary = "Rejeter une commande"
@@ -193,6 +196,7 @@ public class OrderController {
         );
     }
 
+    @AdminOnly
     @PostMapping("{id}/deliver")
     @Operation(
             summary = "Livrer une commande"

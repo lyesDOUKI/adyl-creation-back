@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import ld.application.infra.security.AdminOnly;
 import ld.application.read.GetProductService;
 import ld.application.request.CreateProductRequest;
 import ld.application.response.CreateOrderResponse;
@@ -39,6 +40,7 @@ public class ProductController {
         this.getProductService = getProductService;
     }
 
+    @AdminOnly
     @PostMapping
     @Operation(
             summary = "Création d'un produit",
