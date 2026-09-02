@@ -151,6 +151,28 @@ class AcceptOrderServiceIntegrationTest {
         verifyNoInteractions(aggregateEventDispatcher);
     }
 
+    @Test
+    void should_rollback_discount_claim_and_return_failure_when_order_is_already_rejected() {
+        var product = productTestFixture.createExistingProduct();
+        UUID orderId = UUID.randomUUID();
+        String customerEmail = "rejected.user@example.com";
+        insertRejectedOrderInDb(orderId, customerEmail, product.id());
+
+        var command = new AcceptOrderCommand(orderId);
+
+        var result = acceptOrderUseCase.execute(command);
+
+        assertThat(result.isFailure()).isTrue();
+
+        var orderRecord = dsl.fetchOne(ORDERS, ORDERS.ID.eq(orderId));
+        assertThat(orderRecord).isNotNull();
+        assertThat(orderRecord.getStatusType()).isEqualTo(OrderState.REJECTED.name());
+
+        int claimCount = dsl.fetchCount(DISCOUNT_CLAIMS, DISCOUNT_CLAIMS.EMAIL.eq(customerEmail));
+        assertThat(claimCount).isZero();
+
+        verifyNoInteractions(aggregateEventDispatcher);
+    }
     @Nested
     @Import(RollbackScenario.FailingRepositoryConfig.class)
     class RollbackScenario {
@@ -246,6 +268,33 @@ class AcceptOrderServiceIntegrationTest {
                 .set(
                         ORDERS.STATUS_DATA,
                         JSON.json(converter.convertToDatabaseColumn(new OrderStatus.Accepted(Instant.now(clock), Percentage.ZERO)))
+                )
+                .set(ORDERS.TOTAL, new BigDecimal("100.00"))
+                .set(ORDERS.CREATED_AT, LocalDateTime.now())
+                .set(ORDERS.UPDATED_AT, LocalDateTime.now())
+                .execute();
+
+        dsl.insertInto(ORDER_DETAILS)
+                .set(ORDER_DETAILS.ID, UUID.randomUUID())
+                .set(ORDER_DETAILS.ORDER_ID, orderId)
+                .set(ORDER_DETAILS.PRODUCT_ID, productId)
+                .set(ORDER_DETAILS.QUANTITY, new BigDecimal("1.00"))
+                .set(ORDER_DETAILS.UNIT_PRICE, new BigDecimal("100.00"))
+                .set(ORDER_DETAILS.TOTAL_AMOUNT, new BigDecimal("100.00"))
+                .set(ORDER_DETAILS.DISCOUNT_RATE, BigDecimal.ZERO)
+                .execute();
+    }
+
+    private void insertRejectedOrderInDb(UUID orderId, String customerEmail, UUID productId) {
+        UUID customerId = insertCustomerInDb(customerEmail);
+
+        dsl.insertInto(ORDERS)
+                .set(ORDERS.ID, orderId)
+                .set(ORDERS.CUSTOMER_ID, customerId)
+                .set(ORDERS.STATUS_TYPE, OrderState.REJECTED.name())
+                .set(
+                        ORDERS.STATUS_DATA,
+                        JSON.json(converter.convertToDatabaseColumn(new OrderStatus.Rejected("pas le temps", Instant.now(clock))))
                 )
                 .set(ORDERS.TOTAL, new BigDecimal("100.00"))
                 .set(ORDERS.CREATED_AT, LocalDateTime.now())
