@@ -65,19 +65,20 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 .reduce(Price.zero(), Price::add);
     }
 
-    public Result<Order> accept(boolean isFirstAcceptedOrder, Percentage provide, Instant acceptedAt) {
+    public Result<Order> accept(AppliedDiscount discount, Instant acceptedAt) {
         return switch (this.orderStatus) {
             case OrderStatus.Accepted _ -> Result.success(this);
 
             case OrderStatus.Pending _ -> {
-                Percentage discount = isFirstAcceptedOrder ? provide : Percentage.ZERO;
-
-                if (isFirstAcceptedOrder) {
-                    applyDiscountToItems(discount);
-                }
-
+                var appliedRate = switch (discount) {
+                    case AppliedDiscount.Claimed(Percentage rate) -> {
+                        applyDiscountToItems(rate);
+                        yield rate;
+                    }
+                    case AppliedDiscount.None _ -> Percentage.ZERO;
+                };
                 this.total = this.calculateTotal();
-                this.orderStatus = new OrderStatus.Accepted(acceptedAt, discount);
+                this.orderStatus = new OrderStatus.Accepted(acceptedAt, appliedRate);
 
                 addDomainEvent(new OrderAccepted(getId(), this.total.value()));
                 yield Result.success(this);

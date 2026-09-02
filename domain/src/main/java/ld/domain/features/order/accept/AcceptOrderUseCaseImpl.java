@@ -4,11 +4,7 @@ import ld.domain.features.order.lifecycle.AbstractOrderLifecycleUseCase;
 import ld.domain.features.order.lifecycle.DiscountClaimer;
 import ld.domain.features.order.lifecycle.DiscountProvider;
 import ld.domain.features.order.lifecycle.OrderEditor;
-import ld.domain.features.order.model.DiscountType;
-import ld.domain.features.order.model.Order;
-import ld.domain.features.order.model.OrderEvent;
-import ld.domain.features.order.model.OrderSnapshot;
-import ld.domain.valueObjects.Percentage;
+import ld.domain.features.order.model.*;
 import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.UnitOfWork;
 import ld.standard.lib.validation.Result;
@@ -45,26 +41,21 @@ public class AcceptOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
     }
 
     private Result<Order> acceptWithDiscountHandling(Order order) {
-        boolean eligibleForFirstOrderDiscount = isEligibleForFirstOrderDiscount(order);
+        AppliedDiscount discount = resolveDiscount(order);
+        return order.accept(discount, Instant.now(clock));
+    }
 
-        if (!eligibleForFirstOrderDiscount) {
-            return order.accept(false, Percentage.ZERO, Instant.now(clock));
+    private AppliedDiscount resolveDiscount(Order order) {
+        if (!isEligibleForFirstOrderDiscount(order)) {
+            return AppliedDiscount.none();
         }
-
-        var rate = discountProvider.provide(DiscountType.FIRST_ACCEPTED_ORDER);
-
-        boolean claimed = rate
-                .map(_ -> discountClaimer.tryAddClaim(
+        return discountProvider.provide(DiscountType.FIRST_ACCEPTED_ORDER)
+                .filter(_ -> discountClaimer.tryAddClaim(
                         DiscountType.FIRST_ACCEPTED_ORDER,
                         order.customerEmail()
                 ))
-                .orElse(false);
-
-        return order.accept(
-                claimed,
-                rate.orElse(Percentage.ZERO),
-                Instant.now(clock)
-        );
+                .map(AppliedDiscount::claimed)
+                .orElseGet(AppliedDiscount::none);
     }
 
     private boolean isEligibleForFirstOrderDiscount(Order order) {
