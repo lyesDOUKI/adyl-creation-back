@@ -17,7 +17,6 @@ import ld.domain.features.order.reject.RejectOrderUseCaseImpl;
 import ld.domain.features.product.ProductFinder;
 import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.UnitOfWork;
-import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -75,9 +74,5 @@ public class OrderConfiguration {
             Clock clock
     ) {
         return new DeliverOrderUseCaseImpl(orderEditor, orderEventAggregateEventDispatcher, unitOfWork, clock);
-    }
-    @Bean
-    AggregateEventDispatcher<OrderEvent> orderEventDispatcher() {
-        return new InMemoryAggregateEventDispatcher<>();
     }
 }

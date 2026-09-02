@@ -1,0 +1,10 @@
+email:
+  from: ${MAIL_FROM}
+
+  admin:
+    address: ${ADMIN_EMAIL}
+
+  templates:
+    order-created:
+      subject: "Nouvelle commande de ${customerName}"
+      template: "emails/order-created.ftl"

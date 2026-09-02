@@ -4,7 +4,6 @@ spring:
     driver-class-name: org.postgresql.Driver
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
-
   security:
     oauth2:
       resourceserver:
@@ -12,15 +11,25 @@ spring:
           issuer-uri: ${KEYCLOAK_ISSUER_URI}
           audiences:
             - ${KEYCLOAK_API_AUDIENCE}
-
+  mail:
+    host: ${MAIL_HOST}
+    port: ${MAIL_PORT}
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+  config:
+    import: classpath:email.yaml
 server:
   port: ${SERVER_PORT:8084}
-
 app:
   base-url: ${APP_BASE_URL:http://localhost:8084}
   photos:
     storage-path: ${APP_PHOTOS_STORAGE_PATH:/data/photos}
-
 keycloak:
   authorization-url: ${KEYCLOAK_AUTHORIZATION_URL}
   token-url: ${KEYCLOAK_TOKEN_URL}
