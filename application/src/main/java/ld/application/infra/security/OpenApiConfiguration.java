@@ -1,5 +1,6 @@
 package ld.application.infra.security;
 
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.security.OAuthFlow;
@@ -33,7 +34,8 @@ public class OpenApiConfiguration {
                                         SECURITY_SCHEME_NAME,
                                         securityScheme
                                 )
-                );
+                )
+                .addSecurityItem(new SecurityRequirement().addList(SECURITY_SCHEME_NAME));
     }
 
     private OAuthFlows createOAuthFlows(
