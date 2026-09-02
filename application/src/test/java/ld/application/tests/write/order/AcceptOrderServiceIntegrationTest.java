@@ -11,6 +11,7 @@ import ld.domain.features.order.lifecycle.OrderEditor;
 import ld.domain.features.order.model.*;
 import ld.domain.valueObjects.Percentage;
 import ld.standard.lib.AggregateEventDispatcher;
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jooq.DSLContext;
 import org.jooq.JSON;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,6 +37,7 @@ import static ld.application.jooq.tables.DiscountRates.DISCOUNT_RATES;
 import static ld.application.jooq.tables.OrderDetails.ORDER_DETAILS;
 import static ld.application.jooq.tables.Orders.ORDERS;
 import static ld.application.jooq.tables.Products.PRODUCTS;
+import static ld.standard.lib.helper.test.ResultTestSupport.extractValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
@@ -172,6 +174,29 @@ class AcceptOrderServiceIntegrationTest {
         assertThat(claimCount).isZero();
 
         verifyNoInteractions(aggregateEventDispatcher);
+    }
+
+    @Test
+    void should_accept_order_without_discount_when_claim_already_exists_in_db() {
+        var product = productTestFixture.createExistingProduct();
+        UUID orderId = UUID.randomUUID();
+        String customerEmail = "existing.claim@example.com";
+
+        dsl.insertInto(DISCOUNT_CLAIMS)
+                .set(DISCOUNT_CLAIMS.TYPE, DiscountType.FIRST_ACCEPTED_ORDER.name())
+                .set(DISCOUNT_CLAIMS.EMAIL, customerEmail)
+                .execute();
+
+        insertPendingOrderInDb(orderId, customerEmail, product.id());
+
+        var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
+        assertThat(result.isSuccess()).isTrue();
+
+        var order = extractValue(result);
+        assertThat(order.orderStatus())
+                .asInstanceOf(InstanceOfAssertFactories.type(OrderStatus.Accepted.class))
+                .extracting(OrderStatus.Accepted::discountApplied)
+                .isEqualTo(Percentage.ZERO);
     }
     @Nested
     @Import(RollbackScenario.FailingRepositoryConfig.class)

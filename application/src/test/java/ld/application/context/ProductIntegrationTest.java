@@ -1,7 +1,6 @@
 package ld.application.context;
 
 import ld.application.bridge.ProductConfiguration;
-import ld.application.config.common.JooqDslConfiguration;
 import ld.application.config.common.TestClockConfiguration;
 import ld.application.config.common.UnitOfWorkTestConfiguration;
 import ld.application.config.product.ProductPersistenceTestConfiguration;
@@ -13,6 +12,7 @@ import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
 import org.springframework.boot.hibernate.autoconfigure.HibernateJpaAutoConfiguration;
 import org.springframework.boot.jdbc.autoconfigure.DataSourceAutoConfiguration;
+import org.springframework.boot.jooq.autoconfigure.JooqAutoConfiguration;
 import org.springframework.boot.persistence.autoconfigure.EntityScan;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
@@ -28,7 +28,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @SpringBootTest(classes = {
         ProductConfiguration.class,
-        JooqDslConfiguration.class,
         ProductPersistenceTestConfiguration.class,
         UnitOfWorkTestConfiguration.class,
         TestClockConfiguration.class,
@@ -37,7 +36,8 @@ import java.lang.annotation.Target;
 @ImportAutoConfiguration({
         DataSourceAutoConfiguration.class,
         HibernateJpaAutoConfiguration.class,
-        FlywayAutoConfiguration.class
+        FlywayAutoConfiguration.class,
+        JooqAutoConfiguration.class
 })
 @EntityScan(basePackageClasses = {
         ProductEntity.class,

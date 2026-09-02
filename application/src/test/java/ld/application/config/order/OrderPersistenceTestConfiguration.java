@@ -1,10 +1,9 @@
 package ld.application.config.order;
 
 import ld.application.infra.db.jooq.CustomerOrderHistoryFinderJooqAdapter;
-import ld.application.infra.db.jpa.DiscountClaimJpaRepository;
 import ld.application.infra.db.jpa.OrderJpaRepository;
 import ld.application.infra.db.jpa.ProductJpaRepository;
-import ld.application.infra.db.jpa.adapter.DiscountClaimerJpaAdapter;
+import ld.application.infra.db.jpa.adapter.DiscountClaimerJooqAdapter;
 import ld.application.infra.db.jpa.adapter.OrderCreatorJpaAdapter;
 import ld.application.infra.db.jpa.adapter.OrderEditorJpaAdapter;
 import ld.application.infra.db.jpa.adapter.ProductJpaFinderAdapter;
@@ -41,8 +40,8 @@ public class OrderPersistenceTestConfiguration {
 
 
     @Bean
-    DiscountClaimerJpaAdapter discountClaimerJpaAdapter(DiscountClaimJpaRepository discountClaimJpaRepository) {
-        return new DiscountClaimerJpaAdapter(discountClaimJpaRepository);
+    DiscountClaimerJooqAdapter discountClaimerJooqAdapter(DSLContext dslContext) {
+        return new DiscountClaimerJooqAdapter(dslContext);
     }
 
 
