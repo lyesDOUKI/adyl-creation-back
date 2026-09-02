@@ -8,7 +8,8 @@ import java.util.Map;
 public record EmailProperties(
         String from,
         Admin admin,
-        Map<String, Template> templates
+        Map<String, Template> templates,
+        boolean enabled
 ) {
 
     public record Admin(

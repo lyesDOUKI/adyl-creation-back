@@ -15,18 +15,21 @@ public class SmtpEmailSender
 
     private final JavaMailSender mailSender;
     private final String from;
-
+    private final boolean enabled;
     public SmtpEmailSender(
             JavaMailSender mailSender,
             EmailProperties properties
     ) {
         this.mailSender = mailSender;
         this.from = properties.from();
+        this.enabled = properties.enabled();
     }
 
     @Override
     public void send(Email email) {
-
+        if (!enabled) {
+            return;
+        }
         try {
             var message =
                     mailSender.createMimeMessage();

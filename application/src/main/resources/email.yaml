@@ -1,4 +1,5 @@
 email:
+  enabled: ${MAILING_ENABLED:false}
   from: ${MAIL_FROM}
 
   admin:
