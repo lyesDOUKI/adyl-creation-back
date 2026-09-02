@@ -32,7 +32,8 @@ public class ProductMapper {
                 entity.getUnitPrice(),
                 colors,
                 entity.getStatus(),
-                photos
+                photos,
+                entity.getCategory()
         );
     }
 
@@ -47,7 +48,7 @@ public class ProductMapper {
         targetEntity.setName(snapshot.name());
         targetEntity.setUnitPrice(snapshot.price());
         targetEntity.setStatus(snapshot.productStatus());
-
+        targetEntity.setCategory(snapshot.productCategory());
         if (snapshot.colors() != null) {
             Set<String> newColors = snapshot.colors().stream()
                     .map(ProductColor::value)

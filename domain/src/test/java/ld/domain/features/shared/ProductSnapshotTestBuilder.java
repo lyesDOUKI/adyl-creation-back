@@ -1,9 +1,6 @@
 package ld.domain.features.shared;
 
-import ld.domain.features.product.model.ProductColor;
-import ld.domain.features.product.model.ProductPhoto;
-import ld.domain.features.product.model.ProductSnapshot;
-import ld.domain.features.product.model.ProductStatus;
+import ld.domain.features.product.model.*;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -17,6 +14,7 @@ public class ProductSnapshotTestBuilder {
     private BigDecimal price = BigDecimal.TEN;
     private List<ProductColor> colors = List.of(new ProductColor("noir"));
     private ProductStatus status = ProductStatus.AVAILABLE;
+    private ProductCategory productCategory = ProductCategory.ACCESSORIES;
     private List<ProductPhoto> photos = new ArrayList<>();
 
     public static ProductSnapshotTestBuilder aProduct() {
@@ -51,7 +49,12 @@ public class ProductSnapshotTestBuilder {
         this.photos = photos;
         return this;
     }
+
+    public ProductSnapshotTestBuilder withCategory(ProductCategory productCategory) {
+        this.productCategory = productCategory;
+        return this;
+    }
     public ProductSnapshot build() {
-        return new ProductSnapshot(id, name, price, colors, status, photos);
+        return new ProductSnapshot(id, name, price, colors, status, photos, productCategory);
     }
 }

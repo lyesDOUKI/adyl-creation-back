@@ -35,7 +35,8 @@ public class CreateProductUseCaseImpl implements CreateProductUseCase {
                     Product product = Product.create(
                             createProductCommand.name(),
                             createProductCommand.price(),
-                            createProductCommand.colors()
+                            createProductCommand.colors(),
+                            createProductCommand.productCategory()
                     );
                     this.productCreator.create(product.toSnapshot());
                     return Result.success(product);

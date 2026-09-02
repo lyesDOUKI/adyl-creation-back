@@ -1,6 +1,7 @@
 package ld.application.infra.db.jooq;
 
 import ld.application.infra.db.jooq.utils.JooqSortUtils;
+import ld.domain.features.product.model.ProductCategory;
 import org.jooq.*;
 import org.jooq.Record;
 import org.springframework.data.domain.Page;
@@ -52,6 +53,7 @@ public class JooqGetProductQueryRepository implements GetProductQueryRepository 
 
     private static final List<Field<?>> PRODUCT_FIELDS = List.of(
             PRODUCTS.ID,
+            PRODUCTS.CATEGORY,
             PRODUCTS.NAME,
             PRODUCTS.UNIT_PRICE,
             COLORS,
@@ -105,6 +107,7 @@ public class JooqGetProductQueryRepository implements GetProductQueryRepository 
     private ProductQuery mapToProductQuery(Record record) {
         return new ProductQuery(
                 record.get(PRODUCTS.ID),
+                ProductCategory.valueOf(record.get(PRODUCTS.CATEGORY)),
                 record.get(PRODUCTS.NAME),
                 record.get(PRODUCTS.UNIT_PRICE),
                 record.get(COLORS),

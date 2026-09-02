@@ -20,8 +20,10 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
     private final List<ProductColor> colors;
     private List<ProductPhoto> photos;
     private final ProductStatus productStatus;
+    private final ProductCategory productCategory;
 
-    private Product(String name, Price price, List<ProductColor> colors) {
+    private Product(String name, Price price, List<ProductColor> colors, ProductCategory productCategory) {
+        this.productCategory = productCategory;
         setId(UUID.randomUUID());
         this.name = name;
         this.price = price;
@@ -32,7 +34,8 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
     }
 
     private Product(UUID id, String name, Price price, List<ProductColor> colors,
-                    ProductStatus productStatus, List<ProductPhoto> photos) {
+                    ProductStatus productStatus, List<ProductPhoto> photos, ProductCategory productCategory) {
+        this.productCategory = productCategory;
         setId(id);
         this.name = name;
         this.price = price;
@@ -41,8 +44,8 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
         this.photos = photos;
     }
 
-    public static Product create(String name, BigDecimal price, List<String> colors) {
-        return new Product(name, new Price(price), colors.stream().map(ProductColor::new).toList());
+    public static Product create(String name, BigDecimal price, List<String> colors, ProductCategory productCategory) {
+        return new Product(name, new Price(price), colors.stream().map(ProductColor::new).toList(), productCategory);
     }
 
     public static Product from(ProductSnapshot snapshot) {
@@ -52,7 +55,8 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
                 new Price(snapshot.price()),
                 snapshot.colors(),
                 snapshot.productStatus(),
-                snapshot.photos()
+                snapshot.photos(),
+                snapshot.productCategory()
         );
     }
 
@@ -80,7 +84,8 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
                 this.price.value(),
                 this.colors,
                 this.productStatus,
-                this.photos);
+                this.photos,
+                this.productCategory);
     }
 
     public List<ProductPhoto> getPhotos() {

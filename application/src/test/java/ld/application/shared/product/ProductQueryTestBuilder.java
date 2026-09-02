@@ -1,6 +1,7 @@
 package ld.application.shared.product;
 
 import ld.application.infra.db.jooq.ProductQuery;
+import ld.domain.features.product.model.ProductCategory;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.UUID;
 public class ProductQueryTestBuilder {
 
     private UUID productId = UUID.randomUUID();
+    private ProductCategory productCategory = ProductCategory.ACCESSORIES;
     private String name = "Produit test";
     private BigDecimal price = BigDecimal.TEN;
     private List<String> colors = new ArrayList<>();
@@ -53,7 +55,11 @@ public class ProductQueryTestBuilder {
         return this;
     }
 
+    public ProductQueryTestBuilder withCategory(ProductCategory productCategory) {
+        this.productCategory = productCategory;
+        return this;
+    }
     public ProductQuery build() {
-        return new ProductQuery(productId, name, price, colors, photoStorageKeys, numberOfOrders);
+        return new ProductQuery(productId, productCategory, name, price, colors, photoStorageKeys, numberOfOrders);
     }
 }

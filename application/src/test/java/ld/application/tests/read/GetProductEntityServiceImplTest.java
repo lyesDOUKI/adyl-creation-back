@@ -4,6 +4,8 @@ import ld.application.infra.db.jooq.GetProductQueryRepository;
 import ld.application.infra.db.jooq.ProductQuery;
 import ld.application.read.GetProductServiceImpl;
 import ld.application.response.GetProductResponse;
+import ld.application.response.ProductCategoryResponse;
+import ld.domain.features.product.model.ProductCategory;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
 import ld.domain.features.product.validation.ProductErrorCode;
 import ld.standard.lib.validation.FailureType;
@@ -41,6 +43,7 @@ class GetProductEntityServiceImplTest {
         repository.add(aProduct()
                 .withProductId(productId)
                 .withName("T-shirt")
+                .withCategory(ProductCategory.CLOTHING)
                 .withPrice(BigDecimal.valueOf(19.90))
                 .withColors("rouge", "bleu")
                 .withPhotos("photo1.jpg", "photo2.jpg")
@@ -53,6 +56,7 @@ class GetProductEntityServiceImplTest {
         GetProductResponse response = extractValue(result);
         assertThat(response.productId()).isEqualTo(productId);
         assertThat(response.name()).isEqualTo("T-shirt");
+        assertThat(response.productCategory()).isEqualTo(ProductCategoryResponse.CLOTHING);
         assertThat(response.price()).isEqualByComparingTo(BigDecimal.valueOf(19.90));
         assertThat(response.colors()).containsExactly("rouge", "bleu");
         assertThat(response.numberOfOrders()).isEqualTo(3);

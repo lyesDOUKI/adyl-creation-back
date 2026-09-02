@@ -1,6 +1,7 @@
 package ld.application.infra.db.entity;
 
 import jakarta.persistence.*;
+import ld.domain.features.product.model.ProductCategory;
 import ld.domain.features.product.model.ProductStatus;
 
 import java.math.BigDecimal;
@@ -33,6 +34,10 @@ public class ProductEntity {
 
     @OneToMany(mappedBy = "productEntity", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<ProductPhotoEntity> photos = new ArrayList<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ProductCategory category;
 
     public ProductEntity() {}
     public UUID getId() {
@@ -84,5 +89,13 @@ public class ProductEntity {
     }
     public void setPhotos(List<ProductPhotoEntity> photos) {
         this.photos = photos;
+    }
+
+    public ProductCategory getCategory() {
+        return category;
+    }
+
+    public void setCategory(ProductCategory category) {
+        this.category = category;
     }
 }

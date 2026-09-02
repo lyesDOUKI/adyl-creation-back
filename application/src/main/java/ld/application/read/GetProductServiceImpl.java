@@ -3,6 +3,7 @@ package ld.application.read;
 import ld.application.infra.db.jooq.GetProductQueryRepository;
 import ld.application.infra.db.jooq.ProductQuery;
 import ld.application.response.GetProductResponse;
+import ld.application.response.ProductCategoryResponse;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
 import ld.domain.features.product.validation.ProductErrorCode;
 import ld.standard.lib.validation.Result;
@@ -62,6 +63,7 @@ public class GetProductServiceImpl implements GetProductService {
 
         return new GetProductResponse(
                 product.productId(),
+                ProductCategoryResponse.from(product.productCategory()),
                 product.name(),
                 product.unitPrice(),
                 product.colors(),
