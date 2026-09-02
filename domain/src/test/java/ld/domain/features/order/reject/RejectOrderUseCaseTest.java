@@ -210,7 +210,7 @@ class RejectOrderUseCaseTest {
                             .withOrderStatus(
                                     new OrderStatus.Accepted(
                                             FIXED_INSTANT,
-                                            Percentage.ZERO
+                                            Percentage.of(10)
                                     )
                             )
                             .build()

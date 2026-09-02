@@ -37,12 +37,13 @@ class AcceptOrderUseCaseTest {
     private final InMemoryDiscountClaimer discountClaimRepository = new InMemoryDiscountClaimer();
     private final InMemoryAggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher = new InMemoryAggregateEventDispatcher<>();
     private final InMemoryUnitOfWork unitOfWork = new InMemoryUnitOfWork();
+    private final InMemoryDiscountProvider discountProvider = new InMemoryDiscountProvider();
 
     private final AcceptOrderUseCase acceptOrderUseCase = new AcceptOrderUseCaseImpl(
             inMemoryOrderLifecycleRepository,
             customerOrderHistoryFinder,
             discountClaimRepository,
-            new InMemoryDiscountProvider(),
+            discountProvider,
             orderEventAggregateEventDispatcher,
             unitOfWork,
             FIXED_CLOCK
@@ -310,6 +311,44 @@ class AcceptOrderUseCaseTest {
 
             assertThat(discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.email()))
                     .isTrue();
+        }
+    }
+
+    @Nested
+    @DisplayName("Quand la commande est éligible mais qu'aucune remise n'est configurée (Optional.empty)")
+    class WhenDiscountProviderReturnsEmpty {
+
+        @Test
+        @DisplayName("L'acceptation réussit mais aucune remise n'est appliquée et les totaux restent inchangés")
+        void shouldAcceptOrderWithoutDiscount() {
+            discountProvider.clear();
+
+            var orderId = UUID.randomUUID();
+            var items = List.of(
+                    anItem(BigDecimal.valueOf(50), BigDecimal.valueOf(50)),
+                    anItem(BigDecimal.valueOf(50), BigDecimal.valueOf(50))
+            );
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder()
+                            .withOrderId(orderId)
+                            .withOrderStatus(OrderStatus.PENDING)
+                            .withItems(items)
+                            .build()
+            );
+
+            var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
+
+            assertSuccess(result);
+
+            var acceptedOrder = extractValue(result);
+            assertThat(acceptedOrder.total()).isEqualByComparingTo(BigDecimal.valueOf(100));
+
+            var acceptedStatus = (OrderStatus.Accepted) acceptedOrder.orderStatus();
+            assertThat(acceptedStatus.discountApplied().value()).isEqualByComparingTo(BigDecimal.ZERO);
+
+            assertThat(acceptedOrder.items())
+                    .hasSize(2)
+                    .allSatisfy(item -> assertThat(item.total().value()).isEqualByComparingTo(BigDecimal.valueOf(50)));
         }
     }
 

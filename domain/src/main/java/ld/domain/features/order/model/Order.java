@@ -95,7 +95,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
     }
     public Result<Order> reject(String reason, Instant rejectedAt) {
         return switch (this.orderStatus) {
-            case OrderStatus.Accepted _, OrderStatus.Pending _ -> {
+            case OrderStatus.Rejectable _ -> {
                 this.orderStatus = new OrderStatus.Rejected(reason, rejectedAt);
                 addDomainEvent(new OrderRejected(getId(), reason));
                 yield Result.success(this);
