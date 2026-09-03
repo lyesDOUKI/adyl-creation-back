@@ -1,21 +1,67 @@
 services:
-  adyl-creation-api:
-    container_name: adyl-creation-api
-    build:
-      context: .
+  postgres:
+    image: postgres:17-alpine
+    container_name: adyl-creation-postgres
     restart: unless-stopped
     ports:
-      - "${SERVER_PORT:-8084}:${SERVER_PORT:-8084}"
+      - "${DB_PORT:-5432}:5432"
+    environment:
+      POSTGRES_DB: ${DB_NAME:-adyl-creation}
+      POSTGRES_USER: ${DB_USERNAME:-admin}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-admin}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME:-admin} -d ${DB_NAME:-adyl-creation}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend-network
+
+  oidc-mock:
+    image: ghcr.io/navikt/mock-oauth2-server:2.1.10
+    container_name: adyl-creation-oidc-mock
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+    environment:
+      SERVER_PORT: 8090
+      JSON_CONFIG_PATH: /app/oidc-mock-config.json
+    volumes:
+      - ./oidc-mock-config.json:/app/oidc-mock-config.json:ro
+    networks:
+      - backend-network
+
+  adyl-creation-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: adyl-creation-api
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8082}:${SERVER_PORT:-8082}"
     env_file:
       - .env
     environment:
       SPRING_PROFILES_ACTIVE: docker
-    user: "${UID}:${GID}"
+      DB_HOST: postgres
+      DB_PORT: 5432
+      OIDC_ISSUER_URI: http://oidc-mock:8090/adyl-creation
     volumes:
-      - ./data/photos:/data/photos
+      - photos_data:/data/photos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      oidc-mock:
+        condition: service_started
     networks:
-      - adyl-creation-network
+      - backend-network
+
+volumes:
+  postgres_data:
+  photos_data:
 
 networks:
-  adyl-creation-network:
-    external: true
+  backend-network:
+    driver: bridge

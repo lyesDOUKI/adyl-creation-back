@@ -14,13 +14,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Component
-public class KeycloakJwtAuthenticationConverter
+public class JwtAuthConverter
         implements Converter<Jwt, AbstractAuthenticationToken> {
 
     private final JwtAuthenticationConverter delegate =
             new JwtAuthenticationConverter();
 
-    public KeycloakJwtAuthenticationConverter() {
+    public JwtAuthConverter() {
 
         delegate.setJwtGrantedAuthoritiesConverter(
                 this::extractAuthorities

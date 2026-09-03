@@ -17,7 +17,7 @@ public class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            KeycloakJwtAuthenticationConverter jwtAuthenticationConverter
+            JwtAuthConverter jwtAuthenticationConverter
     ) {
 
         return http

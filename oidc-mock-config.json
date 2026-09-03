@@ -1,0 +1,30 @@
+{
+  "interactiveLogin": false,
+  "httpServer": "NettyWrapper",
+  "tokenCallbacks": [
+    {
+      "issuerId": "adyl-creation",
+      "tokenExpiry": 3600,
+      "requestMappings": [
+        {
+          "requestParam": "role",
+          "match": "ADMIN",
+          "claims": {
+            "sub": "adyl-creation-api",
+            "aud": ["adyl-creation-api"],
+            "realm_access": { "roles": ["ADMIN"] }
+          }
+        },
+        {
+          "requestParam": "role",
+          "match": "USER",
+          "claims": {
+            "sub": "adyl-creation-api",
+            "aud": ["adyl-creation-api"],
+            "realm_access": { "roles": ["USER"] }
+          }
+        }
+      ]
+    }
+  ]
+}
