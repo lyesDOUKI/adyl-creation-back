@@ -1,0 +1,32 @@
+services:
+  adyl-creation-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: adyl-creation-api
+    restart: unless-stopped
+    ports:
+      - "${SERVER_PORT:-8082}:${SERVER_PORT:-8082}"
+    env_file:
+      - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      DB_HOST: postgres
+      DB_PORT: 5432
+      OIDC_ISSUER_URI: http://oidc-mock:8090/adyl-creation
+    volumes:
+      - photos_data:/data/photos
+    depends_on:
+      postgres:
+        condition: service_healthy
+      oidc-mock:
+        condition: service_started
+    networks:
+      - backend-network
+
+volumes:
+  photos_data:
+
+networks:
+  backend-network:
+    external: true
