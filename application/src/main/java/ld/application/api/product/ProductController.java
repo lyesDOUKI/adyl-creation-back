@@ -11,7 +11,6 @@ import jakarta.validation.Valid;
 import ld.application.infra.security.AdminOnly;
 import ld.application.read.GetProductService;
 import ld.application.request.CreateProductRequest;
-import ld.application.response.CreateOrderResponse;
 import ld.application.response.CreateProductResponse;
 import ld.application.response.GetProductResponse;
 import ld.domain.features.product.CreateProductUseCase;
@@ -50,7 +49,7 @@ public class ProductController {
             @ApiResponse(
                     responseCode = "201",
                     description = "Produit créé avec succès",
-                    content = @Content(schema = @Schema(implementation = CreateOrderResponse.class))
+                    content = @Content(schema = @Schema(implementation = CreateProductResponse.class))
             ),
             @ApiResponse(
                     responseCode = "400",

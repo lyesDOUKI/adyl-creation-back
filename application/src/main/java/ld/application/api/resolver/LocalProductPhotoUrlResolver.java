@@ -15,6 +15,7 @@ public class LocalProductPhotoUrlResolver implements ProductPhotoUrlResolver {
         return MvcUriComponentsBuilder
                 .fromMethodCall(MvcUriComponentsBuilder.on(PhotoController.class).get(productId, storageKey))
                 .build()
-                .toUriString();
+                .toUri()
+                .getPath();
     }
 }
