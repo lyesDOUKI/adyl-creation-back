@@ -17,6 +17,8 @@ spring:
     username: ${MAIL_USERNAME}
     password: ${MAIL_PASSWORD}
 
+  config:
+    import: "optional:classpath:email.yaml"
 server:
   port: ${SERVER_PORT}
 
