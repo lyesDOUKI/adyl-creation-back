@@ -267,12 +267,12 @@
                                         <br><span class="meta-tag">Couleur : ${item.chosenColor()}</span>
                                     </#if>
                                     <#if item.discountRate()?? && item.discountRate() gt 0>
-                                        <br><span class="discount-tag">Remise : -${(item.discountRate() * 100)?string["0.##"]}%</span>
+                                        <br><span class="discount-tag">Remise : -${(item.discountRate())?string["0.##"]}%</span>
                                     </#if>
                                 </td>
                                 <td class="text-right">${item.quantity()}</td>
-                                <td class="text-right">${item.unitPrice()?string.currency}</td>
-                                <td class="text-right"><strong class="heading-font">${item.totalAmount()?string.currency}</strong></td>
+                                <td class="text-right">${item.unitPrice()?string["0.00"]} €</td>
+                                <td class="text-right"><strong class="heading-font">${item.totalAmount()?string["0.00"]} €</strong></td>
                             </tr>
                         </#list>
                     </tbody>
@@ -281,7 +281,7 @@
                 <!-- Total -->
                 <div class="total-box">
                     <span class="total-label heading-font">Montant Total :</span>
-                    <span class="total-amount heading-font">${total?string.currency}</span>
+                    <span class="total-amount heading-font">${total?string["0.00"]} €</span>
                 </div>
 
             </td>
