@@ -30,6 +30,7 @@ public class OrderCreatedEmailHandler {
         try {
             var email = orderCreatedEmail.create(event);
             emailSender.send(email);
+            LOGGER.info("Email send for order id : {}", event.orderId());
         } catch (Exception e) {
             LOGGER.error("Failed to send order created email for order {}", event.orderId(), e);
         }
