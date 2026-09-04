@@ -9,7 +9,6 @@
         <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>ld</groupId>
     <artifactId>application</artifactId>
     <packaging>jar</packaging>
     <name>application</name>
@@ -129,6 +128,7 @@
     </dependencies>
 
     <build>
+        <finalName>application</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>
