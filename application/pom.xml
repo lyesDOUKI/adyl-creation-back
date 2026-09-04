@@ -3,32 +3,33 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>4.1.0</version>
-        <relativePath/>
+        <groupId>ld</groupId>
+        <artifactId>adyl-creation-back</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
+
     <groupId>ld</groupId>
     <artifactId>application</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
     <name>application</name>
     <description>application</description>
+
     <properties>
-        <java.version>25</java.version>
         <jooq.package>ld.application.jooq</jooq.package>
         <jooq.generated.dir>src/generated/jooq</jooq.generated.dir>
-        <jooq.meta.extensions.version>3.21.5</jooq.meta.extensions.version>
     </properties>
+
     <dependencies>
         <dependency>
             <groupId>ld.domain</groupId>
             <artifactId>domain</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>ld.spring.web.lib</groupId>
             <artifactId>spring-web-lib</artifactId>
-            <version>1.0.0-SNAPSHOT</version>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.hibernate.validator</groupId>
@@ -51,12 +52,10 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-jooq</artifactId>
         </dependency>
-
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
@@ -108,22 +107,27 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
-
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-freemarker</artifactId>
         </dependency>
+        <dependency>
+            <groupId>ld.standard.lib</groupId>
+            <artifactId>standard-lib</artifactId>
+            <version>${project.version}</version>
+            <type>test-jar</type>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
     <build>
         <plugins>
             <plugin>
@@ -133,24 +137,18 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
-                <version>3.5.0</version>
             </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.15</version>
                 <executions>
                     <execution>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
+                        <goals><goal>prepare-agent</goal></goals>
                     </execution>
                     <execution>
                         <id>report</id>
                         <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
+                        <goals><goal>report</goal></goals>
                         <configuration>
                             <outputDirectory>${project.build.directory}/jacoco-report</outputDirectory>
                             <excludes>
@@ -181,9 +179,7 @@
                     <execution>
                         <id>generate-jooq-sources</id>
                         <phase>generate-sources</phase>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
+                        <goals><goal>generate</goal></goals>
                         <configuration>
                             <generator>
                                 <database>
@@ -213,18 +209,14 @@
                     </execution>
                 </executions>
             </plugin>
-
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
-                <version>3.6.0</version>
                 <executions>
                     <execution>
                         <id>add-jooq-source</id>
                         <phase>generate-sources</phase>
-                        <goals>
-                            <goal>add-source</goal>
-                        </goals>
+                        <goals><goal>add-source</goal></goals>
                         <configuration>
                             <sources>
                                 <source>${jooq.generated.dir}</source>
