@@ -7,7 +7,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: lyesdouki/adyl-creation-back
+  IMAGE_NAME: lyesdouki/adyl-creation-api
 
 jobs:
   build-and-push-docker:
