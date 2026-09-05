@@ -22,13 +22,15 @@ MAJOR="${BASH_REMATCH[1]}"
 MINOR="${BASH_REMATCH[2]}"
 PATCH="${BASH_REMATCH[3]}"
 
-# --- 2. Calcul de la version de release selon le type de bump ---
+# --- 2. La version de release est simplement le SNAPSHOT actuel, sans suffixe ---
+RELEASE_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+
+# --- 3. Calcul de la prochaine version de dev, selon le bump demandé ---
 case "$BUMP_TYPE" in
-    patch) RELEASE_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))" ;;
-    minor) RELEASE_VERSION="${MAJOR}.$((MINOR + 1)).0" ;;
-    major) RELEASE_VERSION="$((MAJOR + 1)).0.0" ;;
+    patch) NEXT_SNAPSHOT="${MAJOR}.${MINOR}.$((PATCH + 1))-SNAPSHOT" ;;
+    minor) NEXT_SNAPSHOT="${MAJOR}.$((MINOR + 1)).0-SNAPSHOT" ;;
+    major) NEXT_SNAPSHOT="$((MAJOR + 1)).0.0-SNAPSHOT" ;;
 esac
-NEXT_SNAPSHOT="${RELEASE_VERSION%.*}.$(( ${RELEASE_VERSION##*.} + 1 ))-SNAPSHOT"
 
 echo "== Release à créer : $RELEASE_VERSION =="
 echo "== Prochaine version de dev : $NEXT_SNAPSHOT =="
@@ -38,29 +40,29 @@ if [[ "$CI_MODE" != "--ci" ]]; then
     [[ "$CONFIRM" == "y" ]] || { echo "Annulé."; exit 1; }
 fi
 
-# --- 3. Vérifier que le working tree est propre ---
+# --- 4. Vérifier que le working tree est propre ---
 if [[ -n "$(git status --porcelain)" ]]; then
     echo "Erreur : des changements non commités sont présents. Committez ou stashez d'abord."
     exit 1
 fi
 
-# --- 4. Passage en version de release sur tout le reactor ---
+# --- 5. Passage en version de release sur tout le reactor ---
 mvn versions:set -DnewVersion="$RELEASE_VERSION" -DprocessAllModules=true -DgenerateBackupPoms=false
 
-# --- 5. Build complet + tests avant de figer quoi que ce soit ---
+# --- 6. Build complet + tests avant de figer quoi que ce soit ---
 mvn clean install
 
-# --- 6. Commit + tag de la release ---
+# --- 7. Commit + tag de la release ---
 git add -A
 git commit -m "release: version $RELEASE_VERSION"
 git tag -a "v$RELEASE_VERSION" -m "Release $RELEASE_VERSION"
 
-# --- 7. Retour en SNAPSHOT pour continuer le développement ---
+# --- 8. Retour en SNAPSHOT pour continuer le développement ---
 mvn versions:set -DnewVersion="$NEXT_SNAPSHOT" -DprocessAllModules=true -DgenerateBackupPoms=false
 git add -A
 git commit -m "chore: prepare next development version $NEXT_SNAPSHOT"
 
-# --- 8. Push (commits + tag) ---
+# --- 9. Push (commits + tag) ---
 git push origin HEAD
 git push origin "v$RELEASE_VERSION"
 
