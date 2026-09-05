@@ -209,7 +209,7 @@
         <!-- Header Hero -->
         <tr>
             <td class="header">
-                <span class="badge-success">Alerte Système</span>
+                <span class="badge-success">Alerte automatique</span>
                 <h1 class="heading-font">Nouvelle commande reçue</h1>
             </td>
         </tr>
