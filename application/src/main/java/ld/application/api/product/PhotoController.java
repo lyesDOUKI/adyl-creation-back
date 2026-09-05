@@ -85,7 +85,7 @@ public class PhotoController {
     })
     public ResponseEntity<byte[]> get(
             @PathVariable("id") UUID productId,
-            @PathVariable String fileName
+            @PathVariable("fileName") String fileName
     ) {
         Path filePath = this.rootDirectory.resolve(productId + "/" + fileName).normalize();
 
