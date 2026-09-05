@@ -28,6 +28,7 @@ public class OrderCreatedEmailHandler {
     @EventListener
     public void handle(OrderCreated event) {
         try {
+            LOGGER.info("Start sending mail for order id : {}", event.orderId());
             var email = orderCreatedEmail.create(event);
             emailSender.send(email);
             LOGGER.info("Email send for order id : {}", event.orderId());
