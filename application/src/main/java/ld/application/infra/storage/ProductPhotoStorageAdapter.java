@@ -2,6 +2,8 @@ package ld.application.infra.storage;
 
 import ld.domain.features.product.photos.ProductPhotoStorageException;
 import ld.domain.features.product.photos.ProductPhotoStoragePort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -12,7 +14,7 @@ import java.util.UUID;
 
 @Component
 public class ProductPhotoStorageAdapter implements ProductPhotoStoragePort {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProductPhotoStorageAdapter.class);
     private final Path rootDirectory;
 
     public ProductPhotoStorageAdapter(@Value("${app.photos.storage-path}") String storagePath) {
@@ -21,6 +23,7 @@ public class ProductPhotoStorageAdapter implements ProductPhotoStoragePort {
 
     @Override
     public String store(UUID productId, String fileName, byte[] content) {
+        LOGGER.info("Start store for photo name : {} ...", fileName);
         String extension = extractExtension(fileName);
         String storageKey = "%s%s".formatted(UUID.randomUUID(), extension);
 
@@ -36,6 +39,7 @@ public class ProductPhotoStorageAdapter implements ProductPhotoStoragePort {
         try {
             Files.createDirectories(productDirectory);
             Files.write(targetPath, content);
+            LOGGER.info("Success storing file {}", fileName);
             return storageKey;
         } catch (IOException e) {
             throw new ProductPhotoStorageException("Unable to store photo " + fileName, e);
