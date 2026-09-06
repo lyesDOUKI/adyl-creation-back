@@ -17,6 +17,8 @@ import ld.domain.features.product.CreateProductUseCase;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.PageResponse;
 import ld.spring.web.lib.ResultToResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
@@ -30,6 +32,7 @@ import java.util.UUID;
 @Tag(name = "Produits", description = "API pour la gestion des produits")
 public class ProductController {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(ProductController.class);
     private final CreateProductUseCase createProductUseCase;
     private final GetProductService getProductService;
 
@@ -95,6 +98,7 @@ public class ProductController {
             )
     })
     public ResponseEntity<PageResponse<GetProductResponse>> get(@ParameterObject @PageableDefault(size = 20) Pageable pageable) {
+        LOGGER.info("Get products ...");
         return ResponseEntity.ok(PageResponse.from(this.getProductService.findAll(pageable)));
     }
 
