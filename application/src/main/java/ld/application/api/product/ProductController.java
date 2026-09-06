@@ -129,6 +129,7 @@ public class ProductController {
             )
     })
     public ResponseEntity<ApiResponseBody> getById(@PathVariable("id") UUID productId, HttpServletRequest httpServletRequest) {
+        LOGGER.info("Get product for id {}", productId);;
         return ResultToResponse.ok(this.getProductService.findById(productId), httpServletRequest);
     }
 }
