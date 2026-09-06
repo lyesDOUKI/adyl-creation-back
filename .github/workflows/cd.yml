@@ -1,4 +1,4 @@
-name: CD - Publish Docker Image
+name: CD - Build, Push GHCR + ECR, Deploy ECS
 
 on:
   push:
@@ -6,45 +6,87 @@ on:
       - 'v*'
 
 env:
-  REGISTRY: ghcr.io
-  IMAGE_NAME: lyesdouki/adyl-creation-api
+  AWS_REGION: eu-west-3
+
+  # GHCR
+  GHCR_REGISTRY: ghcr.io
+  GHCR_IMAGE: lyesdouki/adyl-creation-api
+
+  # ECR
+  ECR_REPOSITORY: adyl-creation-prod-backend
+
+  # ECS
+  ECS_CLUSTER: adyl-creation-prod-cluster
+  ECS_SERVICE: adyl-creation-prod-backend
 
 jobs:
-  build-and-push-docker:
+  build-and-push:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       packages: write
+      id-token: write
 
     steps:
+
       - name: Checkout du code
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Connexion au GitHub Container Registry
+      # =========================
+      # GHCR
+      # =========================
+
+      - name: Connexion à GHCR
         uses: docker/login-action@v3
         with:
-          registry: ${{ env.REGISTRY }}
+          registry: ${{ env.GHCR_REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extraction des métadonnées (tags)
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=semver,pattern={{version}}
-            type=raw,value=latest
+      # =========================
+      # AWS
+      # =========================
 
-      - name: Build et Push de l'image Docker (avec cache)
-        uses: docker/build-push-action@v5
+      - name: Configuration des credentials AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_GITHUB_ACTIONS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Connexion à ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # =========================
+      # BUILD + PUSH
+      # =========================
+
+      - name: Build et Push Docker
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+
+          tags: |
+            ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE }}:${{ github.ref_name }}
+            ${{ env.GHCR_REGISTRY }}/${{ env.GHCR_IMAGE }}:latest
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:${{ github.ref_name }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPOSITORY }}:latest
+
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # =========================
+      # ECS
+      # =========================
+
+      - name: Déployer sur ECS
+        run: |
+          aws ecs update-service \
+            --cluster "${ECS_CLUSTER}" \
+            --service "${ECS_SERVICE}" \
+            --force-new-deployment
