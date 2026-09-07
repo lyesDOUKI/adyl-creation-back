@@ -9,10 +9,10 @@ env:
   GHCR_REGISTRY: ghcr.io
   GHCR_IMAGE: lyesdouki/adyl-creation-api
   # ECR
-  ECR_REPOSITORY: adyl-creation-prod-backend
+  ECR_REPOSITORY: adyl-creation-test-backend
   # ECS
-  ECS_CLUSTER: adyl-creation-prod-cluster
-  ECS_SERVICE: adyl-creation-prod-backend
+  ECS_CLUSTER: adyl-creation-test-cluster
+  ECS_SERVICE: adyl-creation-test-backend
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
