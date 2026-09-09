@@ -22,15 +22,16 @@ MAJOR="${BASH_REMATCH[1]}"
 MINOR="${BASH_REMATCH[2]}"
 PATCH="${BASH_REMATCH[3]}"
 
-# --- 2. La version de release est simplement le SNAPSHOT actuel, sans suffixe ---
-RELEASE_VERSION="${MAJOR}.${MINOR}.${PATCH}"
-
-# --- 3. Calcul de la prochaine version de dev, selon le bump demandé ---
+# --- 2. La version de release applique le bump demandé ---
 case "$BUMP_TYPE" in
-    patch) NEXT_SNAPSHOT="${MAJOR}.${MINOR}.$((PATCH + 1))-SNAPSHOT" ;;
-    minor) NEXT_SNAPSHOT="${MAJOR}.$((MINOR + 1)).0-SNAPSHOT" ;;
-    major) NEXT_SNAPSHOT="$((MAJOR + 1)).0.0-SNAPSHOT" ;;
+    patch) RELEASE_VERSION="${MAJOR}.${MINOR}.${PATCH}" ;;
+    minor) RELEASE_VERSION="${MAJOR}.$((MINOR + 1)).0" ;;
+    major) RELEASE_VERSION="$((MAJOR + 1)).0.0" ;;
 esac
+
+# --- 3. Le prochain snapshot repart toujours en patch depuis la release qu'on vient de faire ---
+IFS='.' read -r REL_MAJOR REL_MINOR REL_PATCH <<< "$RELEASE_VERSION"
+NEXT_SNAPSHOT="${REL_MAJOR}.${REL_MINOR}.$((REL_PATCH + 1))-SNAPSHOT"
 
 echo "== Release à créer : $RELEASE_VERSION =="
 echo "== Prochaine version de dev : $NEXT_SNAPSHOT =="
