@@ -6,7 +6,7 @@
     <parent>
         <groupId>ld.lib</groupId>
         <artifactId>libs</artifactId>
-        <version>1.0.8</version>
+        <version>1.1.0-SNAPSHOT</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
     <groupId>ld.standard.lib</groupId>
