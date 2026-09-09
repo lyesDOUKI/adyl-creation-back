@@ -97,3 +97,14 @@ jobs:
             --cluster "${ECS_CLUSTER}" \
             --service "${ECS_SERVICE}" \
             --force-new-deployment
+  trigger-vps-deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger VPS deployment
+        run: |
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.INFRA_REPO_DISPATCH_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/lyesdouki/adyl-creation-deployment/dispatches \
+            -d "{\"event_type\":\"deploy-app\",\"client_payload\":{\"service\":\"api\",\"image_tag\":\"${{ github.ref_name }}\"}}"
