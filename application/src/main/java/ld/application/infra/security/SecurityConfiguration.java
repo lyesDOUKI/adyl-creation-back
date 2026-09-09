@@ -33,6 +33,11 @@ public class SecurityConfiguration {
                         .requestMatchers("/error")
                         .permitAll()
                         .requestMatchers(
+                                "/actuator/health",
+                                "/actuator/prometheus"
+                        )
+                        .permitAll()
+                        .requestMatchers(
                                 HttpMethod.POST,
                                 "/orders"
                         )
