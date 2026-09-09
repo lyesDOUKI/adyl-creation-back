@@ -15,6 +15,8 @@ import ld.domain.features.product.photos.AddProductPhotosUseCase;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
@@ -34,6 +36,8 @@ import java.util.UUID;
 @RequestMapping("/products/{id}/photos")
 @Tag(name = "photos", description = "API pour la gestion des photos des produits")
 public class PhotoController {
+
+    private final Logger LOGGER = LoggerFactory.getLogger(PhotoController.class);
 
     private final AddProductPhotosUseCase addProductPhotosUseCase;
     private final ProductPhotoUrlResolver productPhotoUrlResolver;
@@ -87,16 +91,18 @@ public class PhotoController {
             @PathVariable("id") UUID productId,
             @PathVariable("fileName") String fileName
     ) {
+        LOGGER.info("Starting adding photo for productId {} :", productId);
         Path filePath = this.rootDirectory.resolve(productId + "/" + fileName).normalize();
 
         if (!filePath.startsWith(this.rootDirectory) || !Files.exists(filePath)) {
+            LOGGER.warn("Warning: path does not exists");
             return ResponseEntity.notFound().build();
         }
 
         try {
             String contentType = Files.probeContentType(filePath);
             byte[] content = Files.readAllBytes(filePath);
-
+            LOGGER.info("Success storing photo named {} for productId {}", productId, filePath);
             return ResponseEntity.ok()
                     .contentType(contentType != null
                             ? MediaType.parseMediaType(contentType)
