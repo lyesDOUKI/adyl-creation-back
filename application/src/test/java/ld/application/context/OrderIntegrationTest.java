@@ -9,6 +9,7 @@ import ld.application.infra.db.entity.CustomerEntity;
 import ld.application.infra.db.entity.OrderDetailEntity;
 import ld.application.infra.db.entity.OrderEntity;
 import ld.application.infra.db.entity.ProductEntity;
+import ld.application.read.GetOrderServiceImpl;
 import ld.application.shared.product.ProductTestFixture;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
@@ -33,7 +34,8 @@ import java.lang.annotation.Target;
         OrderPersistenceTestConfiguration.class,
         UnitOfWorkTestConfiguration.class,
         TestClockConfiguration.class,
-        DiscountProviderTestConfiguration.class
+        DiscountProviderTestConfiguration.class,
+        GetOrderServiceImpl.class
 })
 @ImportAutoConfiguration({
         DataSourceAutoConfiguration.class,
