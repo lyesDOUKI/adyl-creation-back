@@ -3,14 +3,17 @@ package ld.application.infra.security;
 import org.jspecify.annotations.NonNull;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtClaimNames;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.stereotype.Component;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
@@ -19,8 +22,9 @@ public class JwtAuthConverter
 
     private final JwtAuthenticationConverter delegate =
             new JwtAuthenticationConverter();
-
-    public JwtAuthConverter() {
+    private final JwtProperties jwtProperties;
+    public JwtAuthConverter(JwtProperties jwtProperties) {
+        this.jwtProperties = jwtProperties;
 
         delegate.setJwtGrantedAuthoritiesConverter(
                 this::extractAuthorities
@@ -53,5 +57,15 @@ public class JwtAuthConverter
     @Override
     public AbstractAuthenticationToken convert(@NonNull Jwt jwt) {
         return delegate.convert(jwt);
+    }
+
+    public Jwt fromAuthentication(@NonNull Authentication authentication) {
+        return (Jwt) authentication.getPrincipal();
+    }
+
+    public String getPrincipalClaimName(Jwt jwt) {
+        var claimName = Objects.nonNull(this.jwtProperties.getPrincipalAttribute()) ?
+                jwtProperties.getPrincipalAttribute() : JwtClaimNames.SUB;
+        return jwt.getClaim(claimName);
     }
 }

@@ -38,3 +38,7 @@ management:
         http:
           server:
             requests: true
+jwt:
+  auth:
+    converter:
+      principal-attribute: sub
