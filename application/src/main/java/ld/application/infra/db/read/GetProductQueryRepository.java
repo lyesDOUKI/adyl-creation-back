@@ -1,5 +1,6 @@
-package ld.application.infra.db.jooq;
+package ld.application.infra.db.read;
 
+import ld.application.infra.db.jooq.ProductQuery;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 

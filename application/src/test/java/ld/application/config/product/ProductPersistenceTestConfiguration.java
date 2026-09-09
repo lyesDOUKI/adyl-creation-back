@@ -1,6 +1,6 @@
 package ld.application.config.product;
 
-import ld.application.infra.db.jooq.GetProductQueryRepository;
+import ld.application.infra.db.read.GetProductQueryRepository;
 import ld.application.infra.db.jooq.JooqGetProductQueryRepository;
 import ld.application.infra.db.jpa.ProductJpaRepository;
 import ld.application.infra.db.jpa.adapter.ProductJpaAdapter;

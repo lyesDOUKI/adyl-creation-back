@@ -1,6 +1,7 @@
 package ld.application.infra.db.jooq;
 
 import ld.application.infra.db.jooq.utils.JooqSortUtils;
+import ld.application.infra.db.read.GetProductQueryRepository;
 import ld.domain.features.product.model.ProductCategory;
 import org.jooq.*;
 import org.jooq.Record;
