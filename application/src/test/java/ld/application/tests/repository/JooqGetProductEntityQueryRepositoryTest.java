@@ -1,20 +1,16 @@
 package ld.application.tests.repository;
 
-import com.zaxxer.hikari.HikariConfig;
-import com.zaxxer.hikari.HikariDataSource;
 import ld.application.config.common.SharedPostgresContainer;
+import ld.application.context.ProductIntegrationTest;
 import ld.application.infra.db.jooq.JooqGetProductQueryRepository;
 import ld.application.infra.db.jooq.ProductQuery;
 import ld.application.infra.db.jooq.exception.InvalidSortFieldException;
 import ld.domain.features.product.model.ProductStatus;
-import org.flywaydb.core.Flyway;
 import org.jooq.DSLContext;
-import org.jooq.SQLDialect;
-import org.jooq.impl.DSL;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -33,36 +29,16 @@ import static ld.application.jooq.tables.Products.PRODUCTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@ProductIntegrationTest
 class JooqGetProductEntityQueryRepositoryTest {
 
-    static final PostgreSQLContainer<?> POSTGRES = SharedPostgresContainer.INSTANCE;
+    @ServiceConnection
+    static PostgreSQLContainer<?> POSTGRES = SharedPostgresContainer.INSTANCE;
 
-    static HikariDataSource dataSource;
-    static DSLContext dsl;
+    @Autowired
+    private DSLContext dsl;
 
     private JooqGetProductQueryRepository repository;
-
-    @BeforeAll
-    static void startContainerAndMigrate() {
-        Flyway.configure()
-                .dataSource(POSTGRES.getJdbcUrl(), POSTGRES.getUsername(), POSTGRES.getPassword())
-                .locations("classpath:db/migration/structure")
-                .load()
-                .migrate();
-
-        HikariConfig config = new HikariConfig();
-        config.setJdbcUrl(POSTGRES.getJdbcUrl());
-        config.setUsername(POSTGRES.getUsername());
-        config.setPassword(POSTGRES.getPassword());
-        dataSource = new HikariDataSource(config);
-
-        dsl = DSL.using(dataSource, SQLDialect.POSTGRES);
-    }
-
-    @AfterAll
-    static void closeDataSource() {
-        dataSource.close();
-    }
 
     @BeforeEach
     void setUp() {
