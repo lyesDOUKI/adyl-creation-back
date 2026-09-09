@@ -7,6 +7,7 @@ import ld.application.config.product.ProductPersistenceTestConfiguration;
 import ld.application.config.product.ProductPhotoStorageTestConfiguration;
 import ld.application.infra.db.entity.ProductEntity;
 import ld.application.infra.db.entity.ProductPhotoEntity;
+import ld.application.read.GetProductServiceImpl;
 import ld.application.shared.product.ProductTestFixture;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.flyway.autoconfigure.FlywayAutoConfiguration;
@@ -31,6 +32,7 @@ import java.lang.annotation.Target;
         ProductPersistenceTestConfiguration.class,
         UnitOfWorkTestConfiguration.class,
         TestClockConfiguration.class,
+        GetProductServiceImpl.class,
         ProductPhotoStorageTestConfiguration.class
 })
 @ImportAutoConfiguration({
