@@ -1,12 +1,14 @@
 package ld.application.config.order;
 
 import ld.application.infra.db.jooq.CustomerOrderHistoryFinderJooqAdapter;
+import ld.application.infra.db.jooq.JooqGetOrderQueryRepository;
 import ld.application.infra.db.jpa.OrderJpaRepository;
 import ld.application.infra.db.jpa.ProductJpaRepository;
 import ld.application.infra.db.jpa.adapter.DiscountClaimerJooqAdapter;
 import ld.application.infra.db.jpa.adapter.OrderCreatorJpaAdapter;
 import ld.application.infra.db.jpa.adapter.OrderEditorJpaAdapter;
 import ld.application.infra.db.jpa.adapter.ProductJpaFinderAdapter;
+import ld.application.infra.db.read.GetOrderQueryRepository;
 import org.jooq.DSLContext;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
@@ -48,5 +50,10 @@ public class OrderPersistenceTestConfiguration {
     @Bean
     CustomerOrderHistoryFinderJooqAdapter customerOrderHistoryFinderJooqAdapter(DSLContext dslContext) {
         return new CustomerOrderHistoryFinderJooqAdapter(dslContext);
+    }
+
+    @Bean
+    GetOrderQueryRepository getOrderQueryRepository(DSLContext dslContext) {
+        return new JooqGetOrderQueryRepository(dslContext);
     }
 }
