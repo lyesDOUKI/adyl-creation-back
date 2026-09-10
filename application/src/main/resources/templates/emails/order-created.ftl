@@ -230,10 +230,6 @@
                         <td class="value">${createdAt} UTC</td>
                     </tr>
                     <tr>
-                        <td class="label">Nom du Client</td>
-                        <td class="value">${customerName}</td>
-                    </tr>
-                    <tr>
                         <td class="label">Email du Client</td>
                         <td class="value"><a href="mailto:${customerEmail}" style="color: #cb184a; text-decoration: underline;">${customerEmail}</a></td>
                     </tr>
