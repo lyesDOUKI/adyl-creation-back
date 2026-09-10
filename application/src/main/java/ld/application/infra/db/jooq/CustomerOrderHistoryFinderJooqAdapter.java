@@ -4,6 +4,8 @@ import ld.domain.features.order.accept.CustomerOrderHistoryFinder;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 import static ld.application.jooq.tables.Customers.CUSTOMERS;
 import static ld.application.jooq.tables.Orders.ORDERS;
 
@@ -17,12 +19,12 @@ public class CustomerOrderHistoryFinderJooqAdapter implements CustomerOrderHisto
     }
 
     @Override
-    public boolean hasEffectiveOrder(String customerEmail) {
+    public boolean hasEffectiveOrder(String customerIdentitySubject) {
         return dsl.fetchExists(
                 dsl.selectOne()
                         .from(ORDERS)
-                        .join(CUSTOMERS).on(ORDERS.CUSTOMER_ID.eq(CUSTOMERS.ID))
-                        .where(CUSTOMERS.EMAIL.eq(customerEmail))
+                        .join(CUSTOMERS).on(ORDERS.CUSTOMER_IDENTITY_SUBJECT.eq(CUSTOMERS.IDENTITY_SUBJECT))
+                        .where(CUSTOMERS.IDENTITY_SUBJECT.eq(UUID.fromString(customerIdentitySubject)))
                         .and(ORDERS.STATUS_TYPE.notIn("REJECTED", "PENDING"))
         );
     }

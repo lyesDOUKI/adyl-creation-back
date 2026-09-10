@@ -21,9 +21,8 @@ public class OrderEntity {
     @Id
     private UUID id;
 
-    @ManyToOne(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
-    @JoinColumn(name = "customer_id", nullable = false)
-    private CustomerEntity customerEntity;
+    @Column(name = "customer_identity_subject", nullable = false, updatable = false)
+    private UUID customerIdentitySubject;
 
     @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "delivery_address_id", nullable = false)
@@ -63,14 +62,14 @@ public class OrderEntity {
 
     public OrderEntity(
             UUID orderId,
-            CustomerEntity customerEntity,
+            UUID customerIdentitySubject,
             DeliveryAddressEntity deliveryAddressEntity,
             String message,
             BigDecimal total,
             OrderStatus orderStatus
     ) {
         this.id = orderId;
-        this.customerEntity = customerEntity;
+        this.customerIdentitySubject = customerIdentitySubject;
         this.deliveryAddressEntity = deliveryAddressEntity;
         this.customerMessage = message;
         this.total = total;
@@ -85,20 +84,12 @@ public class OrderEntity {
         this.id = id;
     }
 
-    public CustomerEntity getCustomer() {
-        return customerEntity;
+    public UUID getCustomerIdentitySubject() {
+        return customerIdentitySubject;
     }
 
-    public void setCustomer(CustomerEntity customerEntity) {
-        this.customerEntity = customerEntity;
-    }
-
-    public CustomerEntity getCustomerEntity() {
-        return customerEntity;
-    }
-
-    public void setCustomerEntity(CustomerEntity customerEntity) {
-        this.customerEntity = customerEntity;
+    public void setCustomerIdentitySubject(UUID customerIdentitySubject) {
+        this.customerIdentitySubject = customerIdentitySubject;
     }
 
     public DeliveryAddressEntity getDeliveryAddressEntity() {
@@ -139,16 +130,6 @@ public class OrderEntity {
 
     public void setDetails(List<OrderDetailEntity> details) {
         this.details = details;
-    }
-
-    public OrderEntity(
-            UUID id,
-            CustomerEntity customerEntity,
-            DeliveryAddressEntity deliveryAddressEntity
-    ) {
-        this.id = id;
-        this.customerEntity = customerEntity;
-        this.deliveryAddressEntity = deliveryAddressEntity;
     }
 
     public void addDetail(OrderDetailEntity detail) {

@@ -1,6 +1,5 @@
 package ld.application.infra.db.jpa.mapper;
 
-import ld.application.infra.db.entity.CustomerEntity;
 import ld.application.infra.db.entity.DeliveryAddressEntity;
 import ld.application.infra.db.entity.OrderDetailEntity;
 import ld.application.infra.db.entity.OrderEntity;
@@ -21,22 +20,18 @@ public final class OrderMapper {
 
     private OrderMapper() {}
 
-
     public static OrderEntity from(OrderSnapshot orderSnapshot) {
-        var customerEntity = toCustomerEntity(orderSnapshot.customerInfo());
         var deliveryAddressEntity = toDeliveryAddressEntity(orderSnapshot.customerInfo());
-
-        return toEntity(orderSnapshot, customerEntity, deliveryAddressEntity);
+        return toEntity(orderSnapshot, deliveryAddressEntity);
     }
 
     public static OrderEntity toEntity(
             OrderSnapshot snapshot,
-            CustomerEntity customerEntity,
             DeliveryAddressEntity deliveryAddressEntity
     ) {
         OrderEntity order = new OrderEntity(
                 snapshot.orderId(),
-                customerEntity,
+                snapshot.customerInfo().identitySubject(),
                 deliveryAddressEntity,
                 snapshot.message(),
                 snapshot.total() != null ? snapshot.total() : BigDecimal.ZERO,
@@ -52,18 +47,10 @@ public final class OrderMapper {
         return order;
     }
 
-    public static CustomerEntity toCustomerEntity(CustomerInfo info) {
-        return new CustomerEntity(
-                info.identitySubject(),
-                info.email(),
-                info.phoneNumber()
-        );
-    }
-
     public static DeliveryAddressEntity toDeliveryAddressEntity(CustomerInfo info) {
         return new DeliveryAddressEntity(
-                info.address(),
-                info.city()
+                info.deliveryAddress().address(),
+                info.deliveryAddress().city()
         );
     }
 
@@ -72,22 +59,10 @@ public final class OrderMapper {
         existingEntity.setTotal(snapshot.total() != null ? snapshot.total() : BigDecimal.ZERO);
         existingEntity.setStatusData(snapshot.orderStatus());
 
-        if (snapshot.customerInfo() != null) {
-            var info = snapshot.customerInfo();
-
-            if (existingEntity.getCustomerEntity() != null) {
-                var customer = existingEntity.getCustomerEntity();
-
-                customer.setEmail(info.email());
-                customer.setPhone(info.phoneNumber());
-            }
-
-            if (existingEntity.getDeliveryAddressEntity() != null) {
-                var deliveryAddress = existingEntity.getDeliveryAddressEntity();
-
-                deliveryAddress.setAddress(info.address());
-                deliveryAddress.setCity(info.city());
-            }
+        if (snapshot.customerInfo() != null && existingEntity.getDeliveryAddressEntity() != null) {
+            var deliveryAddress = existingEntity.getDeliveryAddressEntity();
+            deliveryAddress.setAddress(snapshot.customerInfo().deliveryAddress().address());
+            deliveryAddress.setCity(snapshot.customerInfo().deliveryAddress().city());
         }
 
         if (snapshot.items() == null || snapshot.items().isEmpty()) {
@@ -113,15 +88,11 @@ public final class OrderMapper {
     }
 
     public static OrderSnapshot toSnapshot(OrderEntity entity) {
-        var customer = entity.getCustomerEntity();
         var deliveryAddress = entity.getDeliveryAddressEntity();
 
         var customerInfo = new CustomerInfo(
-                customer.getIdentitySubject(),
-                customer.getEmail(),
-                customer.getPhone(),
-                deliveryAddress.getAddress(),
-                deliveryAddress.getCity()
+                entity.getCustomerIdentitySubject(),
+                new CustomerInfo.DeliveryAddress(deliveryAddress.getAddress(), deliveryAddress.getCity())
         );
 
         var items = entity.getDetails().stream()
@@ -137,7 +108,6 @@ public final class OrderMapper {
                 items
         );
     }
-
 
     private static OrderDetailEntity toDetailEntity(OrderSnapshot.OrderItemSnapshot item) {
         return new OrderDetailEntity(

@@ -55,6 +55,7 @@ public class OrderController {
         this.getOrderService = getOrderService;
     }
 
+    @CustomerOnly
     @PostMapping
     @Operation(
             summary = "Création d'une demande de commande",
@@ -88,10 +89,11 @@ public class OrderController {
             )
     })
     public ResponseEntity<ApiResponseBody> createOrder(
+            @Parameter(hidden = true) @CurrentCustomerId UUID customerId,
             @RequestBody @Valid CreateOrderRequest request,
             HttpServletRequest httpServletRequest
     ) {
-        var response = this.createOrderUseCase.execute(request.toCommand())
+        var response = this.createOrderUseCase.execute(request.toCommand(customerId))
                 .map(CreateOrderResponse::from);
         return ResultToResponse.created(response, CreateOrderResponse::orderId, httpServletRequest);
     }
