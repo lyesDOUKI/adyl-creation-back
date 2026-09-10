@@ -7,19 +7,10 @@ import java.util.List;
 import java.util.UUID;
 
 public record CreateOrderRequest(
-        @NotBlank(message = "Le nom est obligatoire")
-        String customerName,
 
-        @NotBlank(message = "L'email est obligatoire")
-        @Email(message = "Email invalide")
-        String customerEmail,
-
-        @NotBlank(message = "Le numéro de téléphone est obligatoire")
-        @Pattern(regexp = "^\\+?[0-9]{10,15}$", message = "Numéro de téléphone invalide")
-        String customerPhoneNumber,
-
+        @NotBlank
         String customerAddress,
-
+        @NotBlank
         String customerCity,
 
         String customerMessage,
