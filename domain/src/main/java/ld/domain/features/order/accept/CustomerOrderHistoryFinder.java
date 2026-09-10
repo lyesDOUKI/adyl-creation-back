@@ -1,5 +1,7 @@
 package ld.domain.features.order.accept;
 
+import java.util.UUID;
+
 public interface CustomerOrderHistoryFinder {
-    boolean hasEffectiveOrder(String customerIdentitySubject);
+    boolean hasEffectiveOrder(UUID customerIdentitySubject);
 }

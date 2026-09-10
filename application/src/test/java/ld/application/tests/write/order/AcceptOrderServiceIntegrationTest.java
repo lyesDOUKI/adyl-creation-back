@@ -117,7 +117,7 @@ class AcceptOrderServiceIntegrationTest {
 
         int claimCount = dsl.fetchCount(
                 DISCOUNT_CLAIMS,
-                DISCOUNT_CLAIMS.EMAIL.eq(customerIdentitySubject.toString())
+                DISCOUNT_CLAIMS.CUSTOMER_IDENTITY_SUBJECT.eq(customerIdentitySubject)
         );
         assertThat(claimCount).isEqualTo(1);
 
@@ -195,7 +195,7 @@ class AcceptOrderServiceIntegrationTest {
 
         int claimCount = dsl.fetchCount(
                 DISCOUNT_CLAIMS,
-                DISCOUNT_CLAIMS.EMAIL.eq(customerIdentitySubject.toString())
+                DISCOUNT_CLAIMS.CUSTOMER_IDENTITY_SUBJECT.eq(customerIdentitySubject)
         );
         assertThat(claimCount).isZero();
 
@@ -216,8 +216,8 @@ class AcceptOrderServiceIntegrationTest {
                         DiscountType.FIRST_ACCEPTED_ORDER.name()
                 )
                 .set(
-                        DISCOUNT_CLAIMS.EMAIL,
-                        customerIdentitySubject.toString()
+                        DISCOUNT_CLAIMS.CUSTOMER_IDENTITY_SUBJECT,
+                        customerIdentitySubject
                 )
                 .execute();
 
@@ -265,7 +265,7 @@ class AcceptOrderServiceIntegrationTest {
 
             int claimCount = dsl.fetchCount(
                     DISCOUNT_CLAIMS,
-                    DISCOUNT_CLAIMS.EMAIL.eq(customerIdentitySubject.toString())
+                    DISCOUNT_CLAIMS.CUSTOMER_IDENTITY_SUBJECT.eq(customerIdentitySubject)
             );
             assertThat(claimCount).isZero();
 

@@ -168,7 +168,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
         );
     }
 
-    public String customerIdentity() {
-        return this.customerInfo.identitySubject().toString();
+    public UUID customerIdentity() {
+        return this.customerInfo.identitySubject();
     }
 }

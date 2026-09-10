@@ -229,7 +229,7 @@ class AcceptOrderUseCaseTest {
         void shouldNotApplyDiscount() {
             var customer = new CustomerInfo(UUID.randomUUID(), new CustomerInfo.DeliveryAddress("7 rue test", "avignon"));
 
-            discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.identitySubject().toString());
+            discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.identitySubject());
 
             var orderId = UUID.randomUUID();
             var items = List.of(
@@ -268,7 +268,7 @@ class AcceptOrderUseCaseTest {
         @DisplayName("La remise n'est pas appliquée, même si le claim de remise n'a jamais été consommé")
         void shouldNotApplyDiscountWhenCustomerHasEffectiveOrder() {
             var customer = new CustomerInfo(UUID.randomUUID(), new CustomerInfo.DeliveryAddress("7 rue test", "avignon"));
-            customerOrderHistoryFinder.markEffectiveOrder(customer.identitySubject().toString());
+            customerOrderHistoryFinder.markEffectiveOrder(customer.identitySubject());
 
             var orderId = UUID.randomUUID();
             inMemoryOrderLifecycleRepository.save(
@@ -295,7 +295,7 @@ class AcceptOrderUseCaseTest {
         @DisplayName("Le court-circuit évite même de solliciter le discountClaimer")
         void shouldNotConsumeDiscountClaimWhenCustomerHasEffectiveOrder() {
             var customer = new CustomerInfo(UUID.randomUUID(), new CustomerInfo.DeliveryAddress("7 rue test", "avignon"));
-            customerOrderHistoryFinder.markEffectiveOrder(customer.identitySubject().toString());
+            customerOrderHistoryFinder.markEffectiveOrder(customer.identitySubject());
 
             var orderId = UUID.randomUUID();
             inMemoryOrderLifecycleRepository.save(
@@ -309,7 +309,7 @@ class AcceptOrderUseCaseTest {
 
             assertSuccess(acceptOrderUseCase.execute(new AcceptOrderCommand(orderId)));
 
-            assertThat(discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.identitySubject().toString()))
+            assertThat(discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.identitySubject()))
                     .isTrue();
         }
     }

@@ -5,6 +5,8 @@ import ld.domain.features.order.model.DiscountType;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Repository;
 
+import java.util.UUID;
+
 import static ld.application.jooq.tables.DiscountClaims.DISCOUNT_CLAIMS;
 
 @Repository
@@ -17,10 +19,10 @@ public class DiscountClaimerJooqAdapter implements DiscountClaimer {
     }
 
     @Override
-    public boolean tryAddClaim(DiscountType type, String claimKey) {
+    public boolean tryAddClaim(DiscountType type, UUID customerIdentitySubject) {
         int rowsInserted = dsl.insertInto(DISCOUNT_CLAIMS)
-                .columns(DISCOUNT_CLAIMS.TYPE, DISCOUNT_CLAIMS.EMAIL)
-                .values(type.name(), claimKey)
+                .columns(DISCOUNT_CLAIMS.TYPE, DISCOUNT_CLAIMS.CUSTOMER_IDENTITY_SUBJECT)
+                .values(type.name(), customerIdentitySubject)
                 .onConflictDoNothing()
                 .execute();
 

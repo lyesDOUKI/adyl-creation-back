@@ -19,12 +19,12 @@ public class CustomerOrderHistoryFinderJooqAdapter implements CustomerOrderHisto
     }
 
     @Override
-    public boolean hasEffectiveOrder(String customerIdentitySubject) {
+    public boolean hasEffectiveOrder(UUID customerIdentitySubject) {
         return dsl.fetchExists(
                 dsl.selectOne()
                         .from(ORDERS)
                         .join(CUSTOMERS).on(ORDERS.CUSTOMER_IDENTITY_SUBJECT.eq(CUSTOMERS.IDENTITY_SUBJECT))
-                        .where(CUSTOMERS.IDENTITY_SUBJECT.eq(UUID.fromString(customerIdentitySubject)))
+                        .where(CUSTOMERS.IDENTITY_SUBJECT.eq(customerIdentitySubject))
                         .and(ORDERS.STATUS_TYPE.notIn("REJECTED", "PENDING"))
         );
     }
