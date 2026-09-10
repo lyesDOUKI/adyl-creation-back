@@ -24,9 +24,6 @@ public class DeliveryAddressEntity {
         }
     }
 
-    @Column(name = "order_id", nullable = false, unique = true)
-    private UUID orderId;
-
     @Column(name = "address", nullable = false)
     private String address;
 
@@ -36,11 +33,6 @@ public class DeliveryAddressEntity {
     public DeliveryAddressEntity() {
     }
 
-    public DeliveryAddressEntity(UUID orderId, String address, String city) {
-        this.orderId = orderId;
-        this.address = address;
-        this.city = city;
-    }
 
     public UUID getId() {
         return id;
@@ -50,13 +42,6 @@ public class DeliveryAddressEntity {
         this.id = id;
     }
 
-    public UUID getOrderId() {
-        return orderId;
-    }
-
-    public void setOrderId(UUID orderId) {
-        this.orderId = orderId;
-    }
 
     public String getAddress() {
         return address;

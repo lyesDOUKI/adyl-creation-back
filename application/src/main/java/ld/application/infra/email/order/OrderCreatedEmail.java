@@ -47,7 +47,7 @@ public class OrderCreatedEmail extends AbstractEmailTemplate<OrderCreated, Order
                         CUSTOMERS.EMAIL
                 )
                 .from(ORDERS)
-                .join(CUSTOMERS).on(CUSTOMERS.ID.eq(ORDERS.CUSTOMER_ID))
+                .join(CUSTOMERS).on(CUSTOMERS.IDENTITY_SUBJECT.eq(ORDERS.CUSTOMER_IDENTITY_SUBJECT))
                 .where(ORDERS.ID.eq(event.orderId()))
                 .fetchOne();
 

@@ -43,16 +43,14 @@ public record CreateOrderRequest(
         }
     }
 
-    public CreateOrderCommand toCommand() {
-        var customerInfo = new CreateOrderCommand.CustomerInfo(
-                customerName,
-                customerPhoneNumber,
-                customerEmail,
+    public CreateOrderCommand toCommand(UUID identitySubject) {
+        var deliveryInformation = new CreateOrderCommand.DeliveryInformation(
                 customerAddress,
                 customerCity
         );
         return new CreateOrderCommand(
-                customerInfo,
+                identitySubject,
+                deliveryInformation,
                 customerMessage,
                 items.stream().map(ItemOrderRequest::to).toList()
         );

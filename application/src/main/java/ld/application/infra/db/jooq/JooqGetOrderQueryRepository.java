@@ -27,7 +27,7 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
             "createdAt", ORDERS.CREATED_AT,
             "updatedAt", ORDERS.UPDATED_AT,
             "total", ORDERS.TOTAL,
-            "customerId", ORDERS.CUSTOMER_ID
+            "customerId", ORDERS.CUSTOMER_IDENTITY_SUBJECT
     );
 
     private final DSLContext dsl;
@@ -41,7 +41,7 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
 
         var orderRecord = dsl.selectFrom(ORDERS)
                 .where(ORDERS.ID.eq(orderId))
-                .and(ORDERS.CUSTOMER_ID.eq(customerId))
+                .and(ORDERS.CUSTOMER_IDENTITY_SUBJECT.eq(customerId))
                 .fetchOne();
 
         if (orderRecord == null) {
@@ -57,7 +57,7 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
     @Override
     public Page<OrderQuery> findAll(Pageable pageable, UUID customerId) {
 
-        int totalElements = dsl.fetchCount(ORDERS, ORDERS.CUSTOMER_ID.eq(customerId));
+        int totalElements = dsl.fetchCount(ORDERS, ORDERS.CUSTOMER_IDENTITY_SUBJECT.eq(customerId));
 
         List<SortField<?>> orderFields = JooqSortUtils.toOrderFields(
                 pageable.getSort(),
@@ -66,7 +66,7 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
         );
 
         var orderRecords = dsl.selectFrom(ORDERS)
-                .where(ORDERS.CUSTOMER_ID.eq(customerId))
+                .where(ORDERS.CUSTOMER_IDENTITY_SUBJECT.eq(customerId))
                 .orderBy(orderFields)
                 .limit(pageable.getPageSize())
                 .offset(pageable.getOffset())
@@ -134,7 +134,7 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
     private OrderQuery toOrderQuery(OrdersRecord record, List<OrderLineQuery> lines) {
         return new OrderQuery(
                 record.getId(),
-                record.getCustomerId(),
+                record.getCustomerIdentitySubject(),
                 record.getCustomerMessage(),
                 record.getCreatedAt(),
                 record.getUpdatedAt(),
