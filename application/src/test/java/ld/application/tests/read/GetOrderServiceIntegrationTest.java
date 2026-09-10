@@ -54,6 +54,7 @@ class GetOrderServiceIntegrationTest {
     private AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
 
     private final OrderStatusConverter converter = new OrderStatusConverter();
+
     @BeforeEach
     void setUp() {
         dsl.deleteFrom(ORDER_DETAILS).execute();
@@ -78,7 +79,7 @@ class GetOrderServiceIntegrationTest {
         insertOrderDetail(orderId, productId, BigDecimal.valueOf(2), BigDecimal.valueOf(19.90),
                 BigDecimal.valueOf(35.82), "Rouge", BigDecimal.valueOf(0.10));
 
-        Result<GetOrderResponse> result = getOrderService.findById(orderId);
+        Result<GetOrderResponse> result = getOrderService.findById(orderId, customerId);
 
         assertThat(result.isSuccess()).isTrue();
         GetOrderResponse response = ResultTestSupport.extractValue(result);
@@ -122,7 +123,7 @@ class GetOrderServiceIntegrationTest {
         insertOrderDetail(orderId, productB, BigDecimal.ONE, BigDecimal.valueOf(9.90),
                 BigDecimal.valueOf(9.90), null, BigDecimal.ZERO);
 
-        Result<GetOrderResponse> result = getOrderService.findById(orderId);
+        Result<GetOrderResponse> result = getOrderService.findById(orderId, customerId);
 
         assertThat(result.isSuccess()).isTrue();
         GetOrderResponse response = ResultTestSupport.extractValue(result);
@@ -135,7 +136,32 @@ class GetOrderServiceIntegrationTest {
 
     @Test
     void findById_returns_resource_not_found_when_order_does_not_exist() {
-        Result<GetOrderResponse> result = getOrderService.findById(UUID.randomUUID());
+        UUID customerId = UUID.randomUUID();
+        insertCustomer(customerId);
+
+        Result<GetOrderResponse> result = getOrderService.findById(UUID.randomUUID(), customerId);
+
+        assertThat(result.isFailure()).isTrue();
+        ResultTestSupport.assertFailure(result, FailureType.RESOURCE_NOT_FOUND, OrderErrorCode.ORDER_NOT_FOUND);
+    }
+
+    @Test
+    void findById_returns_resource_not_found_when_order_belongs_to_another_customer() {
+        UUID productId = UUID.randomUUID();
+        insertProduct(productId, "T-shirt", ProductCategory.CLOTHING, BigDecimal.valueOf(19.90));
+
+        UUID ownerId = UUID.randomUUID();
+        insertCustomer(ownerId);
+
+        UUID orderId = UUID.randomUUID();
+        insertOrder(orderId, ownerId, "Pour moi", BigDecimal.valueOf(19.90));
+        insertOrderDetail(orderId, productId, BigDecimal.ONE, BigDecimal.valueOf(19.90),
+                BigDecimal.valueOf(19.90), "Rouge", BigDecimal.ZERO);
+
+        UUID otherCustomerId = UUID.randomUUID();
+        insertCustomer(otherCustomerId);
+
+        Result<GetOrderResponse> result = getOrderService.findById(orderId, otherCustomerId);
 
         assertThat(result.isFailure()).isTrue();
         ResultTestSupport.assertFailure(result, FailureType.RESOURCE_NOT_FOUND, OrderErrorCode.ORDER_NOT_FOUND);
@@ -159,7 +185,7 @@ class GetOrderServiceIntegrationTest {
         insertOrderDetail(orderB, productId, BigDecimal.valueOf(2), BigDecimal.valueOf(19.90),
                 BigDecimal.valueOf(39.80), "Bleu", BigDecimal.ZERO);
 
-        Page<GetOrderResponse> page = getOrderService.findAll(PageRequest.of(0, 10));
+        Page<GetOrderResponse> page = getOrderService.findAll(PageRequest.of(0, 10), customerId);
 
         assertThat(page.getTotalElements()).isEqualTo(2);
         assertThat(page.getContent()).extracting(GetOrderResponse::customerMessage)
@@ -167,8 +193,39 @@ class GetOrderServiceIntegrationTest {
     }
 
     @Test
+    void findAll_only_returns_orders_belonging_to_the_requesting_customer() {
+        UUID productId = UUID.randomUUID();
+        insertProduct(productId, "T-shirt", ProductCategory.CLOTHING, BigDecimal.valueOf(19.90));
+
+        UUID customerId = UUID.randomUUID();
+        insertCustomer(customerId);
+
+        UUID otherCustomerId = UUID.randomUUID();
+        insertCustomer(otherCustomerId);
+
+        UUID myOrder = UUID.randomUUID();
+        insertOrder(myOrder, customerId, "Ma commande", BigDecimal.valueOf(19.90));
+        insertOrderDetail(myOrder, productId, BigDecimal.ONE, BigDecimal.valueOf(19.90),
+                BigDecimal.valueOf(19.90), "Rouge", BigDecimal.ZERO);
+
+        UUID otherOrder = UUID.randomUUID();
+        insertOrder(otherOrder, otherCustomerId, "Commande d'un autre", BigDecimal.valueOf(9.90));
+        insertOrderDetail(otherOrder, productId, BigDecimal.ONE, BigDecimal.valueOf(9.90),
+                BigDecimal.valueOf(9.90), "Bleu", BigDecimal.ZERO);
+
+        Page<GetOrderResponse> page = getOrderService.findAll(PageRequest.of(0, 10), customerId);
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent()).extracting(GetOrderResponse::orderId)
+                .containsExactly(myOrder);
+    }
+
+    @Test
     void findAll_returns_empty_page_when_no_orders_exist() {
-        Page<GetOrderResponse> page = getOrderService.findAll(PageRequest.of(0, 10));
+        UUID customerId = UUID.randomUUID();
+        insertCustomer(customerId);
+
+        Page<GetOrderResponse> page = getOrderService.findAll(PageRequest.of(0, 10), customerId);
 
         assertThat(page.getTotalElements()).isZero();
         assertThat(page.getContent()).isEmpty();

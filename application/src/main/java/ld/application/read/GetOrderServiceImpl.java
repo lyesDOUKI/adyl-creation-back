@@ -26,9 +26,9 @@ public class GetOrderServiceImpl implements GetOrderService {
     }
 
     @Override
-    public Result<GetOrderResponse> findById(UUID orderId) {
+    public Result<GetOrderResponse> findById(UUID orderId, UUID customerId) {
 
-        return repository.findById(orderId)
+        return repository.findById(orderId, customerId)
                 .map(this::toResponse)
                 .map(Result::success)
                 .orElseGet(() -> Result.resourceNotFound(
@@ -39,8 +39,8 @@ public class GetOrderServiceImpl implements GetOrderService {
     }
 
     @Override
-    public Page<GetOrderResponse> findAll(Pageable pageable) {
-        return repository.findAll(pageable)
+    public Page<GetOrderResponse> findAll(Pageable pageable, UUID customerId) {
+        return repository.findAll(pageable, customerId)
                 .map(this::toResponse);
     }
 

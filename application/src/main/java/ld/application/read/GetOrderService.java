@@ -8,6 +8,6 @@ import org.springframework.data.domain.Pageable;
 import java.util.UUID;
 
 public interface GetOrderService {
-    Page<GetOrderResponse> findAll(Pageable pageable);
-    Result<GetOrderResponse> findById(UUID productId);
+    Page<GetOrderResponse> findAll(Pageable pageable, UUID customerId);
+    Result<GetOrderResponse> findById(UUID orderId, UUID customerId);
 }

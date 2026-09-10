@@ -37,10 +37,11 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
     }
 
     @Override
-    public Optional<OrderQuery> findById(UUID orderId) {
+    public Optional<OrderQuery> findById(UUID orderId, UUID customerId) {
 
         var orderRecord = dsl.selectFrom(ORDERS)
                 .where(ORDERS.ID.eq(orderId))
+                .and(ORDERS.CUSTOMER_ID.eq(customerId))
                 .fetchOne();
 
         if (orderRecord == null) {
@@ -54,9 +55,9 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
     }
 
     @Override
-    public Page<OrderQuery> findAll(Pageable pageable) {
+    public Page<OrderQuery> findAll(Pageable pageable, UUID customerId) {
 
-        int totalElements = dsl.fetchCount(ORDERS);
+        int totalElements = dsl.fetchCount(ORDERS, ORDERS.CUSTOMER_ID.eq(customerId));
 
         List<SortField<?>> orderFields = JooqSortUtils.toOrderFields(
                 pageable.getSort(),
@@ -65,6 +66,7 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
         );
 
         var orderRecords = dsl.selectFrom(ORDERS)
+                .where(ORDERS.CUSTOMER_ID.eq(customerId))
                 .orderBy(orderFields)
                 .limit(pageable.getPageSize())
                 .offset(pageable.getOffset())
