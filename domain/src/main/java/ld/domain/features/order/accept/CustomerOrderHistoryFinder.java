@@ -1,5 +1,5 @@
 package ld.domain.features.order.accept;
 
 public interface CustomerOrderHistoryFinder {
-    boolean hasEffectiveOrder(String customerEmail);
+    boolean hasEffectiveOrder(String customerIdentitySubject);
 }

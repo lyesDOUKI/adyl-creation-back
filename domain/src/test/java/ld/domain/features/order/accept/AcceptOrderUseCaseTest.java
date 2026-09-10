@@ -222,14 +222,14 @@ class AcceptOrderUseCaseTest {
 
     @Nested
     @DisplayName("Quand le client a déjà consommé la remise première commande")
-    class WhenCustomerInfoAlreadyClaimedFirstOrderDiscount {
+    class WhenDeliveryInformationAlreadyClaimedFirstOrderDiscount {
 
         @Test
         @DisplayName("La remise n'est pas appliquée et les totaux des articles restent inchangés")
         void shouldNotApplyDiscount() {
-            var customer = new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
+            var customer = new CustomerInfo(UUID.randomUUID(), new CustomerInfo.DeliveryAddress("7 rue test", "avignon"));
 
-            discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.email());
+            discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.identitySubject().toString());
 
             var orderId = UUID.randomUUID();
             var items = List.of(
@@ -267,8 +267,8 @@ class AcceptOrderUseCaseTest {
         @Test
         @DisplayName("La remise n'est pas appliquée, même si le claim de remise n'a jamais été consommé")
         void shouldNotApplyDiscountWhenCustomerHasEffectiveOrder() {
-            var customer = new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
-            customerOrderHistoryFinder.markEffectiveOrder(customer.email());
+            var customer = new CustomerInfo(UUID.randomUUID(), new CustomerInfo.DeliveryAddress("7 rue test", "avignon"));
+            customerOrderHistoryFinder.markEffectiveOrder(customer.identitySubject().toString());
 
             var orderId = UUID.randomUUID();
             inMemoryOrderLifecycleRepository.save(
@@ -294,8 +294,8 @@ class AcceptOrderUseCaseTest {
         @Test
         @DisplayName("Le court-circuit évite même de solliciter le discountClaimer")
         void shouldNotConsumeDiscountClaimWhenCustomerHasEffectiveOrder() {
-            var customer = new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
-            customerOrderHistoryFinder.markEffectiveOrder(customer.email());
+            var customer = new CustomerInfo(UUID.randomUUID(), new CustomerInfo.DeliveryAddress("7 rue test", "avignon"));
+            customerOrderHistoryFinder.markEffectiveOrder(customer.identitySubject().toString());
 
             var orderId = UUID.randomUUID();
             inMemoryOrderLifecycleRepository.save(
@@ -309,7 +309,7 @@ class AcceptOrderUseCaseTest {
 
             assertSuccess(acceptOrderUseCase.execute(new AcceptOrderCommand(orderId)));
 
-            assertThat(discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.email()))
+            assertThat(discountClaimRepository.tryAddClaim(DiscountType.FIRST_ACCEPTED_ORDER, customer.identitySubject().toString()))
                     .isTrue();
         }
     }
@@ -354,12 +354,12 @@ class AcceptOrderUseCaseTest {
 
     @Nested
     @DisplayName("Quand deux commandes différentes du même client sont acceptées successivement")
-    class WhenSameCustomerInfoAcceptsTwoOrders {
+    class WhenSameDeliveryInformationAcceptsTwoOrders {
 
         @Test
         @DisplayName("Seule la première consomme la remise, la seconde n'en bénéficie pas")
         void shouldOnlyApplyDiscountOnce() {
-            var customer = new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
+            var customer = new CustomerInfo(UUID.randomUUID(), new CustomerInfo.DeliveryAddress("7 rue test", "avignon"));
 
             var firstOrderId = UUID.randomUUID();
             inMemoryOrderLifecycleRepository.save(

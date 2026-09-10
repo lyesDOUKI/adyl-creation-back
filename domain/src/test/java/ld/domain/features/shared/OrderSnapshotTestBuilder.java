@@ -22,7 +22,7 @@ public class OrderSnapshotTestBuilder {
     }
 
     private static CustomerInfo defaultCustomer() {
-        return new CustomerInfo("test", "test@test.com", "0123456789", "7 rue test", "avignon");
+        return new CustomerInfo(UUID.randomUUID(), new CustomerInfo.DeliveryAddress("7 rue test", "avignon"));
     }
 
     public OrderSnapshotTestBuilder withOrderId(UUID orderId) {
