@@ -34,14 +34,16 @@ import java.util.UUID;
 
 import static ld.application.jooq.Tables.CUSTOMERS;
 import static ld.application.jooq.Tables.ORDER_DETAILS;
+import static ld.application.jooq.tables.OrderDeliveryAddresses.ORDER_DELIVERY_ADDRESSES;
 import static ld.application.jooq.tables.Orders.ORDERS;
+import static ld.application.jooq.tables.Products.PRODUCTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @OrderIntegrationTest
-public class DeliverOrderServiceIntegrationTest {
+class DeliverOrderServiceIntegrationTest {
 
     @ServiceConnection
     static PostgreSQLContainer<?> POSTGRES = SharedPostgresContainer.INSTANCE;
@@ -67,20 +69,30 @@ public class DeliverOrderServiceIntegrationTest {
     void setUp() {
         dsl.deleteFrom(ORDER_DETAILS).execute();
         dsl.deleteFrom(ORDERS).execute();
+        dsl.deleteFrom(ORDER_DELIVERY_ADDRESSES).execute();
         dsl.deleteFrom(CUSTOMERS).execute();
+        dsl.deleteFrom(PRODUCTS).execute();
     }
 
     @Test
     void should_deliver_accepted_order_and_dispatch_event() {
         var product = productTestFixture.createExistingProduct();
         UUID orderId = UUID.randomUUID();
-        String customerEmail = "jean.dupont@example.com";
+        UUID customerIdentitySubject = UUID.randomUUID();
         String observation = "Remis en main propre";
         DeliveryMethod deliveryMethod = DeliveryMethod.HAND_DELIVERY;
 
-        insertAcceptedOrderInDb(orderId, customerEmail, product.id());
+        insertAcceptedOrderInDb(
+                orderId,
+                customerIdentitySubject,
+                product.id()
+        );
 
-        var command = new DeliverOrderCommand(orderId, deliveryMethod, observation);
+        var command = new DeliverOrderCommand(
+                orderId,
+                deliveryMethod,
+                observation
+        );
 
         var result = deliverOrderUseCase.execute(command);
 
@@ -135,9 +147,13 @@ public class DeliverOrderServiceIntegrationTest {
     void should_not_deliver_pending_order_and_not_dispatch_event() {
         var product = productTestFixture.createExistingProduct();
         UUID orderId = UUID.randomUUID();
-        String customerEmail = "pending.user@example.com";
+        UUID customerIdentitySubject = UUID.randomUUID();
 
-        insertPendingOrderInDb(orderId, customerEmail, product.id());
+        insertPendingOrderInDb(
+                orderId,
+                customerIdentitySubject,
+                product.id()
+        );
 
         var command = new DeliverOrderCommand(
                 orderId,
@@ -162,9 +178,13 @@ public class DeliverOrderServiceIntegrationTest {
     void should_not_deliver_rejected_order_and_not_dispatch_event() {
         var product = productTestFixture.createExistingProduct();
         UUID orderId = UUID.randomUUID();
-        String customerEmail = "rejected.user@example.com";
+        UUID customerIdentitySubject = UUID.randomUUID();
 
-        insertRejectedOrderInDb(orderId, customerEmail, product.id());
+        insertRejectedOrderInDb(
+                orderId,
+                customerIdentitySubject,
+                product.id()
+        );
 
         var command = new DeliverOrderCommand(
                 orderId,
@@ -193,11 +213,11 @@ public class DeliverOrderServiceIntegrationTest {
         void should_rollback_order_delivery_when_persistence_fails() {
             var product = productTestFixture.createExistingProduct();
             UUID orderId = UUID.randomUUID();
-            String customerEmail = "rollback.user@example.com";
+            UUID customerIdentitySubject = UUID.randomUUID();
 
             insertAcceptedOrderInDb(
                     orderId,
-                    customerEmail,
+                    customerIdentitySubject,
                     product.id()
             );
 
@@ -250,27 +270,23 @@ public class DeliverOrderServiceIntegrationTest {
         }
     }
 
-    private UUID insertCustomerInDb(String customerEmail) {
-        UUID customerId = UUID.randomUUID();
-
+    private void insertCustomerInDb(UUID customerIdentitySubject) {
         dsl.insertInto(CUSTOMERS)
                 .set(CUSTOMERS.ID, UUID.randomUUID())
-                .set(CUSTOMERS.IDENTITY_SUBJECT, customerId)
-                .set(CUSTOMERS.EMAIL, customerEmail)
+                .set(CUSTOMERS.IDENTITY_SUBJECT, customerIdentitySubject)
+                .set(CUSTOMERS.EMAIL, "customer@test.com")
                 .set(CUSTOMERS.PHONE, "0600000000")
                 .execute();
-
-        return customerId;
     }
 
     private void insertPendingOrderInDb(
             UUID orderId,
-            String customerEmail,
+            UUID customerIdentitySubject,
             UUID productId
     ) {
         insertOrderInDb(
                 orderId,
-                customerEmail,
+                customerIdentitySubject,
                 productId,
                 OrderState.PENDING,
                 OrderStatus.PENDING
@@ -279,12 +295,12 @@ public class DeliverOrderServiceIntegrationTest {
 
     private void insertAcceptedOrderInDb(
             UUID orderId,
-            String customerEmail,
+            UUID customerIdentitySubject,
             UUID productId
     ) {
         insertOrderInDb(
                 orderId,
-                customerEmail,
+                customerIdentitySubject,
                 productId,
                 OrderState.ACCEPTED,
                 new OrderStatus.Accepted(
@@ -296,12 +312,12 @@ public class DeliverOrderServiceIntegrationTest {
 
     private void insertRejectedOrderInDb(
             UUID orderId,
-            String customerEmail,
+            UUID customerIdentitySubject,
             UUID productId
     ) {
         insertOrderInDb(
                 orderId,
-                customerEmail,
+                customerIdentitySubject,
                 productId,
                 OrderState.REJECTED,
                 new OrderStatus.Rejected(
@@ -313,16 +329,25 @@ public class DeliverOrderServiceIntegrationTest {
 
     private void insertOrderInDb(
             UUID orderId,
-            String customerEmail,
+            UUID customerIdentitySubject,
             UUID productId,
             OrderState state,
             OrderStatus status
     ) {
-        UUID customerId = insertCustomerInDb(customerEmail);
+        insertCustomerInDb(customerIdentitySubject);
+
+        UUID deliveryAddressId = UUID.randomUUID();
+
+        dsl.insertInto(ORDER_DELIVERY_ADDRESSES)
+                .set(ORDER_DELIVERY_ADDRESSES.ID, deliveryAddressId)
+                .set(ORDER_DELIVERY_ADDRESSES.ADDRESS, "1 rue de test")
+                .set(ORDER_DELIVERY_ADDRESSES.CITY, "Paris")
+                .execute();
 
         dsl.insertInto(ORDERS)
                 .set(ORDERS.ID, orderId)
-                .set(ORDERS.CUSTOMER_ID, customerId)
+                .set(ORDERS.CUSTOMER_IDENTITY_SUBJECT, customerIdentitySubject)
+                .set(ORDERS.DELIVERY_ADDRESS_ID, deliveryAddressId)
                 .set(ORDERS.STATUS_TYPE, state.name())
                 .set(
                         ORDERS.STATUS_DATA,
