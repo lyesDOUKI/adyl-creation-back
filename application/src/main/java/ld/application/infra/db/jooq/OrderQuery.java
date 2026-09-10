@@ -8,6 +8,7 @@ import java.util.UUID;
 public record OrderQuery(
         UUID orderId,
         UUID customerId,
+        String orderReference,
         String customerMessage,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,

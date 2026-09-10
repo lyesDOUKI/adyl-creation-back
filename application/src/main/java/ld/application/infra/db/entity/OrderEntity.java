@@ -31,6 +31,9 @@ public class OrderEntity {
     @Column(length = 255)
     private String customerMessage;
 
+    @Column(nullable = false, unique = true)
+    private String orderReference;
+
     @Column(nullable = false, precision = 12, scale = 2)
     private BigDecimal total = BigDecimal.ZERO;
 
@@ -62,6 +65,7 @@ public class OrderEntity {
 
     public OrderEntity(
             UUID orderId,
+            String orderReference,
             UUID customerIdentitySubject,
             DeliveryAddressEntity deliveryAddressEntity,
             String message,
@@ -69,6 +73,7 @@ public class OrderEntity {
             OrderStatus orderStatus
     ) {
         this.id = orderId;
+        this.orderReference = orderReference;
         this.customerIdentitySubject = customerIdentitySubject;
         this.deliveryAddressEntity = deliveryAddressEntity;
         this.customerMessage = message;
@@ -159,6 +164,14 @@ public class OrderEntity {
 
     public void setStatusData(OrderStatus statusData) {
         this.statusData = statusData;
+    }
+
+    public String getOrderReference() {
+        return orderReference;
+    }
+
+    public void setOrderReference(String orderReference) {
+        this.orderReference = orderReference;
     }
 
     @PrePersist

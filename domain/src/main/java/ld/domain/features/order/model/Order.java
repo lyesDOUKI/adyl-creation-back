@@ -8,6 +8,7 @@ import ld.standard.lib.Snapshottable;
 import ld.standard.lib.validation.Result;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,13 +16,15 @@ import java.util.UUID;
 
 public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshottable<OrderSnapshot> {
 
+    private final OrderReference orderReference;
     private final CustomerInfo customerInfo;
     private final String message;
     private Price total;
     private OrderStatus orderStatus;
     private List<OrderItem> orderItems = new ArrayList<>();
 
-    private Order(CustomerInfo customerInfo, String message) {
+    private Order(OrderReference orderReference, CustomerInfo customerInfo, String message) {
+        this.orderReference = orderReference;
         this.setId(UUID.randomUUID());
         this.customerInfo = customerInfo;
         this.message = message;
@@ -29,7 +32,9 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
         this.addDomainEvent(new OrderCreated(getId()));
     }
 
-    public Order(UUID orderId, String message, CustomerInfo customerInfo, BigDecimal total, OrderStatus orderStatus, List<OrderItem> orderItems) {
+    public Order(UUID orderId, OrderReference orderReference, String message, CustomerInfo customerInfo,
+                 BigDecimal total, OrderStatus orderStatus, List<OrderItem> orderItems) {
+        this.orderReference = orderReference;
         setId(orderId);
         this.message = message;
         this.customerInfo = customerInfo;
@@ -38,13 +43,15 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
         this.orderItems = orderItems;
     }
 
-    public static Order create(CustomerInfo customerInfo, String message) {
-        return new Order(customerInfo, message);
+    public static Order create(CustomerInfo customerInfo, String message, Clock clock) {
+        var reference = OrderReference.generate(clock);
+        return new Order(reference, customerInfo, message);
     }
 
     public static Order from(OrderSnapshot snapshot) {
         return new Order(
                 snapshot.orderId(),
+                snapshot.orderReference(),
                 snapshot.message(),
                 snapshot.customerInfo(),
                 snapshot.total(),
@@ -146,6 +153,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
     public OrderSnapshot toSnapshot() {
         return new OrderSnapshot(
                 this.getId(),
+                this.orderReference,
                 this.customerInfo,
                 this.message,
                 this.total.value(),

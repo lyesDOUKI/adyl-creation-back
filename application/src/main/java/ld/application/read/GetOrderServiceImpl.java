@@ -58,6 +58,7 @@ public class GetOrderServiceImpl implements GetOrderService {
         return new GetOrderResponse(
                 order.orderId(),
                 order.customerId(),
+                order.orderReference(),
                 order.customerMessage(),
                 order.createdAt(),
                 order.updatedAt(),

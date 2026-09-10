@@ -8,7 +8,9 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-public record OrderSnapshot(UUID orderId, CustomerInfo customerInfo,
+public record OrderSnapshot(UUID orderId,
+                            OrderReference orderReference,
+                            CustomerInfo customerInfo,
                             String message, BigDecimal total,
                             OrderStatus orderStatus,
                             List<OrderItemSnapshot> items) {

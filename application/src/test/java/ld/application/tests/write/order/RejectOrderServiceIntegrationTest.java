@@ -347,6 +347,7 @@ class RejectOrderServiceIntegrationTest {
         dsl.insertInto(ORDERS)
                 .set(ORDERS.ID, orderId)
                 .set(ORDERS.CUSTOMER_IDENTITY_SUBJECT, customerIdentitySubject)
+                .set(ORDERS.ORDER_REFERENCE, OrderReference.generate(clock).value())
                 .set(ORDERS.DELIVERY_ADDRESS_ID, deliveryAddressId)
                 .set(ORDERS.STATUS_TYPE, state.name())
                 .set(

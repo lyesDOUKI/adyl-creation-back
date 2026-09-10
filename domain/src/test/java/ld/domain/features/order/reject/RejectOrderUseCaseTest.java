@@ -88,7 +88,7 @@ class RejectOrderUseCaseTest {
             var reason = "Produit indisponible";
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.PENDING)
                             .build()
@@ -121,7 +121,7 @@ class RejectOrderUseCaseTest {
             var reason = "Produit indisponible";
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.PENDING)
                             .build()
@@ -167,7 +167,7 @@ class RejectOrderUseCaseTest {
             var reason = "Client non joignable";
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(
                                     new OrderStatus.Accepted(
@@ -205,7 +205,7 @@ class RejectOrderUseCaseTest {
             var reason = "Client non joignable";
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(
                                     new OrderStatus.Accepted(
@@ -237,7 +237,7 @@ class RejectOrderUseCaseTest {
             var orderId = UUID.randomUUID();
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(new OrderStatus.Delivered("bonne commande", 
                                     DeliveryMethod.HAND_DELIVERY, Instant.now(FIXED_CLOCK)))
@@ -264,7 +264,7 @@ class RejectOrderUseCaseTest {
             var orderId = UUID.randomUUID();
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(new OrderStatus.Delivered("bonne commande", 
                                     DeliveryMethod.HAND_DELIVERY, Instant.now(FIXED_CLOCK)))
@@ -304,7 +304,7 @@ class RejectOrderUseCaseTest {
             var existingReason = "Produit indisponible";
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(
                                     new OrderStatus.Rejected(
@@ -344,7 +344,7 @@ class RejectOrderUseCaseTest {
             var orderId = UUID.randomUUID();
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(
                                     new OrderStatus.Rejected(

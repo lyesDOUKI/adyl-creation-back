@@ -135,6 +135,7 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
         return new OrderQuery(
                 record.getId(),
                 record.getCustomerIdentitySubject(),
+                record.getOrderReference(),
                 record.getCustomerMessage(),
                 record.getCreatedAt(),
                 record.getUpdatedAt(),

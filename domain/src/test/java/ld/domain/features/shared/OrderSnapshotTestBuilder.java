@@ -1,10 +1,12 @@
 package ld.domain.features.shared;
 
 import ld.domain.features.order.model.CustomerInfo;
+import ld.domain.features.order.model.OrderReference;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderStatus;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.util.List;
 import java.util.UUID;
 
@@ -16,10 +18,15 @@ public class OrderSnapshotTestBuilder {
     private BigDecimal total = BigDecimal.TEN;
     private OrderStatus orderStatus = new OrderStatus.Pending();
     private List<OrderSnapshot.OrderItemSnapshot> items = List.of();
-
-    public static OrderSnapshotTestBuilder anOrder() {
-        return new OrderSnapshotTestBuilder();
+    private final OrderReference orderReference;
+    private OrderSnapshotTestBuilder(Clock clock) {
+        this.orderReference = OrderReference.generate(clock);
     }
+
+    public static OrderSnapshotTestBuilder anOrder(Clock clock) {
+        return new OrderSnapshotTestBuilder(clock);
+    }
+
 
     private static CustomerInfo defaultCustomer() {
         return new CustomerInfo(UUID.randomUUID(), new CustomerInfo.DeliveryAddress("7 rue test", "avignon"));
@@ -56,6 +63,6 @@ public class OrderSnapshotTestBuilder {
     }
 
     public OrderSnapshot build() {
-        return new OrderSnapshot(orderId, customerInfo, message, total, orderStatus, items);
+        return new OrderSnapshot(orderId,  orderReference, customerInfo, message, total, orderStatus, items);
     }
 }
