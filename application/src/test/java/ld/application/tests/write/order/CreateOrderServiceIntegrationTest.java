@@ -26,6 +26,10 @@ import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
+import java.util.UUID;
+
+import static ld.application.jooq.tables.Customers.CUSTOMERS;
+import static ld.application.jooq.tables.OrderDeliveryAddresses.ORDER_DELIVERY_ADDRESSES;
 import static ld.application.jooq.tables.OrderDetails.ORDER_DETAILS;
 import static ld.application.jooq.tables.Orders.ORDERS;
 import static ld.application.jooq.tables.Products.PRODUCTS;
@@ -56,22 +60,38 @@ class CreateOrderServiceIntegrationTest {
     void setUp() {
         dsl.deleteFrom(ORDER_DETAILS).execute();
         dsl.deleteFrom(ORDERS).execute();
+        dsl.deleteFrom(ORDER_DELIVERY_ADDRESSES).execute();
+        dsl.deleteFrom(CUSTOMERS).execute();
         dsl.deleteFrom(PRODUCTS).execute();
     }
 
     @Test
     void should_persist_order_and_dispatch_event_when_creation_succeeds() {
+        UUID customerIdentitySubject = UUID.randomUUID();
+        insertCustomerInDb(customerIdentitySubject);
+
         var product = productTestFixture.createExistingProduct();
-        var command = CreateOrderCommandFixture.aValidCommand(product.id());
+        var command = CreateOrderCommandFixture.aValidCommand(
+                product.id(),
+                customerIdentitySubject
+        );
 
         Result<OrderSnapshot> result = createOrderUseCase.execute(command);
 
         assertThat(result.isSuccess()).isTrue();
 
-        int orderCount = dsl.fetchCount(ORDERS, ORDERS.ID.eq(ResultTestSupport.extractValue(result).orderId()));
+        UUID orderId = ResultTestSupport.extractValue(result).orderId();
+
+        int orderCount = dsl.fetchCount(
+                ORDERS,
+                ORDERS.ID.eq(orderId)
+        );
         assertThat(orderCount).isEqualTo(1);
 
-        int itemCount = dsl.fetchCount(ORDER_DETAILS, ORDER_DETAILS.ORDER_ID.eq(ResultTestSupport.extractValue(result).orderId()));
+        int itemCount = dsl.fetchCount(
+                ORDER_DETAILS,
+                ORDER_DETAILS.ORDER_ID.eq(orderId)
+        );
         assertThat(itemCount).isEqualTo(1);
 
         verify(aggregateEventDispatcher, times(1))
@@ -96,12 +116,20 @@ class CreateOrderServiceIntegrationTest {
 
         @Test
         void should_rollback_order_creation_when_persistence_fails_after_insert() {
+            UUID customerIdentitySubject = UUID.randomUUID();
+            insertCustomerInDb(customerIdentitySubject);
+
             var product = productTestFixture.createExistingProduct();
-            var command = CreateOrderCommandFixture.aValidCommand(product.id());
+            var command = CreateOrderCommandFixture.aValidCommand(
+                    product.id(),
+                    customerIdentitySubject
+            );
 
             assertThatThrownBy(() -> createOrderUseCase.execute(command))
                     .isInstanceOf(RuntimeException.class);
+
             assertThat(dsl.fetchCount(ORDERS)).isZero();
+
             verifyNoInteractions(aggregateEventDispatcher);
         }
 
@@ -110,12 +138,23 @@ class CreateOrderServiceIntegrationTest {
 
             @Bean
             @Primary
-            OrderCreator failingCreateOrderRepository(OrderCreatorJpaAdapter realRepository) {
+            OrderCreator failingCreateOrderRepository(
+                    OrderCreatorJpaAdapter realRepository
+            ) {
                 return snapshot -> {
                     realRepository.create(snapshot);
                     throw new RuntimeException("Simulated failure after insert");
                 };
             }
         }
+    }
+
+    private void insertCustomerInDb(UUID identitySubject) {
+        dsl.insertInto(CUSTOMERS)
+                .set(CUSTOMERS.ID, UUID.randomUUID())
+                .set(CUSTOMERS.IDENTITY_SUBJECT, identitySubject)
+                .set(CUSTOMERS.EMAIL, "customer@test.com")
+                .set(CUSTOMERS.PHONE, "0600000000")
+                .execute();
     }
 }

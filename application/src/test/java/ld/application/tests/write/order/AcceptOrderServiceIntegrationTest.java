@@ -34,6 +34,7 @@ import java.util.UUID;
 import static ld.application.jooq.tables.Customers.CUSTOMERS;
 import static ld.application.jooq.tables.DiscountClaims.DISCOUNT_CLAIMS;
 import static ld.application.jooq.tables.DiscountRates.DISCOUNT_RATES;
+import static ld.application.jooq.tables.OrderDeliveryAddresses.ORDER_DELIVERY_ADDRESSES;
 import static ld.application.jooq.tables.OrderDetails.ORDER_DETAILS;
 import static ld.application.jooq.tables.Orders.ORDERS;
 import static ld.application.jooq.tables.Products.PRODUCTS;
@@ -60,15 +61,18 @@ class AcceptOrderServiceIntegrationTest {
 
     @Autowired
     private Clock clock;
+
     @MockitoBean
     private AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
 
     private final OrderStatusConverter converter = new OrderStatusConverter();
+
     @BeforeEach
     void setUp() {
         dsl.deleteFrom(DISCOUNT_CLAIMS).execute();
         dsl.deleteFrom(ORDER_DETAILS).execute();
         dsl.deleteFrom(ORDERS).execute();
+        dsl.deleteFrom(ORDER_DELIVERY_ADDRESSES).execute();
         dsl.deleteFrom(CUSTOMERS).execute();
         dsl.deleteFrom(PRODUCTS).execute();
         configureDiscountRate();
@@ -86,12 +90,15 @@ class AcceptOrderServiceIntegrationTest {
                 .set(DISCOUNT_RATES.CREATED_AT, OffsetDateTime.now(ZoneOffset.UTC))
                 .execute();
     }
+
     @Test
     void should_accept_first_order_apply_discount_and_dispatch_event() {
         var product = productTestFixture.createExistingProduct();
         UUID orderId = UUID.randomUUID();
         String customerEmail = "jean.dupont@example.com";
-        insertPendingOrderInDb(orderId, customerEmail, product.id());
+
+        UUID customerIdentitySubject =
+                insertPendingOrderInDb(orderId, customerEmail, product.id());
 
         var command = new AcceptOrderCommand(orderId);
 
@@ -105,9 +112,13 @@ class AcceptOrderServiceIntegrationTest {
 
         var detailRecord = dsl.fetchOne(ORDER_DETAILS, ORDER_DETAILS.ORDER_ID.eq(orderId));
         assertThat(detailRecord).isNotNull();
-        assertThat(detailRecord.getDiscountRate()).isEqualByComparingTo(new BigDecimal("0.1000"));
+        assertThat(detailRecord.getDiscountRate())
+                .isEqualByComparingTo(new BigDecimal("0.1000"));
 
-        int claimCount = dsl.fetchCount(DISCOUNT_CLAIMS, DISCOUNT_CLAIMS.EMAIL.eq(customerEmail));
+        int claimCount = dsl.fetchCount(
+                DISCOUNT_CLAIMS,
+                DISCOUNT_CLAIMS.EMAIL.eq(customerIdentitySubject.toString())
+        );
         assertThat(claimCount).isEqualTo(1);
 
         verify(aggregateEventDispatcher, times(1))
@@ -118,10 +129,16 @@ class AcceptOrderServiceIntegrationTest {
     void should_accept_order_without_discount_when_customer_already_has_effective_order() {
         String customerEmail = "client.fidele@example.com";
         var product = productTestFixture.createExistingProduct();
-        insertAcceptedOrderInDb(UUID.randomUUID(), customerEmail, product.id());
+
+        UUID customerIdentitySubject =
+                insertAcceptedOrderInDb(UUID.randomUUID(), customerEmail, product.id());
 
         UUID newOrderId = UUID.randomUUID();
-        insertPendingOrderInDb(newOrderId, customerEmail, product.id());
+        insertPendingOrderInDb(
+                newOrderId,
+                customerIdentitySubject,
+                product.id()
+        );
 
         var command = new AcceptOrderCommand(newOrderId);
 
@@ -133,9 +150,13 @@ class AcceptOrderServiceIntegrationTest {
         assertThat(orderRecord).isNotNull();
         assertThat(orderRecord.getStatusType()).isEqualTo(OrderState.ACCEPTED.name());
 
-        var detailRecord = dsl.fetchOne(ORDER_DETAILS, ORDER_DETAILS.ORDER_ID.eq(newOrderId));
+        var detailRecord = dsl.fetchOne(
+                ORDER_DETAILS,
+                ORDER_DETAILS.ORDER_ID.eq(newOrderId)
+        );
         assertThat(detailRecord).isNotNull();
-        assertThat(detailRecord.getDiscountRate()).isEqualByComparingTo(BigDecimal.ZERO);
+        assertThat(detailRecord.getDiscountRate())
+                .isEqualByComparingTo(BigDecimal.ZERO);
 
         verify(aggregateEventDispatcher, times(1))
                 .dispatch(argThat(event -> event instanceof OrderAccepted));
@@ -158,7 +179,9 @@ class AcceptOrderServiceIntegrationTest {
         var product = productTestFixture.createExistingProduct();
         UUID orderId = UUID.randomUUID();
         String customerEmail = "rejected.user@example.com";
-        insertRejectedOrderInDb(orderId, customerEmail, product.id());
+
+        UUID customerIdentitySubject =
+                insertRejectedOrderInDb(orderId, customerEmail, product.id());
 
         var command = new AcceptOrderCommand(orderId);
 
@@ -170,7 +193,10 @@ class AcceptOrderServiceIntegrationTest {
         assertThat(orderRecord).isNotNull();
         assertThat(orderRecord.getStatusType()).isEqualTo(OrderState.REJECTED.name());
 
-        int claimCount = dsl.fetchCount(DISCOUNT_CLAIMS, DISCOUNT_CLAIMS.EMAIL.eq(customerEmail));
+        int claimCount = dsl.fetchCount(
+                DISCOUNT_CLAIMS,
+                DISCOUNT_CLAIMS.EMAIL.eq(customerIdentitySubject.toString())
+        );
         assertThat(claimCount).isZero();
 
         verifyNoInteractions(aggregateEventDispatcher);
@@ -182,22 +208,38 @@ class AcceptOrderServiceIntegrationTest {
         UUID orderId = UUID.randomUUID();
         String customerEmail = "existing.claim@example.com";
 
+        UUID customerIdentitySubject = insertCustomerInDb(customerEmail);
+
         dsl.insertInto(DISCOUNT_CLAIMS)
-                .set(DISCOUNT_CLAIMS.TYPE, DiscountType.FIRST_ACCEPTED_ORDER.name())
-                .set(DISCOUNT_CLAIMS.EMAIL, customerEmail)
+                .set(
+                        DISCOUNT_CLAIMS.TYPE,
+                        DiscountType.FIRST_ACCEPTED_ORDER.name()
+                )
+                .set(
+                        DISCOUNT_CLAIMS.EMAIL,
+                        customerIdentitySubject.toString()
+                )
                 .execute();
 
-        insertPendingOrderInDb(orderId, customerEmail, product.id());
+        insertPendingOrderInDb(
+                orderId,
+                customerIdentitySubject,
+                product.id()
+        );
 
         var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
+
         assertThat(result.isSuccess()).isTrue();
 
         var order = extractValue(result);
         assertThat(order.orderStatus())
-                .asInstanceOf(InstanceOfAssertFactories.type(OrderStatus.Accepted.class))
+                .asInstanceOf(
+                        InstanceOfAssertFactories.type(OrderStatus.Accepted.class)
+                )
                 .extracting(OrderStatus.Accepted::discountApplied)
                 .isEqualTo(Percentage.ZERO);
     }
+
     @Nested
     @Import(RollbackScenario.FailingRepositoryConfig.class)
     class RollbackScenario {
@@ -207,7 +249,9 @@ class AcceptOrderServiceIntegrationTest {
             var product = productTestFixture.createExistingProduct();
             UUID orderId = UUID.randomUUID();
             String customerEmail = "rollback.user@example.com";
-            insertPendingOrderInDb(orderId, customerEmail, product.id());
+
+            UUID customerIdentitySubject =
+                    insertPendingOrderInDb(orderId, customerEmail, product.id());
 
             var command = new AcceptOrderCommand(orderId);
 
@@ -216,9 +260,13 @@ class AcceptOrderServiceIntegrationTest {
 
             var orderRecord = dsl.fetchOne(ORDERS, ORDERS.ID.eq(orderId));
             assertThat(orderRecord).isNotNull();
-            assertThat(orderRecord.getStatusType()).isEqualTo(OrderState.PENDING.name());
+            assertThat(orderRecord.getStatusType())
+                    .isEqualTo(OrderState.PENDING.name());
 
-            int claimCount = dsl.fetchCount(DISCOUNT_CLAIMS, DISCOUNT_CLAIMS.EMAIL.eq(customerEmail));
+            int claimCount = dsl.fetchCount(
+                    DISCOUNT_CLAIMS,
+                    DISCOUNT_CLAIMS.EMAIL.eq(customerIdentitySubject.toString())
+            );
             assertThat(claimCount).isZero();
 
             verifyNoInteractions(aggregateEventDispatcher);
@@ -239,7 +287,9 @@ class AcceptOrderServiceIntegrationTest {
                     @Override
                     public void save(OrderSnapshot snapshot) {
                         realRepository.save(snapshot);
-                        throw new RuntimeException("Simulated failure during save in UnitOfWork");
+                        throw new RuntimeException(
+                                "Simulated failure during save in UnitOfWork"
+                        );
                     }
                 };
             }
@@ -247,25 +297,65 @@ class AcceptOrderServiceIntegrationTest {
     }
 
     private UUID insertCustomerInDb(String customerEmail) {
-        UUID customerId = UUID.randomUUID();
+        UUID customerIdentitySubject = UUID.randomUUID();
+
         dsl.insertInto(CUSTOMERS)
                 .set(CUSTOMERS.ID, UUID.randomUUID())
-                .set(CUSTOMERS.IDENTITY_SUBJECT, customerId)
+                .set(CUSTOMERS.IDENTITY_SUBJECT, customerIdentitySubject)
                 .set(CUSTOMERS.EMAIL, customerEmail)
                 .set(CUSTOMERS.PHONE, "0600000000")
                 .execute();
-        return customerId;
+
+        return customerIdentitySubject;
     }
 
-    private void insertPendingOrderInDb(UUID orderId, String customerEmail, UUID productId) {
-        UUID customerId = insertCustomerInDb(customerEmail);
+    private UUID insertDeliveryAddressInDb() {
+        UUID deliveryAddressId = UUID.randomUUID();
+
+        dsl.insertInto(ORDER_DELIVERY_ADDRESSES)
+                .set(ORDER_DELIVERY_ADDRESSES.ID, deliveryAddressId)
+                .set(ORDER_DELIVERY_ADDRESSES.ADDRESS, "10 rue de Paris")
+                .set(ORDER_DELIVERY_ADDRESSES.CITY, "Avignon")
+                .execute();
+
+        return deliveryAddressId;
+    }
+
+    private UUID insertPendingOrderInDb(
+            UUID orderId,
+            String customerEmail,
+            UUID productId
+    ) {
+        UUID customerIdentitySubject = insertCustomerInDb(customerEmail);
+
+        insertPendingOrderInDb(
+                orderId,
+                customerIdentitySubject,
+                productId
+        );
+
+        return customerIdentitySubject;
+    }
+
+    private void insertPendingOrderInDb(
+            UUID orderId,
+            UUID customerIdentitySubject,
+            UUID productId
+    ) {
+        UUID deliveryAddressId = insertDeliveryAddressInDb();
+
         dsl.insertInto(ORDERS)
                 .set(ORDERS.ID, orderId)
-                .set(ORDERS.CUSTOMER_ID, customerId)
+                .set(ORDERS.CUSTOMER_IDENTITY_SUBJECT, customerIdentitySubject)
+                .set(ORDERS.DELIVERY_ADDRESS_ID, deliveryAddressId)
                 .set(ORDERS.STATUS_TYPE, OrderState.PENDING.name())
                 .set(
                         ORDERS.STATUS_DATA,
-                        JSON.json(converter.convertToDatabaseColumn(OrderStatus.PENDING))
+                        JSON.json(
+                                converter.convertToDatabaseColumn(
+                                        OrderStatus.PENDING
+                                )
+                        )
                 )
                 .set(ORDERS.TOTAL, new BigDecimal("100.00"))
                 .set(ORDERS.CREATED_AT, LocalDateTime.now())
@@ -283,16 +373,44 @@ class AcceptOrderServiceIntegrationTest {
                 .execute();
     }
 
-    private void insertAcceptedOrderInDb(UUID orderId, String customerEmail, UUID productId) {
-        UUID customerId = insertCustomerInDb(customerEmail);
+    private UUID insertAcceptedOrderInDb(
+            UUID orderId,
+            String customerEmail,
+            UUID productId
+    ) {
+        UUID customerIdentitySubject = insertCustomerInDb(customerEmail);
+
+        insertAcceptedOrderInDb(
+                orderId,
+                customerIdentitySubject,
+                productId
+        );
+
+        return customerIdentitySubject;
+    }
+
+    private void insertAcceptedOrderInDb(
+            UUID orderId,
+            UUID customerIdentitySubject,
+            UUID productId
+    ) {
+        UUID deliveryAddressId = insertDeliveryAddressInDb();
 
         dsl.insertInto(ORDERS)
                 .set(ORDERS.ID, orderId)
-                .set(ORDERS.CUSTOMER_ID, customerId)
+                .set(ORDERS.CUSTOMER_IDENTITY_SUBJECT, customerIdentitySubject)
+                .set(ORDERS.DELIVERY_ADDRESS_ID, deliveryAddressId)
                 .set(ORDERS.STATUS_TYPE, OrderState.ACCEPTED.name())
                 .set(
                         ORDERS.STATUS_DATA,
-                        JSON.json(converter.convertToDatabaseColumn(new OrderStatus.Accepted(Instant.now(clock), Percentage.ZERO)))
+                        JSON.json(
+                                converter.convertToDatabaseColumn(
+                                        new OrderStatus.Accepted(
+                                                Instant.now(clock),
+                                                Percentage.ZERO
+                                        )
+                                )
+                        )
                 )
                 .set(ORDERS.TOTAL, new BigDecimal("100.00"))
                 .set(ORDERS.CREATED_AT, LocalDateTime.now())
@@ -310,16 +428,44 @@ class AcceptOrderServiceIntegrationTest {
                 .execute();
     }
 
-    private void insertRejectedOrderInDb(UUID orderId, String customerEmail, UUID productId) {
-        UUID customerId = insertCustomerInDb(customerEmail);
+    private UUID insertRejectedOrderInDb(
+            UUID orderId,
+            String customerEmail,
+            UUID productId
+    ) {
+        UUID customerIdentitySubject = insertCustomerInDb(customerEmail);
+
+        insertRejectedOrderInDb(
+                orderId,
+                customerIdentitySubject,
+                productId
+        );
+
+        return customerIdentitySubject;
+    }
+
+    private void insertRejectedOrderInDb(
+            UUID orderId,
+            UUID customerIdentitySubject,
+            UUID productId
+    ) {
+        UUID deliveryAddressId = insertDeliveryAddressInDb();
 
         dsl.insertInto(ORDERS)
                 .set(ORDERS.ID, orderId)
-                .set(ORDERS.CUSTOMER_ID, customerId)
+                .set(ORDERS.CUSTOMER_IDENTITY_SUBJECT, customerIdentitySubject)
+                .set(ORDERS.DELIVERY_ADDRESS_ID, deliveryAddressId)
                 .set(ORDERS.STATUS_TYPE, OrderState.REJECTED.name())
                 .set(
                         ORDERS.STATUS_DATA,
-                        JSON.json(converter.convertToDatabaseColumn(new OrderStatus.Rejected("pas le temps", Instant.now(clock))))
+                        JSON.json(
+                                converter.convertToDatabaseColumn(
+                                        new OrderStatus.Rejected(
+                                                "pas le temps",
+                                                Instant.now(clock)
+                                        )
+                                )
+                        )
                 )
                 .set(ORDERS.TOTAL, new BigDecimal("100.00"))
                 .set(ORDERS.CREATED_AT, LocalDateTime.now())
@@ -337,4 +483,3 @@ class AcceptOrderServiceIntegrationTest {
                 .execute();
     }
 }
-

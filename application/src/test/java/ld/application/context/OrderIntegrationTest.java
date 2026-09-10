@@ -5,10 +5,7 @@ import ld.application.config.common.TestClockConfiguration;
 import ld.application.config.common.UnitOfWorkTestConfiguration;
 import ld.application.config.order.DiscountProviderTestConfiguration;
 import ld.application.config.order.OrderPersistenceTestConfiguration;
-import ld.application.infra.db.entity.CustomerEntity;
-import ld.application.infra.db.entity.OrderDetailEntity;
-import ld.application.infra.db.entity.OrderEntity;
-import ld.application.infra.db.entity.ProductEntity;
+import ld.application.infra.db.entity.*;
 import ld.application.read.GetOrderServiceImpl;
 import ld.application.shared.product.ProductTestFixture;
 import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
@@ -47,7 +44,7 @@ import java.lang.annotation.Target;
         ProductEntity.class,
         OrderEntity.class,
         OrderDetailEntity.class,
-        CustomerEntity.class
+        DeliveryAddressEntity.class
 })
 @Testcontainers
 @ActiveProfiles("test")
