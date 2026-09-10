@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v2.1.0...v2.2.0) (2026-09-10)
+
+
+### Features
+
+* introduce unique order reference, as value object ([2f529b0](https://github.com/lyesDOUKI/adyl-creation-back/commit/2f529b0278af29b8b52723b72240c9cf1d87c25a))
+
+
+### Documentation
+
+* add .idea in gitignore ([5810be5](https://github.com/lyesDOUKI/adyl-creation-back/commit/5810be59726c2dee07975a538c4a6cb7f3ab0caf))
+
 ## [2.1.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v2.0.0...v2.1.0) (2026-09-10)
 
 
