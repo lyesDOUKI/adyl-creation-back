@@ -10,6 +10,7 @@ import java.util.UUID;
 public record GetOrderResponse(
         UUID orderId,
         UUID customerId,
+        String orderReference,
         String customerMessage,
         LocalDateTime createdAt,
         LocalDateTime updatedAt,

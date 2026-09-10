@@ -89,7 +89,7 @@ class DeliverOrderUseCaseTest {
             var orderId = UUID.randomUUID();
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.PENDING)
                             .build()
@@ -112,7 +112,7 @@ class DeliverOrderUseCaseTest {
             var orderId = UUID.randomUUID();
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(OrderStatus.PENDING)
                             .build()
@@ -146,7 +146,7 @@ class DeliverOrderUseCaseTest {
             var deliveryMethod = DeliveryMethod.HAND_DELIVERY;
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(
                                     new OrderStatus.Accepted(
@@ -188,7 +188,7 @@ class DeliverOrderUseCaseTest {
             var deliveryMethod = DeliveryMethod.HAND_DELIVERY;
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(
                                     new OrderStatus.Accepted(
@@ -243,7 +243,7 @@ class DeliverOrderUseCaseTest {
             var existingDeliveryMethod = DeliveryMethod.HAND_DELIVERY;
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(new OrderStatus.Delivered(
                                     existingObservation,
@@ -286,7 +286,7 @@ class DeliverOrderUseCaseTest {
             var orderId = UUID.randomUUID();
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(new OrderStatus.Delivered(
                                     "bonne commande",
@@ -321,7 +321,7 @@ class DeliverOrderUseCaseTest {
             var orderId = UUID.randomUUID();
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(
                                     new OrderStatus.Rejected(
@@ -353,7 +353,7 @@ class DeliverOrderUseCaseTest {
             var orderId = UUID.randomUUID();
 
             inMemoryOrderLifecycleRepository.save(
-                    OrderSnapshotTestBuilder.anOrder()
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
                             .withOrderId(orderId)
                             .withOrderStatus(
                                     new OrderStatus.Rejected(

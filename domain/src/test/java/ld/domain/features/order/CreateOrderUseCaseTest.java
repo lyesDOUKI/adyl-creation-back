@@ -20,6 +20,9 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -30,6 +33,8 @@ import static org.assertj.core.api.Assertions.tuple;
 
 class CreateOrderUseCaseTest {
 
+    private static final Instant FIXED_INSTANT = Instant.parse("2026-08-30T10:00:00Z");
+    private static final Clock FIXED_CLOCK = Clock.fixed(FIXED_INSTANT, ZoneOffset.UTC);
     private final CreateOrderUseCase createOrderUseCase;
     private final InMemoryOrderCreator createOrderRepository = new InMemoryOrderCreator();
     private final InMemoryProductFinder getProductRepository = new InMemoryProductFinder();
@@ -40,7 +45,8 @@ class CreateOrderUseCaseTest {
                 createOrderRepository,
                 getProductRepository,
                 aggregateEventDispatcher,
-                new InMemoryUnitOfWork()
+                new InMemoryUnitOfWork(),
+                FIXED_CLOCK
         );
     }
 

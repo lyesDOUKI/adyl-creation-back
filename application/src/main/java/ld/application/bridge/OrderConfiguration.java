@@ -30,10 +30,11 @@ public class OrderConfiguration {
             OrderCreator orderCreator,
             ProductFinder productFinder,
             AggregateEventDispatcher<OrderEvent> orderEventDispatcher,
-            UnitOfWork unitOfWork
+            UnitOfWork unitOfWork,
+            Clock clock
     ) {
         return new CreateOrderUseCaseImpl(orderCreator, productFinder,
-                orderEventDispatcher, unitOfWork);
+                orderEventDispatcher, unitOfWork, clock);
     }
 
     @Bean

@@ -4,6 +4,7 @@ import ld.application.infra.db.entity.DeliveryAddressEntity;
 import ld.application.infra.db.entity.OrderDetailEntity;
 import ld.application.infra.db.entity.OrderEntity;
 import ld.domain.features.order.model.CustomerInfo;
+import ld.domain.features.order.model.OrderReference;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.product.model.ProductColor;
 import ld.domain.valueObjects.Percentage;
@@ -31,6 +32,7 @@ public final class OrderMapper {
     ) {
         OrderEntity order = new OrderEntity(
                 snapshot.orderId(),
+                snapshot.orderReference().value(),
                 snapshot.customerInfo().identitySubject(),
                 deliveryAddressEntity,
                 snapshot.message(),
@@ -101,6 +103,7 @@ public final class OrderMapper {
 
         return new OrderSnapshot(
                 entity.getId(),
+                new OrderReference(entity.getOrderReference()),
                 customerInfo,
                 entity.getCustomerMessage(),
                 entity.getTotal(),

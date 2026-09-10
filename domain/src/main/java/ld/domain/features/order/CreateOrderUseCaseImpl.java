@@ -12,6 +12,7 @@ import ld.standard.lib.UnitOfWork;
 import ld.standard.lib.validation.BusinessGuard;
 import ld.standard.lib.validation.Result;
 
+import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -26,15 +27,16 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
     private final AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
     private final BusinessGuard<CreateOrderContextValidation> createOrderGuard;
     private final UnitOfWork unitOfWork;
-
+    private final Clock clock;
     public CreateOrderUseCaseImpl(OrderCreator orderCreator,
                                   ProductFinder productFinder,
                                   AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher,
-                                  UnitOfWork unitOfWork) {
+                                  UnitOfWork unitOfWork, Clock clock) {
         this.orderCreator = orderCreator;
         this.productFinder = productFinder;
         this.aggregateEventDispatcher = aggregateEventDispatcher;
         this.unitOfWork = unitOfWork;
+        this.clock = clock;
         this.createOrderGuard = BusinessGuard.of(
                 new ProductStatusRule(),
                 new ProductsColorsRule()
@@ -52,7 +54,7 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                     var order = Order.create(
                             CustomerInfo.from(createOrderCommand.identitySubject(),
                                     createOrderCommand.deliveryInformation()),
-                            createOrderCommand.message()
+                            createOrderCommand.message(), clock
                     );
                     order.calculateOrder(orderItems);
                     this.orderCreator.create(order.toSnapshot());

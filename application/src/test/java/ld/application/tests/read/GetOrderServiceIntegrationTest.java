@@ -8,6 +8,7 @@ import ld.application.response.GetOrderResponse;
 import ld.application.response.OrderLineResponse;
 import ld.application.response.ProductCategoryResponse;
 import ld.domain.features.order.model.OrderEvent;
+import ld.domain.features.order.model.OrderReference;
 import ld.domain.features.order.model.OrderStatus;
 import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.product.model.ProductCategory;
@@ -28,6 +29,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.util.UUID;
 
 import static ld.application.jooq.tables.Customers.CUSTOMERS;
@@ -51,6 +53,8 @@ class GetOrderServiceIntegrationTest {
     @Autowired
     private DSLContext dsl;
 
+    @Autowired
+    private Clock clock;
     @MockitoBean
     private AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
 
@@ -483,6 +487,7 @@ class GetOrderServiceIntegrationTest {
                 .columns(
                         ORDERS.ID,
                         ORDERS.CUSTOMER_IDENTITY_SUBJECT,
+                        ORDERS.ORDER_REFERENCE,
                         ORDERS.DELIVERY_ADDRESS_ID,
                         ORDERS.CUSTOMER_MESSAGE,
                         ORDERS.TOTAL,
@@ -492,6 +497,7 @@ class GetOrderServiceIntegrationTest {
                 .values(
                         orderId,
                         customerIdentitySubject,
+                        OrderReference.generate(clock).value(),
                         deliveryAddressId,
                         customerMessage,
                         total,
