@@ -8,7 +8,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface GetOrderQueryRepository {
-    Page<OrderQuery> findAll(Pageable pageable);
-
-    Optional<OrderQuery> findById(UUID orderId);
+    Page<OrderQuery> findAll(Pageable pageable, UUID customerId);
+    Optional<OrderQuery> findById(UUID orderId, UUID customerId);
 }

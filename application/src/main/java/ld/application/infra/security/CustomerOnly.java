@@ -12,6 +12,6 @@ import java.lang.annotation.Target;
         ElementType.METHOD
 })
 @Retention(RetentionPolicy.RUNTIME)
-@PreAuthorize("hasRole('ADMIN')")
-public @interface AdminOnly {
+@PreAuthorize("hasRole('USER')")
+public @interface CustomerOnly {
 }

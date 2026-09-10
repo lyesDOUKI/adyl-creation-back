@@ -10,20 +10,24 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import ld.application.infra.security.AdminOnly;
+import ld.application.infra.security.CurrentCustomerId;
+import ld.application.infra.security.CustomerOnly;
+import ld.application.read.GetOrderService;
 import ld.application.request.CreateOrderRequest;
 import ld.application.request.DeliverOrderRequest;
 import ld.application.request.RejectOrderRequest;
-import ld.application.response.CreateOrderResponse;
-import ld.application.response.OrderAcceptedResponse;
-import ld.application.response.OrderDeliveredResponse;
-import ld.application.response.OrderRejectedResponse;
+import ld.application.response.*;
 import ld.domain.features.order.CreateOrderUseCase;
 import ld.domain.features.order.accept.AcceptOrderCommand;
 import ld.domain.features.order.accept.AcceptOrderUseCase;
 import ld.domain.features.order.deliver.DeliverOrderUseCase;
 import ld.domain.features.order.reject.RejectOrderUseCase;
 import ld.spring.web.lib.ApiResponseBody;
+import ld.spring.web.lib.PageResponse;
 import ld.spring.web.lib.ResultToResponse;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -38,15 +42,17 @@ public class OrderController {
     private final AcceptOrderUseCase acceptOrderUseCase;
     private final RejectOrderUseCase rejectOrderUseCase;
     private final DeliverOrderUseCase deliverOrderUseCase;
-
+    private final GetOrderService getOrderService;
     public OrderController(CreateOrderUseCase createOrderUseCase,
                            AcceptOrderUseCase acceptOrderUseCase,
                            RejectOrderUseCase rejectOrderUseCase,
-                           DeliverOrderUseCase deliverOrderUseCase) {
+                           DeliverOrderUseCase deliverOrderUseCase,
+                           GetOrderService getOrderService) {
         this.createOrderUseCase = createOrderUseCase;
         this.acceptOrderUseCase = acceptOrderUseCase;
         this.rejectOrderUseCase = rejectOrderUseCase;
         this.deliverOrderUseCase = deliverOrderUseCase;
+        this.getOrderService = getOrderService;
     }
 
     @PostMapping
@@ -242,5 +248,68 @@ public class OrderController {
         var result = this.deliverOrderUseCase.execute(deliverOrderRequest.toCommand(orderId))
                 .map(OrderDeliveredResponse::from);
         return ResultToResponse.ok(result, httpServletRequest);
+    }
+
+    @CustomerOnly
+    @GetMapping
+    @Operation(
+            summary = "Récupération des commandes"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Commandes récupérées avec succès"
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Requête invalide",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Erreur interne du serveur",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<PageResponse<GetOrderResponse>> get(
+            @ParameterObject @PageableDefault(size = 20) Pageable pageable,
+            @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId
+    ) {
+        return ResponseEntity.ok(PageResponse.from(this.getOrderService.findAll(pageable, currentCustomerId)));
+    }
+
+    @CustomerOnly
+    @GetMapping("{id}")
+    @Operation(
+            summary = "Récupération d'une commande"
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Commande récupérée avec succès",
+                    content = @Content(schema = @Schema(implementation = GetOrderResponse.class))
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Commande introuvable",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "400",
+                    description = "Requête invalide",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "500",
+                    description = "Erreur interne du serveur",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponseBody> getById(
+            @PathVariable("id") UUID orderId,
+            @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId,
+            HttpServletRequest httpServletRequest
+    ) {
+        return ResultToResponse.ok(this.getOrderService.findById(orderId, currentCustomerId), httpServletRequest);
     }
 }
