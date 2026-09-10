@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v2.2.0...v2.2.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* don't give customer name in the object of mail ([375fb49](https://github.com/lyesDOUKI/adyl-creation-back/commit/375fb49493ad428675a13f0e1356d5224157a37b))
+
 ## [2.2.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v2.1.0...v2.2.0) (2026-09-10)
 
 
