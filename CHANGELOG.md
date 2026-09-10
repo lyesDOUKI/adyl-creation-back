@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v2.0.0...v2.1.0) (2026-09-10)
+
+
+### Features
+
+* clean order request, no need for personnal information ([964c32b](https://github.com/lyesDOUKI/adyl-creation-back/commit/964c32b2556bd1f65f03e29966e1d8766344d021))
+
+
+### Bug Fixes
+
+* order created template dont print client name ([d5a64ac](https://github.com/lyesDOUKI/adyl-creation-back/commit/d5a64ac35ad9a38237ad3b7fc49e73e5fedf559f))
+
 ## [2.0.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v1.2.0...v2.0.0) (2026-09-10)
 
 
