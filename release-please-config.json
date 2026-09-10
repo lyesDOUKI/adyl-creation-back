@@ -3,7 +3,8 @@
   "packages": {
     ".": {
       "release-type": "maven",
-      "package-name": "adyl-creation-api"
+      "package-name": "adyl-creation-api",
+      "include-component-in-tag": false
     }
   }
 }
