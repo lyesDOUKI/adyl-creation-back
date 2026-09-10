@@ -254,10 +254,10 @@ public class DeliverOrderServiceIntegrationTest {
         UUID customerId = UUID.randomUUID();
 
         dsl.insertInto(CUSTOMERS)
-                .set(CUSTOMERS.ID, customerId)
-                .set(CUSTOMERS.CUSTOMER_NAME, "Jean Dupont")
-                .set(CUSTOMERS.CUSTOMER_EMAIL, customerEmail)
-                .set(CUSTOMERS.CUSTOMER_PHONE, "0600000000")
+                .set(CUSTOMERS.ID, UUID.randomUUID())
+                .set(CUSTOMERS.IDENTITY_SUBJECT, customerId)
+                .set(CUSTOMERS.EMAIL, customerEmail)
+                .set(CUSTOMERS.PHONE, "0600000000")
                 .execute();
 
         return customerId;
