@@ -2,8 +2,25 @@ package ld.domain.features.order.model;
 
 import ld.domain.features.order.CreateOrderCommand;
 
-public record CustomerInfo(String name, String email, String phoneNumber, String address, String city) {
-    public static CustomerInfo from(CreateOrderCommand.CustomerInfo customerInfo) {
-        return new CustomerInfo(customerInfo.name(), customerInfo.email(), customerInfo.phoneNumber(), customerInfo.address(), customerInfo.city());
+import java.util.UUID;
+
+public record CustomerInfo(
+        UUID identitySubject,
+        DeliveryAddress deliveryAddress
+) {
+    public record DeliveryAddress(
+            String address,
+            String city
+    ) {
+    }
+    public static CustomerInfo from(UUID identitySubject,CreateOrderCommand.DeliveryInformation customerInfo) {
+        return new CustomerInfo(
+                identitySubject,
+                new DeliveryAddress(
+                        customerInfo.address(),
+                        customerInfo.city()
+                )
+        );
     }
 }
+

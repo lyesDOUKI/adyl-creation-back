@@ -8,8 +8,8 @@ public class InMemoryCustomerOrderHistoryFinder implements CustomerOrderHistoryF
     private final Set<String> customersWithEffectiveOrder = new HashSet<>();
 
     @Override
-    public boolean hasEffectiveOrder(String customerEmail) {
-        return customersWithEffectiveOrder.contains(customerEmail);
+    public boolean hasEffectiveOrder(String customerIdentitySubject) {
+        return customersWithEffectiveOrder.contains(customerIdentitySubject);
     }
 
     public void markEffectiveOrder(String customerEmail) {

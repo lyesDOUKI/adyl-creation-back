@@ -52,13 +52,13 @@ public class AcceptOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
         return discountProvider.provide(DiscountType.FIRST_ACCEPTED_ORDER)
                 .filter(_ -> discountClaimer.tryAddClaim(
                         DiscountType.FIRST_ACCEPTED_ORDER,
-                        order.customerEmail()
+                        order.customerIdentity()
                 ))
                 .map(AppliedDiscount::claimed)
                 .orElseGet(AppliedDiscount::none);
     }
 
     private boolean isEligibleForFirstOrderDiscount(Order order) {
-        return !customerOrderHistoryFinder.hasEffectiveOrder(order.customerEmail());
+        return !customerOrderHistoryFinder.hasEffectiveOrder(order.customerIdentity());
     }
 }
