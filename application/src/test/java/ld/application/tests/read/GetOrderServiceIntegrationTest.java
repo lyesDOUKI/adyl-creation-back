@@ -238,10 +238,10 @@ class GetOrderServiceIntegrationTest {
                 .execute();
     }
 
-    private void insertCustomer(UUID customerId) {
-        dsl.insertInto(CUSTOMERS, CUSTOMERS.ID, CUSTOMERS.CUSTOMER_NAME,
-                        CUSTOMERS.CUSTOMER_EMAIL, CUSTOMERS.CUSTOMER_PHONE)
-                .values(customerId, "Jean Dupont", "jean.dupont+" + customerId + "@test.com", "0600000000")
+    private void insertCustomer(UUID identitySubject) {
+        dsl.insertInto(CUSTOMERS, CUSTOMERS.ID, CUSTOMERS.IDENTITY_SUBJECT,
+                        CUSTOMERS.EMAIL, CUSTOMERS.PHONE)
+                .values(UUID.randomUUID(), identitySubject,  "jean.dupont+" + identitySubject + "@test.com", "0600000000")
                 .execute();
     }
 
