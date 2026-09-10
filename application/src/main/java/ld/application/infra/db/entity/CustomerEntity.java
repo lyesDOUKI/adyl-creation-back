@@ -19,30 +19,22 @@ public class CustomerEntity {
         }
     }
 
-    @Column(name = "customer_name", nullable = false, length = 250)
-    private String customerName;
+    @Column(name = "identity_subject", nullable = false, unique = true, updatable = false)
+    private UUID identitySubject;
 
-    @Column(name = "customer_email", nullable = false)
-    private String customerEmail;
+    @Column(name = "email", nullable = false)
+    private String email;
 
-    @Column(name = "customer_phone", nullable = false)
-    private String customerPhone;
-
-    @Column(name = "customer_address")
-    private String customerAddress;
-
-    @Column(name = "customer_city", length = 50)
-    private String customerCity;
+    @Column(name = "phone", nullable = false, length = 50)
+    private String phone;
 
     public CustomerEntity() {
     }
 
-    public CustomerEntity(String customerName, String customerEmail, String customerPhone, String customerAddress, String customerCity) {
-        this.customerName = customerName;
-        this.customerEmail = customerEmail;
-        this.customerPhone = customerPhone;
-        this.customerAddress = customerAddress;
-        this.customerCity = customerCity;
+    public CustomerEntity(UUID identitySubject, String email, String phone) {
+        this.identitySubject = identitySubject;
+        this.email = email;
+        this.phone = phone;
     }
 
     public UUID getId() {
@@ -53,43 +45,27 @@ public class CustomerEntity {
         this.id = id;
     }
 
-    public String getCustomerName() {
-        return customerName;
+    public UUID getIdentitySubject() {
+        return identitySubject;
     }
 
-    public void setCustomerName(String customerName) {
-        this.customerName = customerName;
+    public void setIdentitySubject(UUID identitySubject) {
+        this.identitySubject = identitySubject;
     }
 
-    public String getCustomerEmail() {
-        return customerEmail;
+    public String getEmail() {
+        return email;
     }
 
-    public void setCustomerEmail(String customerEmail) {
-        this.customerEmail = customerEmail;
+    public void setEmail(String email) {
+        this.email = email;
     }
 
-    public String getCustomerPhone() {
-        return customerPhone;
+    public String getPhone() {
+        return phone;
     }
 
-    public void setCustomerPhone(String customerPhone) {
-        this.customerPhone = customerPhone;
-    }
-
-    public String getCustomerAddress() {
-        return customerAddress;
-    }
-
-    public void setCustomerAddress(String customerAddress) {
-        this.customerAddress = customerAddress;
-    }
-
-    public String getCustomerCity() {
-        return customerCity;
-    }
-
-    public void setCustomerCity(String customerCity) {
-        this.customerCity = customerCity;
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 }

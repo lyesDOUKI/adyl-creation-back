@@ -6,7 +6,6 @@ import java.util.UUID;
 
 public record OrderCreatedEmailModel(
         UUID orderId,
-        String customerName,
         String customerEmail,
         String customerMessage,
         String createdAt,

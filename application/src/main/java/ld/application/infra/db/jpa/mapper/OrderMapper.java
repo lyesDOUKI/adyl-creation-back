@@ -1,6 +1,7 @@
 package ld.application.infra.db.jpa.mapper;
 
 import ld.application.infra.db.entity.CustomerEntity;
+import ld.application.infra.db.entity.DeliveryAddressEntity;
 import ld.application.infra.db.entity.OrderDetailEntity;
 import ld.application.infra.db.entity.OrderEntity;
 import ld.domain.features.order.model.CustomerInfo;
@@ -23,12 +24,20 @@ public final class OrderMapper {
 
     public static OrderEntity from(OrderSnapshot orderSnapshot) {
         var customerEntity = toCustomerEntity(orderSnapshot.customerInfo());
-        return toEntity(orderSnapshot, customerEntity);
+        var deliveryAddressEntity = toDeliveryAddressEntity(orderSnapshot.customerInfo());
+
+        return toEntity(orderSnapshot, customerEntity, deliveryAddressEntity);
     }
-    public static OrderEntity toEntity(OrderSnapshot snapshot, CustomerEntity customerEntity) {
+
+    public static OrderEntity toEntity(
+            OrderSnapshot snapshot,
+            CustomerEntity customerEntity,
+            DeliveryAddressEntity deliveryAddressEntity
+    ) {
         OrderEntity order = new OrderEntity(
                 snapshot.orderId(),
                 customerEntity,
+                deliveryAddressEntity,
                 snapshot.message(),
                 snapshot.total() != null ? snapshot.total() : BigDecimal.ZERO,
                 snapshot.orderStatus()
@@ -45,9 +54,14 @@ public final class OrderMapper {
 
     public static CustomerEntity toCustomerEntity(CustomerInfo info) {
         return new CustomerEntity(
-                info.name(),
+                info.identitySubject(),
                 info.email(),
-                info.phoneNumber(),
+                info.phoneNumber()
+        );
+    }
+
+    public static DeliveryAddressEntity toDeliveryAddressEntity(CustomerInfo info) {
+        return new DeliveryAddressEntity(
                 info.address(),
                 info.city()
         );
@@ -58,17 +72,23 @@ public final class OrderMapper {
         existingEntity.setTotal(snapshot.total() != null ? snapshot.total() : BigDecimal.ZERO);
         existingEntity.setStatusData(snapshot.orderStatus());
 
-
-        if (existingEntity.getCustomerEntity() != null && snapshot.customerInfo() != null) {
+        if (snapshot.customerInfo() != null) {
             var info = snapshot.customerInfo();
-            var customer = existingEntity.getCustomerEntity();
-            customer.setCustomerName(info.name());
-            customer.setCustomerEmail(info.email());
-            customer.setCustomerPhone(info.phoneNumber());
-            customer.setCustomerAddress(info.address());
-            customer.setCustomerCity(info.city());
-        }
 
+            if (existingEntity.getCustomerEntity() != null) {
+                var customer = existingEntity.getCustomerEntity();
+
+                customer.setEmail(info.email());
+                customer.setPhone(info.phoneNumber());
+            }
+
+            if (existingEntity.getDeliveryAddressEntity() != null) {
+                var deliveryAddress = existingEntity.getDeliveryAddressEntity();
+
+                deliveryAddress.setAddress(info.address());
+                deliveryAddress.setCity(info.city());
+            }
+        }
 
         if (snapshot.items() == null || snapshot.items().isEmpty()) {
             existingEntity.getDetails().clear();
@@ -94,12 +114,14 @@ public final class OrderMapper {
 
     public static OrderSnapshot toSnapshot(OrderEntity entity) {
         var customer = entity.getCustomerEntity();
+        var deliveryAddress = entity.getDeliveryAddressEntity();
+
         var customerInfo = new CustomerInfo(
-                customer.getCustomerName(),
-                customer.getCustomerEmail(),
-                customer.getCustomerPhone(),
-                customer.getCustomerAddress(),
-                customer.getCustomerCity()
+                customer.getIdentitySubject(),
+                customer.getEmail(),
+                customer.getPhone(),
+                deliveryAddress.getAddress(),
+                deliveryAddress.getCity()
         );
 
         var items = entity.getDetails().stream()
