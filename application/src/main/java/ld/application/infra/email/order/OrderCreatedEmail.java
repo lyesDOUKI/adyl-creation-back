@@ -44,8 +44,7 @@ public class OrderCreatedEmail extends AbstractEmailTemplate<OrderCreated, Order
                         ORDERS.CREATED_AT,
                         ORDERS.TOTAL,
                         ORDERS.CUSTOMER_MESSAGE,
-                        CUSTOMERS.CUSTOMER_EMAIL,
-                        CUSTOMERS.CUSTOMER_NAME
+                        CUSTOMERS.EMAIL
                 )
                 .from(ORDERS)
                 .join(CUSTOMERS).on(CUSTOMERS.ID.eq(ORDERS.CUSTOMER_ID))
@@ -79,8 +78,7 @@ public class OrderCreatedEmail extends AbstractEmailTemplate<OrderCreated, Order
 
         return new OrderCreatedEmailModel(
                 event.orderId(),
-                orderRecord.get(CUSTOMERS.CUSTOMER_NAME),
-                orderRecord.get(CUSTOMERS.CUSTOMER_EMAIL),
+                orderRecord.get(CUSTOMERS.EMAIL),
                 orderRecord.get(ORDERS.CUSTOMER_MESSAGE),
                 DATE_FORMATTER.format(orderRecord.get(ORDERS.CREATED_AT).toInstant(ZoneOffset.UTC)),
                 orderRecord.get(ORDERS.TOTAL),

@@ -22,7 +22,7 @@ public class CustomerOrderHistoryFinderJooqAdapter implements CustomerOrderHisto
                 dsl.selectOne()
                         .from(ORDERS)
                         .join(CUSTOMERS).on(ORDERS.CUSTOMER_ID.eq(CUSTOMERS.ID))
-                        .where(CUSTOMERS.CUSTOMER_EMAIL.eq(customerEmail))
+                        .where(CUSTOMERS.EMAIL.eq(customerEmail))
                         .and(ORDERS.STATUS_TYPE.notIn("REJECTED", "PENDING"))
         );
     }

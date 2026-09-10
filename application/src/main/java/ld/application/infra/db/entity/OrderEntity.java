@@ -25,6 +25,10 @@ public class OrderEntity {
     @JoinColumn(name = "customer_id", nullable = false)
     private CustomerEntity customerEntity;
 
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "delivery_address_id", nullable = false)
+    private DeliveryAddressEntity deliveryAddressEntity;
+
     @Column(length = 255)
     private String customerMessage;
 
@@ -34,7 +38,6 @@ public class OrderEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "status_type", nullable = false, length = 30)
     private OrderState statusType;
-
 
     @Convert(converter = OrderStatusConverter.class)
     @ColumnTransformer(write = "?::jsonb")
@@ -58,10 +61,17 @@ public class OrderEntity {
 
     public OrderEntity() {}
 
-    public OrderEntity(UUID orderId, CustomerEntity customerEntity, String message,
-                       BigDecimal total, OrderStatus orderStatus) {
+    public OrderEntity(
+            UUID orderId,
+            CustomerEntity customerEntity,
+            DeliveryAddressEntity deliveryAddressEntity,
+            String message,
+            BigDecimal total,
+            OrderStatus orderStatus
+    ) {
         this.id = orderId;
         this.customerEntity = customerEntity;
+        this.deliveryAddressEntity = deliveryAddressEntity;
         this.customerMessage = message;
         this.total = total;
         this.statusData = orderStatus;
@@ -81,6 +91,22 @@ public class OrderEntity {
 
     public void setCustomer(CustomerEntity customerEntity) {
         this.customerEntity = customerEntity;
+    }
+
+    public CustomerEntity getCustomerEntity() {
+        return customerEntity;
+    }
+
+    public void setCustomerEntity(CustomerEntity customerEntity) {
+        this.customerEntity = customerEntity;
+    }
+
+    public DeliveryAddressEntity getDeliveryAddressEntity() {
+        return deliveryAddressEntity;
+    }
+
+    public void setDeliveryAddressEntity(DeliveryAddressEntity deliveryAddressEntity) {
+        this.deliveryAddressEntity = deliveryAddressEntity;
     }
 
     public String getCustomerMessage() {
@@ -117,24 +143,17 @@ public class OrderEntity {
 
     public OrderEntity(
             UUID id,
-            CustomerEntity customerEntity
+            CustomerEntity customerEntity,
+            DeliveryAddressEntity deliveryAddressEntity
     ) {
         this.id = id;
         this.customerEntity = customerEntity;
+        this.deliveryAddressEntity = deliveryAddressEntity;
     }
-
 
     public void addDetail(OrderDetailEntity detail) {
         details.add(detail);
         detail.assignOrder(this);
-    }
-
-    public CustomerEntity getCustomerEntity() {
-        return customerEntity;
-    }
-
-    public void setCustomerEntity(CustomerEntity customerEntity) {
-        this.customerEntity = customerEntity;
     }
 
     public BigDecimal getTotal() {

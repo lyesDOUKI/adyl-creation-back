@@ -1,6 +1,7 @@
 package ld.application.infra.db.jpa.adapter;
 
 import ld.application.infra.db.entity.CustomerEntity;
+import ld.application.infra.db.entity.DeliveryAddressEntity;
 import ld.application.infra.db.entity.OrderEntity;
 import ld.application.infra.db.jpa.OrderJpaRepository;
 import ld.application.infra.db.jpa.mapper.OrderMapper;
@@ -27,7 +28,12 @@ public class OrderEditorJpaAdapter implements OrderEditor {
                         existingEntity -> OrderMapper.updateEntity(existingEntity, orderSnapshot),
                         () -> {
                             CustomerEntity customer = OrderMapper.toCustomerEntity(orderSnapshot.customerInfo());
-                            OrderEntity newEntity = OrderMapper.toEntity(orderSnapshot, customer);
+                            DeliveryAddressEntity deliveryAddress = OrderMapper.toDeliveryAddressEntity(orderSnapshot.customerInfo());
+                            OrderEntity newEntity = OrderMapper.toEntity(
+                                    orderSnapshot,
+                                    customer,
+                                    deliveryAddress
+                            );
                             orderJpaRepository.save(newEntity);
                         }
                 );

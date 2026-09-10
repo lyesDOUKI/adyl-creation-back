@@ -35,7 +35,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/orders")
-@Tag(name = "Commandes", description = "API pour la création d'une commande")
+@Tag(name = "Commandes", description = "API pour la gestion des commandes")
 public class OrderController {
 
     private final CreateOrderUseCase createOrderUseCase;
