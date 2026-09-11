@@ -17,9 +17,16 @@ public class AppointmentMapper {
                     snapshot.end(),
                     snapshot.identitySubject(),
                     AppointmentState.SUBMITTED,
-                    submitted.submittedAt(),
-                    null,
-                    null
+                    submitted.submittedAt()
+            );
+            case AppointmentStatus.Cancelled cancelled -> new AppointmentEntity(
+                    snapshot.appointmentId(),
+                    snapshot.start(),
+                    snapshot.end(),
+                    snapshot.identitySubject(),
+                    AppointmentState.CANCELLED,
+                    cancelled.cancelledAt(),
+                    cancelled.reason()
             );
         };
     }
