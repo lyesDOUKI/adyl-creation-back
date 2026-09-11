@@ -8,6 +8,7 @@ import ld.standard.lib.validation.BusinessRule;
 import ld.standard.lib.validation.Result;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.Objects;
 
@@ -24,31 +25,35 @@ public class AppointmentSlotAvailabilityRule implements BusinessRule<SubmitAppoi
 
     @Override
     public Result<Void> apply(SubmitAppointmentCommand command) {
-        TimeSlot requestedSlot = new TimeSlot(command.start(), command.end());
-        LocalDate date = requestedSlot.start().withZoneSameInstant(openingHoursCalendar.zoneId()).toLocalDate();
+        ZoneId businessZone = openingHoursCalendar.zoneId();
+        TimeSlot requestedSlot = new TimeSlot(
+                command.start().withZoneSameInstant(businessZone),
+                command.end().withZoneSameInstant(businessZone)
+        );
+
+        LocalDate date = requestedSlot.start().toLocalDate();
 
         TimeSlots theoreticalSlots = openingHoursCalendar.theoreticalSlotsBetween(date, date);
-
         if (!theoreticalSlots.asList().contains(requestedSlot)) {
-            return Result.businessFailure(AppointmentErrorCode.SLOT_OUTSIDE_OPENING_HOURS,
+            return Result.businessFailure(
+                    AppointmentErrorCode.SLOT_OUTSIDE_OPENING_HOURS,
                     "Créneau hors horaires",
                     "Le créneau demandé est hors horaire autorisé"
-                    );
+            );
         }
 
-        ZonedDateTime dayStart = date.atStartOfDay(openingHoursCalendar.zoneId());
-        ZonedDateTime dayEnd = date.plusDays(1).atStartOfDay(openingHoursCalendar.zoneId());
+        ZonedDateTime dayStart = date.atStartOfDay(businessZone);
+        ZonedDateTime dayEnd = date.plusDays(1).atStartOfDay(businessZone);
+        TimeSlots bookedSlots = new TimeSlots(loadBookedAppointmentsPort.loadBookedSlots(dayStart, dayEnd));
 
-        TimeSlots bookedSlots = new TimeSlots(
-                loadBookedAppointmentsPort.loadBookedSlots(dayStart, dayEnd));
-
-        TimeSlots availableSlots = theoreticalSlots.excluding(bookedSlots);
-
-        if (!availableSlots.asList().contains(requestedSlot)) {
-            return Result.businessFailure(AppointmentErrorCode.SLOT_ALREADY_BOOKED,
-                    "Créneau déjà réservé", "Ce créneau est déjà réservé");
+        if (bookedSlots.asList().stream().anyMatch(requestedSlot::overlaps)) {
+            return Result.businessFailure(
+                    AppointmentErrorCode.SLOT_ALREADY_BOOKED,
+                    "Créneau déjà réservé",
+                    "Ce créneau est déjà réservé"
+            );
         }
 
-        return Result.success(null);
+        return Result.ok();
     }
 }
