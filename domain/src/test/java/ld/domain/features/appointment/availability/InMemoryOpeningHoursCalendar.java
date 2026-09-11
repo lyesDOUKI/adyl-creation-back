@@ -9,13 +9,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-class InMemoryOpeningHoursCalendar implements OpeningHoursCalendar {
+public class InMemoryOpeningHoursCalendar implements OpeningHoursCalendar {
 
     private final Map<LocalDate, List<OpeningInterval>> openingIntervalsByDate = new HashMap<>();
     private Duration slotDuration = Duration.ofMinutes(30);
     private ZoneId zoneId = ZoneId.of("Europe/Paris");
 
-    InMemoryOpeningHoursCalendar withOpeningIntervals(LocalDate date, OpeningInterval... intervals) {
+    public InMemoryOpeningHoursCalendar withOpeningIntervals(LocalDate date, OpeningInterval... intervals) {
         openingIntervalsByDate.put(date, List.of(intervals));
         return this;
     }

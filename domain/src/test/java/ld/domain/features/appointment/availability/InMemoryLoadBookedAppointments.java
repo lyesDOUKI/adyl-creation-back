@@ -6,13 +6,13 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-class InMemoryLoadBookedAppointments implements LoadBookedAppointmentsPort {
+public class InMemoryLoadBookedAppointments implements LoadBookedAppointmentsPort {
 
     private final List<TimeSlot> bookedSlots = new ArrayList<>();
     private ZonedDateTime lastRequestedFrom;
     private ZonedDateTime lastRequestedTo;
 
-    void addBookedSlot(TimeSlot slot) {
+    public void addBookedSlot(TimeSlot slot) {
         bookedSlots.add(slot);
     }
 
