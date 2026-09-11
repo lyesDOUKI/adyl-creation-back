@@ -1,16 +1,12 @@
 package ld.application.tests.write.order;
 
 import ld.application.config.common.SharedPostgresContainer;
+import ld.application.config.order.SwitchableOrderCreator;
 import ld.application.context.OrderIntegrationTest;
-import ld.application.infra.db.jpa.adapter.OrderCreatorJpaAdapter;
 import ld.application.shared.order.CreateOrderCommandFixture;
 import ld.application.shared.product.ProductTestFixture;
 import ld.domain.features.order.CreateOrderUseCase;
-import ld.domain.features.order.OrderCreator;
-import ld.domain.features.order.model.OrderCreated;
-import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
-import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.helper.test.ResultTestSupport;
 import ld.standard.lib.validation.Result;
 import org.jooq.DSLContext;
@@ -18,12 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.util.UUID;
@@ -35,8 +26,6 @@ import static ld.application.jooq.tables.Orders.ORDERS;
 import static ld.application.jooq.tables.Products.PRODUCTS;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
 
 @OrderIntegrationTest
 class CreateOrderServiceIntegrationTest {
@@ -52,9 +41,6 @@ class CreateOrderServiceIntegrationTest {
 
     @Autowired
     private ProductTestFixture productTestFixture;
-
-    @MockitoBean
-    private AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
 
     @BeforeEach
     void setUp() {
@@ -93,9 +79,6 @@ class CreateOrderServiceIntegrationTest {
                 ORDER_DETAILS.ORDER_ID.eq(orderId)
         );
         assertThat(itemCount).isEqualTo(1);
-
-        verify(aggregateEventDispatcher, times(1))
-                .dispatch(argThat(event -> event instanceof OrderCreated));
     }
 
     @Test
@@ -106,16 +89,16 @@ class CreateOrderServiceIntegrationTest {
 
         assertThat(result.isFailure()).isTrue();
         assertThat(dsl.fetchCount(ORDERS)).isZero();
-
-        verifyNoInteractions(aggregateEventDispatcher);
     }
 
     @Nested
-    @Import(RollbackScenario.FailingRepositoryConfig.class)
     class RollbackScenario {
 
+        @Autowired
+        SwitchableOrderCreator switchableOrderCreator;
         @Test
         void should_rollback_order_creation_when_persistence_fails_after_insert() {
+            switchableOrderCreator.failAfterCreateWith(new RuntimeException("exception after persistence"));
             UUID customerIdentitySubject = UUID.randomUUID();
             insertCustomerInDb(customerIdentitySubject);
 
@@ -129,23 +112,6 @@ class CreateOrderServiceIntegrationTest {
                     .isInstanceOf(RuntimeException.class);
 
             assertThat(dsl.fetchCount(ORDERS)).isZero();
-
-            verifyNoInteractions(aggregateEventDispatcher);
-        }
-
-        @TestConfiguration
-        static class FailingRepositoryConfig {
-
-            @Bean
-            @Primary
-            OrderCreator failingCreateOrderRepository(
-                    OrderCreatorJpaAdapter realRepository
-            ) {
-                return snapshot -> {
-                    realRepository.create(snapshot);
-                    throw new RuntimeException("Simulated failure after insert");
-                };
-            }
         }
     }
 

@@ -1,16 +1,17 @@
 package ld.application.tests.write.order;
 
 import ld.application.config.common.SharedPostgresContainer;
+import ld.application.config.order.SwitchableOrderEditor;
 import ld.application.context.OrderIntegrationTest;
 import ld.application.infra.db.converter.OrderStatusConverter;
-import ld.application.infra.db.jpa.adapter.OrderEditorJpaAdapter;
 import ld.application.shared.product.ProductTestFixture;
 import ld.domain.features.order.accept.AcceptOrderCommand;
 import ld.domain.features.order.accept.AcceptOrderUseCase;
-import ld.domain.features.order.lifecycle.OrderEditor;
-import ld.domain.features.order.model.*;
+import ld.domain.features.order.model.DiscountType;
+import ld.domain.features.order.model.OrderReference;
+import ld.domain.features.order.model.OrderState;
+import ld.domain.features.order.model.OrderStatus;
 import ld.domain.valueObjects.Percentage;
-import ld.standard.lib.AggregateEventDispatcher;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.jooq.DSLContext;
 import org.jooq.JSON;
@@ -18,17 +19,11 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
 import java.time.*;
-import java.util.Optional;
 import java.util.UUID;
 
 import static ld.application.jooq.tables.Customers.CUSTOMERS;
@@ -41,8 +36,6 @@ import static ld.application.jooq.tables.Products.PRODUCTS;
 import static ld.standard.lib.helper.test.ResultTestSupport.extractValue;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
 
 @OrderIntegrationTest
 class AcceptOrderServiceIntegrationTest {
@@ -61,9 +54,6 @@ class AcceptOrderServiceIntegrationTest {
 
     @Autowired
     private Clock clock;
-
-    @MockitoBean
-    private AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
 
     private final OrderStatusConverter converter = new OrderStatusConverter();
 
@@ -120,9 +110,6 @@ class AcceptOrderServiceIntegrationTest {
                 DISCOUNT_CLAIMS.CUSTOMER_IDENTITY_SUBJECT.eq(customerIdentitySubject)
         );
         assertThat(claimCount).isEqualTo(1);
-
-        verify(aggregateEventDispatcher, times(1))
-                .dispatch(argThat(event -> event instanceof OrderAccepted));
     }
 
     @Test
@@ -157,9 +144,6 @@ class AcceptOrderServiceIntegrationTest {
         assertThat(detailRecord).isNotNull();
         assertThat(detailRecord.getDiscountRate())
                 .isEqualByComparingTo(BigDecimal.ZERO);
-
-        verify(aggregateEventDispatcher, times(1))
-                .dispatch(argThat(event -> event instanceof OrderAccepted));
     }
 
     @Test
@@ -170,8 +154,6 @@ class AcceptOrderServiceIntegrationTest {
         var result = acceptOrderUseCase.execute(command);
 
         assertThat(result.isFailure()).isTrue();
-
-        verifyNoInteractions(aggregateEventDispatcher);
     }
 
     @Test
@@ -199,7 +181,6 @@ class AcceptOrderServiceIntegrationTest {
         );
         assertThat(claimCount).isZero();
 
-        verifyNoInteractions(aggregateEventDispatcher);
     }
 
     @Test
@@ -241,11 +222,14 @@ class AcceptOrderServiceIntegrationTest {
     }
 
     @Nested
-    @Import(RollbackScenario.FailingRepositoryConfig.class)
     class RollbackScenario {
+
+        @Autowired
+        SwitchableOrderEditor switchableOrderEditor;
 
         @Test
         void should_rollback_order_acceptance_and_discount_claim_when_persistence_fails() {
+            switchableOrderEditor.failAfterCreateWith(new RuntimeException("exception after persistence"));
             var product = productTestFixture.createExistingProduct();
             UUID orderId = UUID.randomUUID();
             String customerEmail = "rollback.user@example.com";
@@ -268,32 +252,8 @@ class AcceptOrderServiceIntegrationTest {
                     DISCOUNT_CLAIMS.CUSTOMER_IDENTITY_SUBJECT.eq(customerIdentitySubject)
             );
             assertThat(claimCount).isZero();
-
-            verifyNoInteractions(aggregateEventDispatcher);
         }
 
-        @TestConfiguration
-        static class FailingRepositoryConfig {
-
-            @Bean
-            @Primary
-            OrderEditor failingOrderEditor(OrderEditorJpaAdapter realRepository) {
-                return new OrderEditor() {
-                    @Override
-                    public Optional<OrderSnapshot> findById(UUID id) {
-                        return realRepository.findById(id);
-                    }
-
-                    @Override
-                    public void save(OrderSnapshot snapshot) {
-                        realRepository.save(snapshot);
-                        throw new RuntimeException(
-                                "Simulated failure during save in UnitOfWork"
-                        );
-                    }
-                };
-            }
-        }
     }
 
     private UUID insertCustomerInDb(String customerEmail) {

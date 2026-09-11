@@ -12,6 +12,7 @@ import ld.application.infra.db.read.GetOrderQueryRepository;
 import org.jooq.DSLContext;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @TestConfiguration
@@ -55,5 +56,19 @@ public class OrderPersistenceTestConfiguration {
     @Bean
     GetOrderQueryRepository getOrderQueryRepository(DSLContext dslContext) {
         return new JooqGetOrderQueryRepository(dslContext);
+    }
+
+    @Bean
+    @Primary
+    SwitchableOrderEditor switchableOrderEditor(
+            OrderEditorJpaAdapter delegate) {
+        return new SwitchableOrderEditor(delegate);
+    }
+
+    @Bean
+    @Primary
+    SwitchableOrderCreator switchableOrderCreator(
+            OrderCreatorJpaAdapter delegate) {
+        return new SwitchableOrderCreator(delegate);
     }
 }
