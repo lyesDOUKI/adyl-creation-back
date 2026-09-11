@@ -55,7 +55,22 @@ public class AppointmentEntity {
             ZonedDateTime endAt,
             UUID identitySubject,
             AppointmentState status,
-            Instant submittedAt,
+            Instant submittedAt
+    ) {
+        this.id = id;
+        this.startAt = startAt;
+        this.endAt = endAt;
+        this.identitySubject = identitySubject;
+        this.status = status;
+        this.submittedAt = submittedAt;
+    }
+
+    public AppointmentEntity(
+            UUID id,
+            ZonedDateTime startAt,
+            ZonedDateTime endAt,
+            UUID identitySubject,
+            AppointmentState status,
             Instant cancelledAt,
             String cancelledReason
     ) {
@@ -64,10 +79,10 @@ public class AppointmentEntity {
         this.endAt = endAt;
         this.identitySubject = identitySubject;
         this.status = status;
-        this.submittedAt = submittedAt;
         this.cancelledAt = cancelledAt;
         this.cancelledReason = cancelledReason;
     }
+
 
     public UUID getId() {
         return id;
