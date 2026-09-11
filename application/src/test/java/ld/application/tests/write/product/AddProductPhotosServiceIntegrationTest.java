@@ -1,12 +1,11 @@
 package ld.application.tests.write.product;
 
 import ld.application.config.common.SharedPostgresContainer;
+import ld.application.config.product.SwitchableProductEditor;
 import ld.application.context.ProductIntegrationTest;
 import ld.application.shared.product.AddProductPhotosCommandFixture;
 import ld.application.shared.product.ProductTestFixture;
-import ld.domain.features.product.lifecycle.ProductEditor;
 import ld.domain.features.product.model.ProductPhotoSnapshot;
-import ld.domain.features.product.model.ProductSnapshot;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
 import ld.domain.features.product.photos.ProductPhotoStoragePort;
 import ld.standard.lib.helper.test.ResultTestSupport;
@@ -16,16 +15,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Import;
-import org.springframework.context.annotation.Primary;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
-
-import java.util.Optional;
-import java.util.UUID;
 
 import static ld.application.jooq.tables.ProductColors.PRODUCT_COLORS;
 import static ld.application.jooq.tables.ProductPhotos.PRODUCT_PHOTOS;
@@ -107,11 +99,13 @@ class AddProductPhotosServiceIntegrationTest {
     }
 
     @Nested
-    @Import(RollbackScenario.FailingProductEditorConfig.class)
     class RollbackScenario {
 
+        @Autowired
+        SwitchableProductEditor switchableProductEditor;
         @Test
         void should_rollback_persistence_when_save_fails_after_photos_uploaded() {
+            switchableProductEditor.failAfterCreateWith(new RuntimeException("exception after persistence"));
             var product = productTestFixture.createExistingProduct();
             var command = AddProductPhotosCommandFixture.aValidCommand(product.id());
 
@@ -125,27 +119,6 @@ class AddProductPhotosServiceIntegrationTest {
                     PRODUCT_PHOTOS, PRODUCT_PHOTOS.PRODUCT_ID.eq(product.id())
             );
             assertThat(photoCount).isZero();
-        }
-
-        @TestConfiguration
-        static class FailingProductEditorConfig {
-
-            @Bean
-            @Primary
-            ProductEditor failingProductEditor(ProductEditor productEditor) {
-                return new ProductEditor() {
-                    @Override
-                    public Optional<ProductSnapshot> findById(UUID id) {
-                        return productEditor.findById(id);
-                    }
-
-                    @Override
-                    public void save(ProductSnapshot snapshot) {
-                        productEditor.save(snapshot);
-                        throw new RuntimeException("Simulated failure after insert");
-                    }
-                };
-            }
         }
     }
 }

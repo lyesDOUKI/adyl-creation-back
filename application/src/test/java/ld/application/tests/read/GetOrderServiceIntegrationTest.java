@@ -7,13 +7,11 @@ import ld.application.read.GetOrderService;
 import ld.application.response.GetOrderResponse;
 import ld.application.response.OrderLineResponse;
 import ld.application.response.ProductCategoryResponse;
-import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderReference;
 import ld.domain.features.order.model.OrderStatus;
 import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.product.model.ProductCategory;
 import ld.domain.features.product.model.ProductStatus;
-import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.helper.test.ResultTestSupport;
 import ld.standard.lib.validation.FailureType;
 import ld.standard.lib.validation.Result;
@@ -25,7 +23,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
@@ -55,8 +52,6 @@ class GetOrderServiceIntegrationTest {
 
     @Autowired
     private Clock clock;
-    @MockitoBean
-    private AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
 
     private final OrderStatusConverter converter = new OrderStatusConverter();
 
