@@ -5,6 +5,7 @@ import ld.standard.lib.Snapshottable;
 
 import java.time.Clock;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 public class Appointment extends AggregateRoot<UUID, AppointmentEvent> implements Snapshottable<AppointmentSnapshot> {
@@ -13,8 +14,9 @@ public class Appointment extends AggregateRoot<UUID, AppointmentEvent> implement
     private final ZonedDateTime end;
     private final UUID identitySubject;
     private final AppointmentStatus appointmentStatus;
-
-    private Appointment(ZonedDateTime start, ZonedDateTime end, UUID identitySubject, Clock clock) {
+    private final AppointmentNote appointmentNote;
+    private Appointment(ZonedDateTime start, ZonedDateTime end, UUID identitySubject, Clock clock, AppointmentNote appointmentNote) {
+        this.appointmentNote = appointmentNote;
         this.setId(UUID.randomUUID());
         this.start = start;
         this.end = end;
@@ -24,7 +26,8 @@ public class Appointment extends AggregateRoot<UUID, AppointmentEvent> implement
     }
 
     public Appointment(UUID appointmentId, ZonedDateTime start, ZonedDateTime end, UUID identitySubject,
-                       AppointmentStatus appointmentStatus) {
+                       AppointmentStatus appointmentStatus, AppointmentNote appointmentNote) {
+        this.appointmentNote = appointmentNote;
         setId(appointmentId);
         this.start = start;
         this.end = end;
@@ -32,8 +35,11 @@ public class Appointment extends AggregateRoot<UUID, AppointmentEvent> implement
         this.appointmentStatus = appointmentStatus;
     }
 
-    public static Appointment create(ZonedDateTime start, ZonedDateTime end, UUID identitySubject, Clock clock) {
-        return new Appointment(start, end, identitySubject, clock);
+    public static Appointment create(ZonedDateTime start, ZonedDateTime end, UUID identitySubject, String note, Clock clock) {
+        return new Appointment(start, end, identitySubject, clock,
+                Optional.ofNullable(note)
+                        .filter(notes -> !notes.isBlank())
+                        .map(AppointmentNote::new).orElse(null));
     }
 
     public static Appointment from(AppointmentSnapshot snapshot) {
@@ -42,7 +48,8 @@ public class Appointment extends AggregateRoot<UUID, AppointmentEvent> implement
                 snapshot.start(),
                 snapshot.end(),
                 snapshot.identitySubject(),
-                snapshot.appointmentStatus()
+                snapshot.appointmentStatus(),
+                snapshot.note().orElse(null)
         );
     }
 
@@ -53,7 +60,8 @@ public class Appointment extends AggregateRoot<UUID, AppointmentEvent> implement
                 this.start,
                 this.end,
                 this.identitySubject,
-                this.appointmentStatus
+                this.appointmentStatus,
+                Optional.ofNullable(this.appointmentNote)
         );
     }
 }

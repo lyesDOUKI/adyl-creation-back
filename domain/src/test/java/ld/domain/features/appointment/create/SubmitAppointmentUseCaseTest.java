@@ -195,7 +195,7 @@ class SubmitAppointmentUseCaseTest {
         }
 
         public SubmitAppointmentCommand build() {
-            return new SubmitAppointmentCommand(start, end, identitySubject);
+            return new SubmitAppointmentCommand(start, end, identitySubject, "default note");
         }
     }
 }

@@ -46,6 +46,7 @@ public class SubmitAppointmentUseCaseImpl implements SubmitAppointmentUseCase {
                             submitAppointmentCommand.start(),
                             submitAppointmentCommand.end(),
                             submitAppointmentCommand.identitySubject(),
+                            submitAppointmentCommand.note(),
                             clock
                     );
                     this.appointmentCreator.create(appointment.toSnapshot());

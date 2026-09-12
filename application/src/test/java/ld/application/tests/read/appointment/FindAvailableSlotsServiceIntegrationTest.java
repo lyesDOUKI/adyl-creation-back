@@ -5,6 +5,7 @@ import ld.application.context.AppointmentIntegrationTest;
 import ld.domain.features.appointment.availability.FindAvailableSlotsQuery;
 import ld.domain.features.appointment.availability.FindAvailableSlotsUseCase;
 import ld.domain.features.appointment.create.AppointmentCreator;
+import ld.domain.features.appointment.model.AppointmentNote;
 import ld.domain.features.appointment.model.AppointmentSnapshot;
 import ld.domain.features.appointment.model.AppointmentStatus;
 import ld.domain.features.appointment.model.TimeSlot;
@@ -17,6 +18,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.time.*;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static ld.application.jooq.tables.Appointment.APPOINTMENT;
@@ -145,7 +147,8 @@ class FindAvailableSlotsServiceIntegrationTest {
                 start,
                 end,
                 UUID.randomUUID(),
-                new AppointmentStatus.Submitted(start.toInstant()));
+                new AppointmentStatus.Submitted(start.toInstant()),
+                Optional.of(new AppointmentNote("default notes")));
         appointmentCreator.create(snapshot);
     }
     private void insertAppointment(LocalDate date, int startHour, int startMinute, int endHour, int endMinute, AppointmentStatus appointmentStatus) {
@@ -156,7 +159,8 @@ class FindAvailableSlotsServiceIntegrationTest {
                 start,
                 end,
                 UUID.randomUUID(),
-                appointmentStatus);
+                appointmentStatus,
+                Optional.of(new AppointmentNote("default notes")));
         appointmentCreator.create(snapshot);
     }
 

@@ -12,9 +12,11 @@ public record SubmitAppointmentRequest(
         ZonedDateTime start,
 
         @Schema(description = "Fin du créneau souhaité", example = "2026-09-15T09:30:00+02:00")
-        ZonedDateTime end
+        ZonedDateTime end,
+
+        String notes
 ) {
     public SubmitAppointmentCommand to(UUID identitySubject) {
-        return new SubmitAppointmentCommand(start, end, identitySubject);
+        return new SubmitAppointmentCommand(start, end, identitySubject, notes);
     }
 }
