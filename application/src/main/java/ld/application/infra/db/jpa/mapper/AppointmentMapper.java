@@ -17,7 +17,8 @@ public class AppointmentMapper {
                     snapshot.end(),
                     snapshot.identitySubject(),
                     AppointmentState.SUBMITTED,
-                    submitted.submittedAt()
+                    submitted.submittedAt(),
+                    snapshot.note().orElse(null)
             );
             case AppointmentStatus.Cancelled cancelled -> new AppointmentEntity(
                     snapshot.appointmentId(),

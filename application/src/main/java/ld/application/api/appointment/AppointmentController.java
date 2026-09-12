@@ -2,6 +2,7 @@ package ld.application.api.appointment;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -12,7 +13,9 @@ import jakarta.validation.Valid;
 import ld.application.infra.security.CurrentCustomerId;
 import ld.application.infra.security.CustomerOnly;
 import ld.application.read.FindAvailableSlotsService;
+import ld.application.read.GetAppointmentService;
 import ld.application.request.SubmitAppointmentRequest;
+import ld.application.response.AppointmentsResponse;
 import ld.application.response.AvailableSlotsResponse;
 import ld.application.response.SubmitAppointmentResponse;
 import ld.domain.features.appointment.create.SubmitAppointmentUseCase;
@@ -23,6 +26,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -32,11 +36,13 @@ public class AppointmentController {
 
     private final FindAvailableSlotsService findAvailableSlotsService;
     private final SubmitAppointmentUseCase submitAppointmentUseCase;
-
+    private final GetAppointmentService getAppointmentService;
     public AppointmentController(FindAvailableSlotsService findAvailableSlotsService,
-                                 SubmitAppointmentUseCase submitAppointmentUseCase) {
+                                 SubmitAppointmentUseCase submitAppointmentUseCase,
+                                 GetAppointmentService getAppointmentService) {
         this.findAvailableSlotsService = findAvailableSlotsService;
         this.submitAppointmentUseCase = submitAppointmentUseCase;
+        this.getAppointmentService = getAppointmentService;
     }
 
     @CustomerOnly
@@ -127,5 +133,38 @@ public class AppointmentController {
                 .map(SubmitAppointmentResponse::from);
 
         return ResultToResponse.created(response, SubmitAppointmentResponse::appointmentId, httpServletRequest);
+    }
+
+    @CustomerOnly
+    @Operation(
+            summary = "Lister mes rendez-vous",
+            description = "Retourne l'ensemble des rendez-vous du client actuellement authentifié, "
+                    + "identifié à partir du token JWT. Aucun paramètre n'est requis : "
+                    + "le périmètre est automatiquement restreint au client courant."
+    )
+    @ApiResponses(value = {
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Liste des rendez-vous du client (peut être vide)",
+                    content = @Content(
+                            mediaType = "application/json",
+                            array = @ArraySchema(schema = @Schema(implementation = AppointmentsResponse.class))
+                    )
+            ),
+            @ApiResponse(
+                    responseCode = "401",
+                    description = "Authentification manquante ou invalide",
+                    content = @Content
+            ),
+            @ApiResponse(
+                    responseCode = "403",
+                    description = "Le token ne correspond pas à un customer",
+                    content = @Content
+            )
+    })
+    @GetMapping
+    public ResponseEntity<List<AppointmentsResponse>> getAll(
+            @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId) {
+        return ResponseEntity.ok(this.getAppointmentService.getAll(currentCustomerId));
     }
 }

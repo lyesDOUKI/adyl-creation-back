@@ -239,7 +239,8 @@ class SubmitAppointmentServiceIntegrationTest {
             return new SubmitAppointmentCommand(
                     start,
                     end,
-                    identitySubject
+                    identitySubject,
+                    "default notes"
             );
         }
     }

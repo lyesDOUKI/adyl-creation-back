@@ -1,12 +1,14 @@
 package ld.application.infra.db.entity;
 
 import jakarta.persistence.*;
+import ld.domain.features.appointment.model.AppointmentNote;
 import ld.domain.features.appointment.model.AppointmentState;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.Instant;
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 @Entity
@@ -47,6 +49,9 @@ public class AppointmentEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
+    @Column(name = "notes", length = 500)
+    private String notes;
+
     protected AppointmentEntity() {}
 
     public AppointmentEntity(
@@ -55,7 +60,8 @@ public class AppointmentEntity {
             ZonedDateTime endAt,
             UUID identitySubject,
             AppointmentState status,
-            Instant submittedAt
+            Instant submittedAt,
+            AppointmentNote notes
     ) {
         this.id = id;
         this.startAt = startAt;
@@ -63,6 +69,7 @@ public class AppointmentEntity {
         this.identitySubject = identitySubject;
         this.status = status;
         this.submittedAt = submittedAt;
+        this.notes = Optional.ofNullable(notes).map(AppointmentNote::value).orElse(null);
     }
 
     public AppointmentEntity(
@@ -162,5 +169,13 @@ public class AppointmentEntity {
 
     public void setUpdatedAt(Instant updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 }

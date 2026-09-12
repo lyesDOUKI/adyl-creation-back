@@ -1,6 +1,7 @@
 package ld.domain.features.appointment.model;
 
 import java.time.ZonedDateTime;
+import java.util.Optional;
 import java.util.UUID;
 
 public record AppointmentSnapshot(
@@ -8,5 +9,6 @@ public record AppointmentSnapshot(
         ZonedDateTime start,
         ZonedDateTime end,
         UUID identitySubject,
-        AppointmentStatus appointmentStatus
+        AppointmentStatus appointmentStatus,
+        Optional<AppointmentNote> note
 ) {}
