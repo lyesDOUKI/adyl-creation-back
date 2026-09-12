@@ -1,5 +1,28 @@
 # Changelog
 
+## [3.0.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v2.2.1...v3.0.0) (2026-09-12)
+
+
+### ⚠ BREAKING CHANGES
+
+* add creating appointment endpoint
+* add available slots finder in the application layer - representation by date
+* add submiting appointment usecase
+* add available slots finder usecase
+
+### Features
+
+* add available slots finder in the application layer - representation by date ([b1da8b1](https://github.com/lyesDOUKI/adyl-creation-back/commit/b1da8b144f1bf06cb245de2dc5b754e5568ec76e))
+* add available slots finder usecase ([b454d8a](https://github.com/lyesDOUKI/adyl-creation-back/commit/b454d8ad7253b115b1723afc2ae3cee7c156379c))
+* add creating appointment endpoint ([ec27cb1](https://github.com/lyesDOUKI/adyl-creation-back/commit/ec27cb15f56fbe89f26ae94494d04d3690b9c8c3))
+* add submiting appointment usecase ([0253e7c](https://github.com/lyesDOUKI/adyl-creation-back/commit/0253e7c8cceb82039e82f17227021acc3dd3f26c))
+* stock notes Appointment ([704ae89](https://github.com/lyesDOUKI/adyl-creation-back/commit/704ae89ad54c6e8ead0a77a450337babc73cebf6))
+
+
+### Bug Fixes
+
+* make spring dispatcher as primary bean for orders ([595635d](https://github.com/lyesDOUKI/adyl-creation-back/commit/595635d86d0147ce3151658a1acceccf33e2f3b7))
+
 ## [2.2.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v2.2.0...v2.2.1) (2026-09-10)
 
 
