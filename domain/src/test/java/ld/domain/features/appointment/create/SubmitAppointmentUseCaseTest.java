@@ -1,6 +1,5 @@
 package ld.domain.features.appointment.create;
 
-import ld.domain.features.appointment.availability.InMemoryLoadBookedAppointments;
 import ld.domain.features.appointment.availability.InMemoryOpeningHoursCalendar;
 import ld.domain.features.appointment.model.AppointmentEvent;
 import ld.domain.features.appointment.model.AppointmentStatus;
@@ -28,7 +27,7 @@ class SubmitAppointmentUseCaseTest {
             Clock.fixed(DATE.atStartOfDay(ZONE_ID).toInstant(), ZONE_ID);
 
     InMemoryAppointmentCreator appointmentCreator = new InMemoryAppointmentCreator();
-    InMemoryLoadBookedAppointments loadBookedAppointmentsPort = new InMemoryLoadBookedAppointments();
+    InMemoryScheduleClaimer scheduleClaimer = new InMemoryScheduleClaimer();
     InMemoryOpeningHoursCalendar openingHoursCalendar = new InMemoryOpeningHoursCalendar();
     InMemoryAggregateEventDispatcher<AppointmentEvent> aggregateEventDispatcher =
             new InMemoryAggregateEventDispatcher<>();
@@ -36,8 +35,8 @@ class SubmitAppointmentUseCaseTest {
 
     SubmitAppointmentUseCaseImpl submitAppointmentUseCase = new SubmitAppointmentUseCaseImpl(
             appointmentCreator,
+            scheduleClaimer,
             openingHoursCalendar,
-            loadBookedAppointmentsPort,
             aggregateEventDispatcher,
             unitOfWork,
             FIXED_CLOCK
@@ -80,6 +79,20 @@ class SubmitAppointmentUseCaseTest {
             Assertions.assertThat(aggregateEventDispatcher.count())
                     .isZero();
         }
+
+        @Test
+        @DisplayName("Aucun accès exclusif n'est demandé (échec avant l'acquisition du claim)")
+        public void shouldNotClaimExclusiveAccess() {
+            var command = SubmitAppointmentCommandTestBuilder.aSubmitAppointmentCommand()
+                    .withStart(ZonedDateTime.of(DATE, LocalTime.of(14, 0), ZONE_ID))
+                    .withEnd(ZonedDateTime.of(DATE, LocalTime.of(14, 30), ZONE_ID))
+                    .build();
+
+            assertFailure(submitAppointmentUseCase.execute(command));
+
+            Assertions.assertThat(scheduleClaimer.claimCount())
+                    .isZero();
+        }
     }
 
     @Nested
@@ -93,7 +106,7 @@ class SubmitAppointmentUseCaseTest {
         public void setup() {
             openingHoursCalendar.withOpeningIntervals(DATE,
                     new OpeningInterval(LocalTime.of(9, 0), LocalTime.of(12, 0)));
-            loadBookedAppointmentsPort.addBookedSlot(new TimeSlot(bookedStart, bookedEnd));
+            scheduleClaimer.addBookedSlot(new TimeSlot(bookedStart, bookedEnd));
         }
 
         @Test
@@ -158,14 +171,31 @@ class SubmitAppointmentUseCaseTest {
 
             var persistedAppointment = extractValue(result);
 
-            Assertions.assertThat(persistedAppointment.start())
+            Assertions.assertThat(persistedAppointment.timeSlot().start())
                     .isEqualTo(start);
-            Assertions.assertThat(persistedAppointment.end())
+            Assertions.assertThat(persistedAppointment.timeSlot().end())
                     .isEqualTo(end);
             Assertions.assertThat(persistedAppointment.identitySubject())
                     .isEqualTo(identitySubject);
             Assertions.assertThat(persistedAppointment.appointmentStatus())
                     .isInstanceOf(AppointmentStatus.Submitted.class);
+        }
+
+        @Test
+        @DisplayName("Un accès exclusif est demandé pour la journée concernée")
+        public void shouldClaimExclusiveAccessForTheDay() {
+            ZonedDateTime start = ZonedDateTime.of(DATE, LocalTime.of(9, 0), ZONE_ID);
+            ZonedDateTime end = ZonedDateTime.of(DATE, LocalTime.of(9, 30), ZONE_ID);
+
+            var command = SubmitAppointmentCommandTestBuilder.aSubmitAppointmentCommand()
+                    .withStart(start)
+                    .withEnd(end)
+                    .build();
+
+            assertSuccess(submitAppointmentUseCase.execute(command));
+
+            Assertions.assertThat(scheduleClaimer.claimCount())
+                    .isOne();
         }
     }
 

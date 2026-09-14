@@ -23,6 +23,8 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.UUID;
+import java.util.concurrent.*;
+import java.util.stream.Stream;
 
 import static ld.application.jooq.tables.Appointment.APPOINTMENT;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -74,10 +76,10 @@ class SubmitAppointmentServiceIntegrationTest {
 
         var snapshot = ResultTestSupport.extractValue(result);
 
-        assertThat(snapshot.start())
+        assertThat(snapshot.timeSlot().start())
                 .isEqualTo(command.start());
 
-        assertThat(snapshot.end())
+        assertThat(snapshot.timeSlot().end())
                 .isEqualTo(command.end());
 
         assertThat(snapshot.identitySubject())
@@ -242,6 +244,66 @@ class SubmitAppointmentServiceIntegrationTest {
                     identitySubject,
                     "default notes"
             );
+        }
+    }
+
+    @Nested
+    class ConcurrentSubmissionScenario {
+
+        @Test
+        void should_reject_exactly_one_of_two_concurrent_submissions_on_the_same_slot() throws Exception {
+
+            var slotStart = ZonedDateTime.of(DATE, LocalTime.of(9, 0), ZONE_ID);
+            var slotEnd = ZonedDateTime.of(DATE, LocalTime.of(9, 30), ZONE_ID);
+
+            var firstCommand = SubmitAppointmentCommandTestBuilder.aSubmitAppointmentCommand()
+                    .withStart(slotStart)
+                    .withEnd(slotEnd)
+                    .build();
+
+            var secondCommand = SubmitAppointmentCommandTestBuilder.aSubmitAppointmentCommand()
+                    .withStart(slotStart)
+                    .withEnd(slotEnd)
+                    .build();
+
+            var readyToStart = new CyclicBarrier(2);
+            var pool = Executors.newFixedThreadPool(2);
+            try {
+                Callable<Result<AppointmentSnapshot>> submitFirst = () -> {
+                    readyToStart.await();
+                    return submitAppointmentUseCase.execute(firstCommand);
+                };
+                Callable<Result<AppointmentSnapshot>> submitSecond = () -> {
+                    readyToStart.await();
+                    return submitAppointmentUseCase.execute(secondCommand);
+                };
+
+                Future<Result<AppointmentSnapshot>> firstFuture = pool.submit(submitFirst);
+                Future<Result<AppointmentSnapshot>> secondFuture = pool.submit(submitSecond);
+
+                Result<AppointmentSnapshot> firstResult = firstFuture.get(10, TimeUnit.SECONDS);
+                Result<AppointmentSnapshot> secondResult = secondFuture.get(10, TimeUnit.SECONDS);
+
+                long successCount = Stream.of(firstResult, secondResult)
+                        .filter(Result::isSuccess)
+                        .count();
+                long failureCount = Stream.of(firstResult, secondResult)
+                        .filter(Result::isFailure)
+                        .count();
+
+                assertThat(successCount)
+                        .as("exactement une des deux soumissions concurrentes doit réussir")
+                        .isEqualTo(1);
+                assertThat(failureCount)
+                        .as("exactement une des deux soumissions concurrentes doit échouer")
+                        .isEqualTo(1);
+
+                assertThat(dsl.fetchCount(APPOINTMENT))
+                        .as("un seul appointment doit être persisté pour ce créneau, jamais deux")
+                        .isEqualTo(1);
+            } finally {
+                pool.shutdownNow();
+            }
         }
     }
 }

@@ -36,8 +36,8 @@ public record SubmitAppointmentResponse(
         }
         return new SubmitAppointmentResponse(
                 appointmentSnapshot.appointmentId(),
-                appointmentSnapshot.start(),
-                appointmentSnapshot.end(),
+                appointmentSnapshot.timeSlot().start(),
+                appointmentSnapshot.timeSlot().end(),
                 AppointmentState.SUBMITTED.name(),
                 submittedAt
         );
