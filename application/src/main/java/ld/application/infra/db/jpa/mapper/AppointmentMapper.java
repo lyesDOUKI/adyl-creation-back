@@ -13,8 +13,8 @@ public class AppointmentMapper {
         return switch (snapshot.appointmentStatus()) {
             case AppointmentStatus.Submitted submitted -> new AppointmentEntity(
                     snapshot.appointmentId(),
-                    snapshot.start(),
-                    snapshot.end(),
+                    snapshot.timeSlot().start(),
+                    snapshot.timeSlot().end(),
                     snapshot.identitySubject(),
                     AppointmentState.SUBMITTED,
                     submitted.submittedAt(),
@@ -22,8 +22,8 @@ public class AppointmentMapper {
             );
             case AppointmentStatus.Cancelled cancelled -> new AppointmentEntity(
                     snapshot.appointmentId(),
-                    snapshot.start(),
-                    snapshot.end(),
+                    snapshot.timeSlot().start(),
+                    snapshot.timeSlot().end(),
                     snapshot.identitySubject(),
                     AppointmentState.CANCELLED,
                     cancelled.cancelledAt(),

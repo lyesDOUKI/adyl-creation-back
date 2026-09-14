@@ -2,6 +2,7 @@ package ld.application.bridge;
 
 import ld.domain.features.appointment.availability.*;
 import ld.domain.features.appointment.create.AppointmentCreator;
+import ld.domain.features.appointment.create.ScheduleClaimer;
 import ld.domain.features.appointment.create.SubmitAppointmentUseCase;
 import ld.domain.features.appointment.create.SubmitAppointmentUseCaseImpl;
 import ld.domain.features.appointment.model.AppointmentEvent;
@@ -34,15 +35,15 @@ public class AppointmentConfiguration {
     }
     @Bean
     public SubmitAppointmentUseCase submitAppointmentUseCase(AppointmentCreator appointmentCreator,
+                                                             ScheduleClaimer scheduleClaimer,
                                                              OpeningHoursCalendar openingHoursCalendar,
-                                                             LoadBookedAppointmentsPort loadBookedAppointmentsPort,
                                                              AggregateEventDispatcher<AppointmentEvent> appointmentEventAggregateEventDispatcher,
                                                              UnitOfWork unitOfWork,
                                                              Clock clock
                                                              ) {
         return new SubmitAppointmentUseCaseImpl(appointmentCreator,
+                scheduleClaimer,
                 openingHoursCalendar,
-                loadBookedAppointmentsPort,
                 appointmentEventAggregateEventDispatcher,
                 unitOfWork,
                 clock);

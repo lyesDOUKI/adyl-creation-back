@@ -142,10 +142,10 @@ class FindAvailableSlotsServiceIntegrationTest {
     private void insertAppointment(LocalDate date, int startHour, int startMinute, int endHour, int endMinute) {
         var start = at(date, startHour, startMinute);
         var end = at(date, endHour, endMinute);
+        var timeSlot = new TimeSlot(start, end);
         var snapshot = new AppointmentSnapshot(
                 UUID.randomUUID(),
-                start,
-                end,
+                timeSlot,
                 UUID.randomUUID(),
                 new AppointmentStatus.Submitted(start.toInstant()),
                 Optional.of(new AppointmentNote("default notes")));
@@ -154,10 +154,10 @@ class FindAvailableSlotsServiceIntegrationTest {
     private void insertAppointment(LocalDate date, int startHour, int startMinute, int endHour, int endMinute, AppointmentStatus appointmentStatus) {
         var start = at(date, startHour, startMinute);
         var end = at(date, endHour, endMinute);
+        var timeSlot = new TimeSlot(start, end);
         var snapshot = new AppointmentSnapshot(
                 UUID.randomUUID(),
-                start,
-                end,
+                timeSlot,
                 UUID.randomUUID(),
                 appointmentStatus,
                 Optional.of(new AppointmentNote("default notes")));
