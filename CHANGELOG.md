@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v3.0.0...v3.1.0) (2026-09-14)
+
+
+### Features
+
+* handle race condition when submitting Appointment ([e9e5f77](https://github.com/lyesDOUKI/adyl-creation-back/commit/e9e5f77ffdddc2be1ca9fc29d5dbd16332155a4e))
+
 ## [3.0.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v2.2.1...v3.0.0) (2026-09-12)
 
 
