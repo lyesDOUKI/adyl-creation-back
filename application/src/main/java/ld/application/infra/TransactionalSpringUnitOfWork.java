@@ -17,9 +17,9 @@ public class TransactionalSpringUnitOfWork implements UnitOfWork {
     }
 
     @Override
-    public <T> Result<T> executeInTransaction(Supplier<Result<T>> operation) {
+    public <T, E> Result<T, E> executeInTransaction(Supplier<Result<T, E>> operation) {
         return transactionTemplate.execute(status -> {
-            Result<T> result = operation.get();
+            Result<T, E> result = operation.get();
             if (result.isFailure()) {
                 status.setRollbackOnly();
             }

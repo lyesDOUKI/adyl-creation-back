@@ -2,7 +2,6 @@ package ld.domain.features.order;
 
 import ld.domain.features.order.model.*;
 import ld.domain.features.order.validation.CreateOrderContextValidation;
-import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.order.validation.ProductStatusRule;
 import ld.domain.features.order.validation.ProductsColorsRule;
 import ld.domain.features.product.ProductFinder;
@@ -25,9 +24,10 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
     private final OrderCreator orderCreator;
     private final ProductFinder productFinder;
     private final AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher;
-    private final BusinessGuard<CreateOrderContextValidation> createOrderGuard;
+    private final BusinessGuard<CreateOrderContextValidation, OrderCreateError> createOrderGuard;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
+
     public CreateOrderUseCaseImpl(OrderCreator orderCreator,
                                   ProductFinder productFinder,
                                   AggregateEventDispatcher<OrderEvent> aggregateEventDispatcher,
@@ -44,29 +44,17 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
     }
 
     @Override
-    public Result<OrderSnapshot> execute(CreateOrderCommand createOrderCommand) {
-        return this.getGivenProducts(createOrderCommand.createOrderItems())
-                .flatMap(givenProducts ->
-                        this.assertGivenProducts(createOrderCommand, givenProducts))
-                .map(productsById ->
-                        this.initItems(createOrderCommand.createOrderItems(), productsById))
-                .flatMap(orderItems -> this.unitOfWork.executeInTransaction(() -> {
-                    var order = Order.create(
-                            CustomerInfo.from(createOrderCommand.identitySubject(),
-                                    createOrderCommand.deliveryInformation()),
-                            createOrderCommand.message(), clock
-                    );
-                    order.calculateOrder(orderItems);
-                    this.orderCreator.create(order.toSnapshot());
-                    return Result.success(order);
-                }))
-                .map(order -> {
-                    order.getDomainEvents().forEach(this.aggregateEventDispatcher::dispatch);
-                    return order.toSnapshot();
-                });
+    public Result<OrderSnapshot, OrderCreateError> execute(CreateOrderCommand command) {
+        return this.getGivenProducts(command.createOrderItems())
+                .andThen(givenProducts -> this.assertGivenProducts(command, givenProducts))
+                .map(productsById -> this.initItems(command.createOrderItems(), productsById))
+                .andThen(orderItems -> this.createOrder(command, orderItems))
+                .map(this::dispatchEventsAndSnapshot);
     }
 
-    private Result<Map<UUID, ProductSnapshot>> getGivenProducts(List<CreateOrderCommand.CreateOrderItem> orderItems) {
+    private Result<Map<UUID, ProductSnapshot>, OrderCreateError> getGivenProducts(
+            List<CreateOrderCommand.CreateOrderItem> orderItems) {
+
         List<UUID> requestedIds = orderItems.stream()
                 .map(CreateOrderCommand.CreateOrderItem::productId)
                 .toList();
@@ -80,24 +68,18 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
                 .filter(id -> !productsById.containsKey(id))
                 .collect(Collectors.toSet());
 
-        if (!missingIds.isEmpty()) {
-            return Result.resourceNotFound(
-                    OrderErrorCode.PRODUCTS_NOT_FOUND,
-                    "Produits introuvables",
-                    "Des produits de la commande sont introuvables (identifiants : " + missingIds + ")"
-            );
-        }
-
-        return Result.success(productsById);
+        return missingIds.isEmpty()
+                ? Result.success(productsById)
+                : Result.failure(new OrderCreateError.UnknownProducts(missingIds));
     }
 
-    private Result<Map<UUID, ProductSnapshot>> assertGivenProducts(
-            CreateOrderCommand createOrderCommand,
-            Map<UUID, ProductSnapshot> givenProducts
-    ) {
-        return this.createOrderGuard.validate(new CreateOrderContextValidation(
-                createOrderCommand, givenProducts.values().stream().toList()
-        )).map(_ -> givenProducts);
+    private Result<Map<UUID, ProductSnapshot>, OrderCreateError> assertGivenProducts(
+            CreateOrderCommand command,
+            Map<UUID, ProductSnapshot> givenProducts) {
+
+        return this.createOrderGuard
+                .validate(new CreateOrderContextValidation(command, List.copyOf(givenProducts.values())))
+                .map(_ -> givenProducts);
     }
 
     private List<OrderItem> initItems(List<CreateOrderCommand.CreateOrderItem> orderItems,
@@ -105,13 +87,25 @@ public class CreateOrderUseCaseImpl implements CreateOrderUseCase {
         return orderItems.stream()
                 .map(item -> {
                     ProductSnapshot product = productsById.get(item.productId());
-                    return OrderItem.create(
-                            product.productId(),
-                            product.price(),
-                            item.quantity(),
-                            item.color()
-                    );
+                    return OrderItem.create(product.productId(), product.price(), item.quantity(), item.color());
                 })
                 .toList();
+    }
+
+    private Result<Order, OrderCreateError> createOrder(CreateOrderCommand command, List<OrderItem> orderItems) {
+        return this.unitOfWork.executeInTransaction(() -> {
+            var order = Order.create(
+                    CustomerInfo.from(command.identitySubject(), command.deliveryInformation()),
+                    command.message(), clock
+            );
+            order.calculateOrder(orderItems);
+            this.orderCreator.create(order.toSnapshot());
+            return Result.success(order);
+        });
+    }
+
+    private OrderSnapshot dispatchEventsAndSnapshot(Order order) {
+        order.getDomainEvents().forEach(this.aggregateEventDispatcher::dispatch);
+        return order.toSnapshot();
     }
 }

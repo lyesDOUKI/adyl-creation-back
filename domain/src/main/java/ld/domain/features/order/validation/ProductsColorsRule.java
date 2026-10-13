@@ -1,47 +1,35 @@
 package ld.domain.features.order.validation;
 
+import ld.domain.features.order.OrderCreateError;
 import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductSnapshot;
 import ld.standard.lib.validation.BusinessRule;
 import ld.standard.lib.validation.Result;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-public class ProductsColorsRule implements BusinessRule<CreateOrderContextValidation> {
+public class ProductsColorsRule implements BusinessRule<CreateOrderContextValidation, OrderCreateError> {
 
     @Override
-    public Result<Void> apply(CreateOrderContextValidation context) {
-        Map<UUID, List<ProductColor>> productColorsByProductId =
-                context.products().stream()
-                        .collect(Collectors.toMap(
-                                ProductSnapshot::productId,
-                                productSnapshot -> {
-                                    if (productSnapshot.colors() == null) {
-                                        return Collections.emptyList();
-                                    }
-                                    return productSnapshot.colors();
-                                }
-                        ));
+    public Result<Void, OrderCreateError> apply(CreateOrderContextValidation context) {
+        Map<UUID, List<ProductColor>> colorsByProductId = context.products().stream()
+                .collect(Collectors.toMap(
+                        ProductSnapshot::productId,
+                        product -> product.colors() == null ? List.of() : product.colors()
+                ));
+
         for (var item : context.createOrderCommand().createOrderItems()) {
-            List<ProductColor> availableColors = productColorsByProductId.get(item.productId());
+            List<ProductColor> availableColors = colorsByProductId.get(item.productId());
+
             if (availableColors.isEmpty()) {
-                return Result.ok();
+                continue;
             }
             if (!availableColors.contains(new ProductColor(item.color()))) {
-                return Result.businessFailure(
-                        OrderErrorCode.PRODUCT_COLOR_NOT_AVAILABLE,
-                        "Couleur demandée non valide",
-                        String.format(
-                                "La couleur '%s' n'est pas disponible pour le produit identifiant : %s. Couleurs disponibles : %s",
-                                item.color(),
-                                item.productId(),
-                                availableColors
-                        )
-                );
+                return Result.failure(new OrderCreateError.ColorNotAvailable(
+                        item.productId(), item.color(), availableColors));
             }
         }
 

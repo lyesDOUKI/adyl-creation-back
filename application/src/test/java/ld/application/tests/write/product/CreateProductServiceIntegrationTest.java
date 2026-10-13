@@ -6,9 +6,7 @@ import ld.application.context.ProductIntegrationTest;
 import ld.application.shared.product.CreateProductCommandFixture;
 import ld.application.shared.product.ProductTestFixture;
 import ld.domain.features.product.CreateProductUseCase;
-import ld.domain.features.product.model.ProductSnapshot;
 import ld.standard.lib.helper.test.ResultTestSupport;
-import ld.standard.lib.validation.Result;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -50,7 +48,7 @@ class CreateProductServiceIntegrationTest {
     void should_persist_product_and_dispatch_event_when_creation_succeeds() {
         var command = CreateProductCommandFixture.aValidCommand();
 
-        Result<ProductSnapshot> result = createProductUseCase.execute(command);
+        var result = createProductUseCase.execute(command);
 
         assertThat(result.isSuccess()).isTrue();
         var snapshot = ResultTestSupport.extractValue(result);
@@ -68,7 +66,7 @@ class CreateProductServiceIntegrationTest {
         var existingProduct = productTestFixture.createExistingProduct();
         var command = CreateProductCommandFixture.aCommandWithName(existingProduct.name());
 
-        Result<ProductSnapshot> result = createProductUseCase.execute(command);
+        var result = createProductUseCase.execute(command);
 
         assertThat(result.isFailure()).isTrue();
         assertThat(dsl.fetchCount(PRODUCTS)).isEqualTo(1);

@@ -5,11 +5,9 @@ import ld.application.config.product.SwitchableProductEditor;
 import ld.application.context.ProductIntegrationTest;
 import ld.application.shared.product.AddProductPhotosCommandFixture;
 import ld.application.shared.product.ProductTestFixture;
-import ld.domain.features.product.model.ProductPhotoSnapshot;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
 import ld.domain.features.product.photos.ProductPhotoStoragePort;
 import ld.standard.lib.helper.test.ResultTestSupport;
-import ld.standard.lib.validation.Result;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -62,7 +60,7 @@ class AddProductPhotosServiceIntegrationTest {
         given(productPhotoStoragePort.store(eq(product.id()), any(), any()))
                 .willReturn("storage-key-1", "storage-key-2");
 
-        Result<ProductPhotoSnapshot> result = addProductPhotosUseCase.execute(command);
+        var result = addProductPhotosUseCase.execute(command);
 
         assertThat(result.isSuccess()).isTrue();
         var snapshot = ResultTestSupport.extractValue(result);
@@ -78,7 +76,7 @@ class AddProductPhotosServiceIntegrationTest {
     void should_not_call_storage_when_product_does_not_exist() {
         var command = AddProductPhotosCommandFixture.aValidCommandWithUnknownProduct();
 
-        Result<ProductPhotoSnapshot> result = addProductPhotosUseCase.execute(command);
+        var result = addProductPhotosUseCase.execute(command);
 
         assertThat(result.isFailure()).isTrue();
         verifyNoInteractions(productPhotoStoragePort);
@@ -91,7 +89,7 @@ class AddProductPhotosServiceIntegrationTest {
         var product = productTestFixture.createExistingProduct();
         var command = AddProductPhotosCommandFixture.aCommandWithDisallowedExtension(product.id());
 
-        Result<ProductPhotoSnapshot> result = addProductPhotosUseCase.execute(command);
+        var result = addProductPhotosUseCase.execute(command);
 
         assertThat(result.isFailure()).isTrue();
         verifyNoInteractions(productPhotoStoragePort);

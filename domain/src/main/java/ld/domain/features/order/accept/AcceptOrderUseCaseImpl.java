@@ -1,9 +1,6 @@
 package ld.domain.features.order.accept;
 
-import ld.domain.features.order.lifecycle.AbstractOrderLifecycleUseCase;
-import ld.domain.features.order.lifecycle.DiscountClaimer;
-import ld.domain.features.order.lifecycle.DiscountProvider;
-import ld.domain.features.order.lifecycle.OrderEditor;
+import ld.domain.features.order.lifecycle.*;
 import ld.domain.features.order.model.*;
 import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.UnitOfWork;
@@ -36,11 +33,11 @@ public class AcceptOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
     }
 
     @Override
-    public Result<OrderSnapshot> execute(AcceptOrderCommand command) {
+    public Result<OrderSnapshot, OrderLifecycleError> execute(AcceptOrderCommand command) {
         return executeOperation(command.orderId(), this::acceptWithDiscountHandling);
     }
 
-    private Result<Order> acceptWithDiscountHandling(Order order) {
+    private Result<Order, OrderLifecycleError> acceptWithDiscountHandling(Order order) {
         AppliedDiscount discount = resolveDiscount(order);
         return order.accept(discount, Instant.now(clock));
     }

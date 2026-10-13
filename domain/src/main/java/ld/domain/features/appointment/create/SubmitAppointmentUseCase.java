@@ -4,5 +4,5 @@ import ld.domain.features.appointment.model.AppointmentSnapshot;
 import ld.standard.lib.validation.Result;
 
 public interface SubmitAppointmentUseCase {
-    Result<AppointmentSnapshot> execute(SubmitAppointmentCommand submitAppointmentCommand);
+    Result<AppointmentSnapshot, SubmitAppointmentError> execute(SubmitAppointmentCommand command);
 }

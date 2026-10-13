@@ -1,7 +1,7 @@
 package ld.application.read;
 
-import ld.application.infra.db.read.GetProductQueryRepository;
 import ld.application.infra.db.jooq.ProductQuery;
+import ld.application.infra.db.read.GetProductQueryRepository;
 import ld.application.response.GetProductResponse;
 import ld.application.response.ProductCategoryResponse;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
@@ -30,15 +30,12 @@ public class GetProductServiceImpl implements GetProductService {
     }
 
     @Override
-    public Result<GetProductResponse> findById(UUID productId) {
+    public Result<GetProductResponse, ResourceNotFound> findById(UUID productId) {
 
         return repository.findById(productId)
-                .map(this::toResponse)
-                .map(Result::success)
-                .orElseGet(() -> Result.resourceNotFound(
-                        ProductErrorCode.PRODUCTS_NOT_FOUND,
-                        "Produit introuvable",
-                        String.format("Le produit %s est introuvable", productId)
+                .map(productQuery -> Result.<GetProductResponse, ResourceNotFound>success(toResponse(productQuery)))
+                .orElseGet(() -> Result.failure(
+                        new ResourceNotFound(ProductErrorCode.PRODUCTS_NOT_FOUND, "Le produit", productId)
                 ));
     }
 

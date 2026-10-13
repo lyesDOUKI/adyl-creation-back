@@ -18,7 +18,7 @@ public class SubmitAppointmentUseCaseImpl implements SubmitAppointmentUseCase {
     private final ScheduleClaimer scheduleClaimer;
     private final OpeningHoursCalendar openingHoursCalendar;
     private final AggregateEventDispatcher<AppointmentEvent> aggregateEventDispatcher;
-    private final BusinessGuard<SubmitAppointmentCommand> submitAppointmentGuard;
+    private final BusinessGuard<SubmitAppointmentCommand, SubmitAppointmentError> submitAppointmentGuard;
     private final UnitOfWork unitOfWork;
     private final Clock clock;
 
@@ -37,22 +37,22 @@ public class SubmitAppointmentUseCaseImpl implements SubmitAppointmentUseCase {
         this.clock = clock;
     }
 
-    private static BusinessGuard<SubmitAppointmentCommand> initGuard(OpeningHoursCalendar openingHoursCalendar) {
+    private static BusinessGuard<SubmitAppointmentCommand, SubmitAppointmentError> initGuard(
+            OpeningHoursCalendar openingHoursCalendar) {
         return BusinessGuard.of(new SlotWithinOpeningHoursRule(openingHoursCalendar));
     }
 
     @Override
-    public Result<AppointmentSnapshot> execute(SubmitAppointmentCommand submitAppointmentCommand) {
-        return this.submitAppointmentGuard.validate(submitAppointmentCommand)
-                .flatMap(_ -> this.unitOfWork.executeInTransaction(() ->
-                        createAppointmentUnderExclusiveAccess(submitAppointmentCommand)))
-                .map(appointment -> {
-                    appointment.getDomainEvents().forEach(this.aggregateEventDispatcher::dispatch);
-                    return appointment.toSnapshot();
-                });
+    public Result<AppointmentSnapshot, SubmitAppointmentError> execute(SubmitAppointmentCommand command) {
+        return this.submitAppointmentGuard.validate(command)
+                .andThen(_ -> this.unitOfWork.executeInTransaction(() ->
+                        createAppointmentUnderExclusiveAccess(command)))
+                .map(this::dispatchEventsAndSnapshot);
     }
 
-    private Result<Appointment> createAppointmentUnderExclusiveAccess(SubmitAppointmentCommand command) {
+    private Result<Appointment, SubmitAppointmentError> createAppointmentUnderExclusiveAccess(
+            SubmitAppointmentCommand command) {
+
         ZoneId businessZone = this.openingHoursCalendar.zoneId();
         TimeSlot requestedSlot = new TimeSlot(
                 command.start().withZoneSameInstant(businessZone),
@@ -61,26 +61,24 @@ public class SubmitAppointmentUseCaseImpl implements SubmitAppointmentUseCase {
         LocalDate date = requestedSlot.start().toLocalDate();
 
         ScheduleClaim claim = this.scheduleClaimer.claimExclusiveAccess(date, businessZone);
-
         List<TimeSlot> bookedSlots = this.scheduleClaimer.bookedSlotsFor(claim);
-
         DailySchedule dailySchedule = new DailySchedule(claim, bookedSlots);
 
         return switch (dailySchedule.attemptToBook(requestedSlot)) {
-            case SchedulingDecision.Rejected _ -> Result.businessFailure(
-                    AppointmentErrorCode.SLOT_ALREADY_BOOKED,
-                    "Créneau déjà réservé",
-                    "Ce créneau est déjà réservé"
-            );
+            case SchedulingDecision.Rejected _ ->
+                    Result.failure(new SubmitAppointmentError.SlotAlreadyBooked(requestedSlot));
+
             case SchedulingDecision.Accepted accepted -> {
                 Appointment appointment = Appointment.create(
-                        accepted.slot(),
-                        command.identitySubject(), command.note(),
-                        clock
-                );
+                        accepted.slot(), command.identitySubject(), command.note(), clock);
                 this.appointmentCreator.create(appointment.toSnapshot());
                 yield Result.success(appointment);
             }
         };
+    }
+
+    private AppointmentSnapshot dispatchEventsAndSnapshot(Appointment appointment) {
+        appointment.getDomainEvents().forEach(this.aggregateEventDispatcher::dispatch);
+        return appointment.toSnapshot();
     }
 }

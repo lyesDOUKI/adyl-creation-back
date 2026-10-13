@@ -14,7 +14,6 @@ import ld.domain.features.product.model.ProductCategory;
 import ld.domain.features.product.model.ProductStatus;
 import ld.standard.lib.helper.test.ResultTestSupport;
 import ld.standard.lib.validation.FailureType;
-import ld.standard.lib.validation.Result;
 import org.jooq.DSLContext;
 import org.jooq.JSON;
 import org.junit.jupiter.api.BeforeEach;
@@ -99,7 +98,7 @@ class GetOrderServiceIntegrationTest {
                 BigDecimal.valueOf(0.10)
         );
 
-        Result<GetOrderResponse> result =
+        var result =
                 getOrderService.findById(orderId, customerIdentitySubject);
 
         assertThat(result.isSuccess()).isTrue();
@@ -120,7 +119,7 @@ class GetOrderServiceIntegrationTest {
 
         assertThat(response.lines()).hasSize(1);
 
-        OrderLineResponse line = response.lines().get(0);
+        OrderLineResponse line = response.lines().getFirst();
 
         assertThat(line.productId()).isEqualTo(productId);
         assertThat(line.productName()).isEqualTo("T-shirt");
@@ -189,7 +188,7 @@ class GetOrderServiceIntegrationTest {
                 BigDecimal.ZERO
         );
 
-        Result<GetOrderResponse> result =
+        var result =
                 getOrderService.findById(orderId, customerIdentitySubject);
 
         assertThat(result.isSuccess()).isTrue();
@@ -212,7 +211,7 @@ class GetOrderServiceIntegrationTest {
 
         insertCustomer(customerIdentitySubject);
 
-        Result<GetOrderResponse> result =
+        var result =
                 getOrderService.findById(
                         UUID.randomUUID(),
                         customerIdentitySubject
@@ -263,7 +262,7 @@ class GetOrderServiceIntegrationTest {
         UUID otherCustomerIdentitySubject = UUID.randomUUID();
         insertCustomer(otherCustomerIdentitySubject);
 
-        Result<GetOrderResponse> result =
+        var result =
                 getOrderService.findById(
                         orderId,
                         otherCustomerIdentitySubject
@@ -476,7 +475,7 @@ class GetOrderServiceIntegrationTest {
     ) {
         UUID deliveryAddressId = UUID.randomUUID();
 
-        insertDeliveryAddress(deliveryAddressId, orderId);
+        insertDeliveryAddress(deliveryAddressId);
 
         dsl.insertInto(ORDERS)
                 .columns(
@@ -507,8 +506,7 @@ class GetOrderServiceIntegrationTest {
     }
 
     private void insertDeliveryAddress(
-            UUID deliveryAddressId,
-            UUID orderId
+            UUID deliveryAddressId
     ) {
         dsl.insertInto(ORDER_DELIVERY_ADDRESSES)
                 .columns(

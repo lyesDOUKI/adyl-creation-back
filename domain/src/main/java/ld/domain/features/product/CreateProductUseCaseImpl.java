@@ -3,6 +3,7 @@ package ld.domain.features.product;
 import ld.domain.features.product.model.Product;
 import ld.domain.features.product.model.ProductEvent;
 import ld.domain.features.product.model.ProductSnapshot;
+import ld.domain.features.product.validation.CreateProductError;
 import ld.domain.features.product.validation.ProductNameRule;
 import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.UnitOfWork;
@@ -13,7 +14,7 @@ public class CreateProductUseCaseImpl implements CreateProductUseCase {
 
     private final ProductCreator productCreator;
     private final AggregateEventDispatcher<ProductEvent> aggregateEventDispatcher;
-    private final BusinessGuard<CreateProductCommand> createProductGuard;
+    private final BusinessGuard<CreateProductCommand, CreateProductError> createProductGuard;
     private final UnitOfWork unitOfWork;
     public CreateProductUseCaseImpl(ProductCreator productCreator, ProductChecker productChecker,
                                     AggregateEventDispatcher<ProductEvent> aggregateEventDispatcher,
@@ -24,14 +25,14 @@ public class CreateProductUseCaseImpl implements CreateProductUseCase {
         this.unitOfWork = unitOfWork;
     }
 
-    private static BusinessGuard<CreateProductCommand> initGuard(ProductChecker productChecker) {
+    private static BusinessGuard<CreateProductCommand, CreateProductError> initGuard(ProductChecker productChecker) {
         return BusinessGuard.of(new ProductNameRule(productChecker));
     }
 
     @Override
-    public Result<ProductSnapshot> execute(CreateProductCommand createProductCommand) {
+    public Result<ProductSnapshot, CreateProductError> execute(CreateProductCommand createProductCommand) {
         return this.createProductGuard.validate(createProductCommand)
-                .flatMap(_ -> this.unitOfWork.executeInTransaction(() -> {
+                .andThen(_ -> this.unitOfWork.executeInTransaction(() -> {
                     Product product = Product.create(
                             createProductCommand.name(),
                             createProductCommand.price(),

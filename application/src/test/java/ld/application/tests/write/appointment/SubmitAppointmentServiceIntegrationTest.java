@@ -4,6 +4,7 @@ import ld.application.config.appointment.SwitchableAppointmentCreator;
 import ld.application.config.common.SharedPostgresContainer;
 import ld.application.context.AppointmentIntegrationTest;
 import ld.domain.features.appointment.create.SubmitAppointmentCommand;
+import ld.domain.features.appointment.create.SubmitAppointmentError;
 import ld.domain.features.appointment.create.SubmitAppointmentUseCase;
 import ld.domain.features.appointment.model.AppointmentSnapshot;
 import ld.domain.features.appointment.model.AppointmentStatus;
@@ -69,7 +70,7 @@ class SubmitAppointmentServiceIntegrationTest {
                 .withIdentitySubject(identitySubject)
                 .build();
 
-        Result<AppointmentSnapshot> result =
+        var result =
                 submitAppointmentUseCase.execute(command);
 
         assertThat(result.isSuccess()).isTrue();
@@ -112,7 +113,7 @@ class SubmitAppointmentServiceIntegrationTest {
                 ))
                 .build();
 
-        Result<AppointmentSnapshot> result =
+        var result =
                 submitAppointmentUseCase.execute(command);
 
         assertThat(result.isFailure()).isTrue();
@@ -137,7 +138,7 @@ class SubmitAppointmentServiceIntegrationTest {
                 ))
                 .build();
 
-        Result<AppointmentSnapshot> firstResult =
+        var firstResult =
                 submitAppointmentUseCase.execute(firstCommand);
 
         assertThat(firstResult.isSuccess()).isTrue();
@@ -147,7 +148,7 @@ class SubmitAppointmentServiceIntegrationTest {
                 .withEnd(firstCommand.end())
                 .build();
 
-        Result<AppointmentSnapshot> secondResult =
+        var secondResult =
                 submitAppointmentUseCase.execute(secondCommand);
 
         assertThat(secondResult.isFailure()).isTrue();
@@ -269,20 +270,20 @@ class SubmitAppointmentServiceIntegrationTest {
             var readyToStart = new CyclicBarrier(2);
             var pool = Executors.newFixedThreadPool(2);
             try {
-                Callable<Result<AppointmentSnapshot>> submitFirst = () -> {
+                Callable<Result<AppointmentSnapshot, SubmitAppointmentError>> submitFirst = () -> {
                     readyToStart.await();
                     return submitAppointmentUseCase.execute(firstCommand);
                 };
-                Callable<Result<AppointmentSnapshot>> submitSecond = () -> {
+                Callable<Result<AppointmentSnapshot, SubmitAppointmentError>> submitSecond = () -> {
                     readyToStart.await();
                     return submitAppointmentUseCase.execute(secondCommand);
                 };
 
-                Future<Result<AppointmentSnapshot>> firstFuture = pool.submit(submitFirst);
-                Future<Result<AppointmentSnapshot>> secondFuture = pool.submit(submitSecond);
+                Future<Result<AppointmentSnapshot, SubmitAppointmentError>> firstFuture = pool.submit(submitFirst);
+                Future<Result<AppointmentSnapshot, SubmitAppointmentError>> secondFuture = pool.submit(submitSecond);
 
-                Result<AppointmentSnapshot> firstResult = firstFuture.get(10, TimeUnit.SECONDS);
-                Result<AppointmentSnapshot> secondResult = secondFuture.get(10, TimeUnit.SECONDS);
+                var firstResult = firstFuture.get(10, TimeUnit.SECONDS);
+                var secondResult = secondFuture.get(10, TimeUnit.SECONDS);
 
                 long successCount = Stream.of(firstResult, secondResult)
                         .filter(Result::isSuccess)
