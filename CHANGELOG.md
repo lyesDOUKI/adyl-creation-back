@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v3.1.0...v4.0.0) (2026-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* improve Pattern Result by explicitely add the Error sides - modelize Error as domain models
+
+### Features
+
+* improve Pattern Result by explicitely add the Error sides - modelize Error as domain models ([4f0f324](https://github.com/lyesDOUKI/adyl-creation-back/commit/4f0f32410a470bd1b9d357a5e5e224a8e7bfdc71))
+
 ## [3.1.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v3.0.0...v3.1.0) (2026-09-14)
 
 
