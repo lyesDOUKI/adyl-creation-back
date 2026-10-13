@@ -9,5 +9,5 @@ import java.util.UUID;
 
 public interface GetProductService {
     Page<GetProductResponse> findAll(Pageable pageable);
-    Result<GetProductResponse> findById(UUID productId);
+    Result<GetProductResponse, ResourceNotFound> findById(UUID productId);
 }

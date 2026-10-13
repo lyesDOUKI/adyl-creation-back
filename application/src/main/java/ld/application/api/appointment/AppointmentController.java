@@ -21,7 +21,6 @@ import ld.application.response.SubmitAppointmentResponse;
 import ld.domain.features.appointment.create.SubmitAppointmentUseCase;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
-import ld.standard.lib.validation.Result;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -128,7 +127,7 @@ public class AppointmentController {
             @Valid @RequestBody SubmitAppointmentRequest request,
             HttpServletRequest httpServletRequest
     ) {
-        Result<SubmitAppointmentResponse> response = this.submitAppointmentUseCase
+        var response = this.submitAppointmentUseCase
                 .execute(request.to(currentCustomerId))
                 .map(SubmitAppointmentResponse::from);
 

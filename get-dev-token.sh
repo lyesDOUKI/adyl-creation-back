@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 ROLE=${1:-ADMIN}
-MOCK_URL="http://localhost:8090/adyl-creation/token"
+MOCK_URL="http://localhost:8090/realms/adyl-creation/token"
 
 echo "🔑 Génération du token JWT (Rôle : $ROLE)..." >&2
 

@@ -6,9 +6,7 @@ import ld.application.context.OrderIntegrationTest;
 import ld.application.shared.order.CreateOrderCommandFixture;
 import ld.application.shared.product.ProductTestFixture;
 import ld.domain.features.order.CreateOrderUseCase;
-import ld.domain.features.order.model.OrderSnapshot;
 import ld.standard.lib.helper.test.ResultTestSupport;
-import ld.standard.lib.validation.Result;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -62,7 +60,7 @@ class CreateOrderServiceIntegrationTest {
                 customerIdentitySubject
         );
 
-        Result<OrderSnapshot> result = createOrderUseCase.execute(command);
+        var result = createOrderUseCase.execute(command);
 
         assertThat(result.isSuccess()).isTrue();
 
@@ -85,7 +83,7 @@ class CreateOrderServiceIntegrationTest {
     void should_not_call_repository_when_product_does_not_exist() {
         var command = CreateOrderCommandFixture.aValidCommandWithUnknownProduct();
 
-        Result<OrderSnapshot> result = createOrderUseCase.execute(command);
+        var result = createOrderUseCase.execute(command);
 
         assertThat(result.isFailure()).isTrue();
         assertThat(dsl.fetchCount(ORDERS)).isZero();

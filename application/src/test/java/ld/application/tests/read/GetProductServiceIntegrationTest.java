@@ -11,7 +11,6 @@ import ld.domain.features.product.CreateProductUseCase;
 import ld.domain.features.product.validation.ProductErrorCode;
 import ld.standard.lib.helper.test.ResultTestSupport;
 import ld.standard.lib.validation.FailureType;
-import ld.standard.lib.validation.Result;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -67,7 +66,7 @@ class GetProductServiceIntegrationTest {
         var created = ResultTestSupport.extractValue(
                 createProductUseCase.execute(CreateProductCommandFixture.aValidCommand()));
 
-        Result<GetProductResponse> result = getProductService.findById(created.productId());
+        var result = getProductService.findById(created.productId());
 
         assertThat(result.isSuccess()).isTrue();
         GetProductResponse response = ResultTestSupport.extractValue(result);
@@ -86,7 +85,7 @@ class GetProductServiceIntegrationTest {
         insertPhoto(created.productId(), "photo1.jpg");
         insertPhoto(created.productId(), "photo2.jpg");
 
-        Result<GetProductResponse> result = getProductService.findById(created.productId());
+        var result = getProductService.findById(created.productId());
 
         assertThat(result.isSuccess()).isTrue();
         GetProductResponse response = ResultTestSupport.extractValue(result);
@@ -102,7 +101,7 @@ class GetProductServiceIntegrationTest {
         var created = ResultTestSupport.extractValue(
                 createProductUseCase.execute(CreateProductCommandFixture.aValidCommand()));
 
-        Result<GetProductResponse> result = getProductService.findById(created.productId());
+        var result = getProductService.findById(created.productId());
 
         assertThat(result.isSuccess()).isTrue();
         assertThat(ResultTestSupport.extractValue(result).photosUri()).isEmpty();
@@ -110,7 +109,7 @@ class GetProductServiceIntegrationTest {
 
     @Test
     void findById_returns_resource_not_found_when_product_does_not_exist() {
-        Result<GetProductResponse> result = getProductService.findById(UUID.randomUUID());
+        var result = getProductService.findById(UUID.randomUUID());
 
         assertThat(result.isFailure()).isTrue();
         assertFailure(result, FailureType.RESOURCE_NOT_FOUND, ProductErrorCode.PRODUCTS_NOT_FOUND);

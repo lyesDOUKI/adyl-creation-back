@@ -10,7 +10,8 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.Objects;
 
-public class SlotWithinOpeningHoursRule implements BusinessRule<SubmitAppointmentCommand> {
+public class SlotWithinOpeningHoursRule
+        implements BusinessRule<SubmitAppointmentCommand, SubmitAppointmentError> {
 
     private final OpeningHoursCalendar openingHoursCalendar;
 
@@ -19,7 +20,7 @@ public class SlotWithinOpeningHoursRule implements BusinessRule<SubmitAppointmen
     }
 
     @Override
-    public Result<Void> apply(SubmitAppointmentCommand command) {
+    public Result<Void, SubmitAppointmentError> apply(SubmitAppointmentCommand command) {
         ZoneId businessZone = openingHoursCalendar.zoneId();
         TimeSlot requestedSlot = new TimeSlot(
                 command.start().withZoneSameInstant(businessZone),
@@ -29,14 +30,8 @@ public class SlotWithinOpeningHoursRule implements BusinessRule<SubmitAppointmen
         LocalDate date = requestedSlot.start().toLocalDate();
         TimeSlots theoreticalSlots = openingHoursCalendar.theoreticalSlotsBetween(date, date);
 
-        if (!theoreticalSlots.asList().contains(requestedSlot)) {
-            return Result.businessFailure(
-                    AppointmentErrorCode.SLOT_OUTSIDE_OPENING_HOURS,
-                    "Créneau hors horaires",
-                    "Le créneau demandé est hors horaire autorisé"
-            );
-        }
-
-        return Result.ok();
+        return theoreticalSlots.asList().contains(requestedSlot)
+                ? Result.ok()
+                : Result.failure(new SubmitAppointmentError.SlotOutsideOpeningHours(requestedSlot));
     }
 }

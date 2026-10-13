@@ -6,15 +6,13 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import ld.application.infra.security.CurrentCustomerId;
 import ld.application.infra.security.CustomerOnly;
 import ld.application.request.RegisterCustomerRequest;
-import ld.application.response.CustomerResponse;
 import ld.application.write.RegisterCustomerService;
 import ld.spring.web.lib.ApiResponseBody;
-import ld.spring.web.lib.ResultToResponse;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -35,7 +33,7 @@ public class CustomerController {
     }
 
     @CustomerOnly
-    @PostMapping("me")
+    @PostMapping(path = "me", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
             summary = "Enregistrer un client"
     )
@@ -57,10 +55,8 @@ public class CustomerController {
     })
     public ResponseEntity<ApiResponseBody> register(
             @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId,
-            @RequestBody @Valid RegisterCustomerRequest registerCustomerRequest,
-            HttpServletRequest httpServletRequest
+            @RequestBody @Valid RegisterCustomerRequest registerCustomerRequest
     ) {
-        var result = this.registerCustomerService.register(currentCustomerId, registerCustomerRequest);
-        return ResultToResponse.created(result, CustomerResponse::id, httpServletRequest);
+        return ResponseEntity.ok(this.registerCustomerService.register(currentCustomerId, registerCustomerRequest));
     }
 }

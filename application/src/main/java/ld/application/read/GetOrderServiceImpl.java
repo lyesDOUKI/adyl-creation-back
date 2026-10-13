@@ -26,16 +26,11 @@ public class GetOrderServiceImpl implements GetOrderService {
     }
 
     @Override
-    public Result<GetOrderResponse> findById(UUID orderId, UUID customerId) {
-
+    public Result<GetOrderResponse, ResourceNotFound> findById(UUID orderId, UUID customerId) {
         return repository.findById(orderId, customerId)
-                .map(this::toResponse)
-                .map(Result::success)
-                .orElseGet(() -> Result.resourceNotFound(
-                        OrderErrorCode.ORDER_NOT_FOUND,
-                        "Commande introuvable",
-                        String.format("La commande %s est introuvable", orderId)
-                ));
+                .map(order -> Result.<GetOrderResponse, ResourceNotFound>success(toResponse(order)))
+                .orElseGet(() -> Result.failure(
+                        new ResourceNotFound(OrderErrorCode.ORDER_NOT_FOUND, "La commande", orderId)));
     }
 
     @Override

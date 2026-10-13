@@ -3,7 +3,6 @@ package ld.domain.features.order.lifecycle;
 import ld.domain.features.order.model.Order;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
-import ld.domain.features.order.validation.OrderErrorCode;
 import ld.standard.lib.AggregateEventDispatcher;
 import ld.standard.lib.UnitOfWork;
 import ld.standard.lib.validation.Result;
@@ -25,25 +24,23 @@ public abstract class AbstractOrderLifecycleUseCase {
         this.unitOfWork = unitOfWork;
     }
 
-    protected Result<OrderSnapshot> executeOperation(
-            UUID orderId, Function<Order, Result<Order>> operation) {
-        Result<Order> result = unitOfWork.executeInTransaction(() ->
+    protected Result<OrderSnapshot, OrderLifecycleError> executeOperation(
+            UUID orderId,
+            Function<Order, Result<Order, OrderLifecycleError>> operation) {
+
+        Result<Order, OrderLifecycleError> result = unitOfWork.executeInTransaction(() ->
                 findOrder(orderId)
                         .map(Order::from)
-                        .flatMap(operation)
+                        .andThen(operation)
                         .map(this::save)
         );
         return result.map(this::dispatchEvents).map(Order::toSnapshot);
     }
 
-    private Result<OrderSnapshot> findOrder(UUID orderId) {
+    private Result<OrderSnapshot, OrderLifecycleError> findOrder(UUID orderId) {
         return orderEditor.findById(orderId)
-                .map(Result::success)
-                .orElseGet(() -> Result.resourceNotFound(
-                        OrderErrorCode.ORDER_NOT_FOUND,
-                        "Commande introuvable",
-                        String.format("La commande %s est introuvable", orderId)
-                ));
+                .map(Result::<OrderSnapshot, OrderLifecycleError>success)
+                .orElseGet(() -> Result.failure(new OrderLifecycleError.OrderNotFound(orderId)));
     }
 
     private Order save(Order order) {

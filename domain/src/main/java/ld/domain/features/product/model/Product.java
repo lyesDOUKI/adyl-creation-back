@@ -3,7 +3,6 @@ package ld.domain.features.product.model;
 import ld.domain.valueObjects.Price;
 import ld.standard.lib.AggregateRoot;
 import ld.standard.lib.Snapshottable;
-import ld.standard.lib.validation.Result;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -60,7 +59,7 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
         );
     }
 
-    public Result<Void> addPhotos(List<ProductPhoto> newPhotos) {
+    public void addPhotos(List<ProductPhoto> newPhotos) {
         int nextPosition = this.photos.stream()
                 .mapToInt(ProductPhoto::position)
                 .max()
@@ -74,8 +73,6 @@ public class Product extends AggregateRoot<UUID, ProductEvent> implements Snapsh
                 this.photos.stream(),
                 photosToAdd.stream()
         ).toList();
-
-        return Result.ok();
     }
     @Override
     public ProductSnapshot toSnapshot() {

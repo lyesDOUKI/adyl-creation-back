@@ -1,6 +1,7 @@
 package ld.spring.web.lib;
 
 import jakarta.servlet.http.HttpServletRequest;
+import ld.standard.lib.validation.DomainError;
 import ld.standard.lib.validation.FailureDetail;
 import ld.standard.lib.validation.FailureType;
 import ld.standard.lib.validation.Result;
@@ -16,32 +17,38 @@ public final class ResultToResponse {
 
     private ResultToResponse() {}
 
-    public static <T extends ApiResponseBody> ResponseEntity<ApiResponseBody> ok(
-            Result<T> result,
+    public static <T extends ApiResponseBody, E extends DomainError> ResponseEntity<ApiResponseBody> ok(
+            Result<T, E> result,
             HttpServletRequest request
     ) {
-        return result.resolve(ResponseEntity::ok, failureResponse(request));
+        return result.fold(
+                ResponseEntity::ok,
+                failureResponse(request)
+        );
     }
 
-    public static <T extends ApiResponseBody> ResponseEntity<ApiResponseBody> created(
-            Result<T> result,
+    public static <T extends ApiResponseBody, E extends DomainError> ResponseEntity<ApiResponseBody> created(
+            Result<T, E> result,
             Function<T, UUID> idExtractor,
             HttpServletRequest request
     ) {
-        return result.resolve(
+        return result.fold(
                 body -> ResponseEntity.created(buildLocation(request, idExtractor.apply(body))).body(body),
                 failureResponse(request)
         );
     }
 
-    public static ResponseEntity<ApiResponseBody> noContent(
-            Result<Void> result,
+    public static <E extends DomainError> ResponseEntity<ApiResponseBody> noContent(
+            Result<Void, E> result,
             HttpServletRequest request
     ) {
-        return result.resolve(_ -> ResponseEntity.noContent().build(), failureResponse(request));
+        return result.fold(
+                _ -> ResponseEntity.noContent().build(),
+                failureResponse(request)
+        );
     }
 
-    private static URI buildLocation(HttpServletRequest request, UUID id) {
+    public static URI buildLocation(HttpServletRequest request, UUID id) {
         return ServletUriComponentsBuilder
                 .fromRequestUri(request)
                 .path("/{id}")
@@ -49,26 +56,23 @@ public final class ResultToResponse {
                 .toUri();
     }
 
-    private static Function<FailureDetail, ResponseEntity<ApiResponseBody>> failureResponse(
+    private static <E extends DomainError> Function<E, ResponseEntity<ApiResponseBody>> failureResponse(
             HttpServletRequest request
     ) {
-        return detail -> {
+        return error -> {
+            FailureDetail detail = error.detail();
             HttpStatus status = toHttpStatus(detail.failureType());
 
-            var problemDetail =
-                    ProblemDetailResponse.forStatus(
-                            status,
-                            detail.errorCode().code(),
-                            detail.failureType().name()
-                    );
-
+            var problemDetail = ProblemDetailResponse.forStatus(
+                    status,
+                    detail.errorCode().code(),
+                    detail.failureType().name()
+            );
             problemDetail.setTitle(detail.title());
             problemDetail.setDetail(detail.message());
-            problemDetail.setInstance(URI.create(request.getRequestURI())
-            );
+            problemDetail.setInstance(URI.create(request.getRequestURI()));
 
-            return ResponseEntity.status(status)
-                    .body(problemDetail);
+            return ResponseEntity.status(status).body(problemDetail);
         };
     }
 

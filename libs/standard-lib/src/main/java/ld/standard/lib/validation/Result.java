@@ -1,109 +1,67 @@
 package ld.standard.lib.validation;
 
+import java.util.Objects;
 import java.util.function.Function;
 
-public sealed interface Result<T>
-        permits Result.Success, Result.Failure {
+public sealed interface Result<T, E> {
 
-    record Success<T>(T value) implements Result<T> {
+    record Success<T, E>(T value) implements Result<T, E> {
     }
 
-    record Failure<T>(FailureDetail detail) implements Result<T> {
+    record Failure<T, E>(E error) implements Result<T, E> {
+        public Failure {
+            Objects.requireNonNull(error, "error must not be null");
+        }
     }
 
-    static <T> Result<T> success(T value) {
+    static <T, E> Result<T, E> success(T value) {
         return new Success<>(value);
     }
 
-    static Result<Void> ok() {
+    static <E> Result<Void, E> ok() {
         return new Success<>(null);
     }
 
-    static <T> Result<T> businessFailure(
-            ErrorCode errorCode,
-            String title,
-            String detail
-    ) {
-        return failure(
-                FailureType.BUSINESS_RULE,
-                errorCode,
-                title,
-                detail
-        );
-    }
-
-    static <T> Result<T> resourceNotFound(
-            ErrorCode errorCode,
-            String title,
-            String detail
-    ) {
-        return failure(
-                FailureType.RESOURCE_NOT_FOUND,
-                errorCode,
-                title,
-                detail
-        );
-    }
-
-    static <T> Result<T> failure(
-            FailureType type,
-            ErrorCode errorCode,
-            String title,
-            String detail
-    ) {
-        return new Failure<>(
-                new FailureDetail(type, errorCode, title, detail)
-        );
+    static <T, E> Result<T, E> failure(E error) {
+        return new Failure<>(error);
     }
 
     default boolean isSuccess() {
-        return this instanceof Success<T>;
+        return this instanceof Success<T, E>;
     }
 
     default boolean isFailure() {
-        return this instanceof Failure<T>;
+        return this instanceof Failure<T, E>;
     }
 
-    default <R> Result<R> map(Function<T, R> mapper) {
+    default <R> Result<R, E> map(Function<? super T, ? extends R> mapper) {
         return switch (this) {
-            case Success<T> success ->
-                    Result.success(mapper.apply(success.value()));
-
-            case Failure<T> failure ->
-                    Result.failure(
-                            failure.detail().failureType(),
-                            failure.detail().errorCode(),
-                            failure.detail().title(),
-                            failure.detail().message()
-                    );
+            case Success<T, E>(var value) -> success(mapper.apply(value));
+            case Failure<T, E>(var error) -> failure(error);
         };
     }
 
-    default <R> Result<R> flatMap(Function<T, Result<R>> mapper) {
+    default <R> Result<R, E> andThen(Function<? super T, ? extends Result<R, E>> nextStep) {
         return switch (this) {
-            case Success<T> success ->
-                    mapper.apply(success.value());
-
-            case Failure<T> failure ->
-                    Result.failure(
-                            failure.detail().failureType(),
-                            failure.detail().errorCode(),
-                            failure.detail().title(),
-                            failure.detail().message()
-                    );
+            case Success<T, E>(var value) -> nextStep.apply(value);
+            case Failure<T, E>(var error) -> failure(error);
         };
     }
 
-    default <R> R resolve(
-            Function<T, R> onSuccess,
-            Function<FailureDetail, R> onFailure
+    default <F> Result<T, F> mapError(Function<? super E, ? extends F> mapper) {
+        return switch (this) {
+            case Success<T, E>(var value) -> success(value);
+            case Failure<T, E>(var error) -> failure(mapper.apply(error));
+        };
+    }
+
+    default <R> R fold(
+            Function<? super T, ? extends R> onSuccess,
+            Function<? super E, ? extends R> onFailure
     ) {
         return switch (this) {
-            case Success<T> success ->
-                    onSuccess.apply(success.value());
-
-            case Failure<T> failure ->
-                    onFailure.apply(failure.detail());
+            case Success<T, E>(var value) -> onSuccess.apply(value);
+            case Failure<T, E>(var error) -> onFailure.apply(error);
         };
     }
 }

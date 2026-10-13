@@ -2,6 +2,7 @@ package ld.domain.features.order.reject;
 
 import ld.domain.features.order.lifecycle.AbstractOrderLifecycleUseCase;
 import ld.domain.features.order.lifecycle.OrderEditor;
+import ld.domain.features.order.lifecycle.OrderLifecycleError;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.standard.lib.AggregateEventDispatcher;
@@ -26,7 +27,7 @@ public class RejectOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
     }
 
     @Override
-    public Result<OrderSnapshot> execute(RejectOrderCommand command) {
+    public Result<OrderSnapshot, OrderLifecycleError> execute(RejectOrderCommand command) {
         return executeOperation(command.orderId(),
                 order -> order.reject(command.reason(), Instant.now(clock)));
     }

@@ -1,6 +1,6 @@
 package ld.domain.features.order.model;
 
-import ld.domain.features.order.validation.OrderErrorCode;
+import ld.domain.features.order.lifecycle.OrderLifecycleError;
 import ld.domain.valueObjects.Percentage;
 import ld.domain.valueObjects.Price;
 import ld.standard.lib.AggregateRoot;
@@ -72,7 +72,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 .reduce(Price.zero(), Price::add);
     }
 
-    public Result<Order> accept(AppliedDiscount discount, Instant acceptedAt) {
+    public Result<Order, OrderLifecycleError> accept(AppliedDiscount discount, Instant acceptedAt) {
         return switch (this.orderStatus) {
             case OrderStatus.Accepted _ -> Result.success(this);
 
@@ -91,16 +91,13 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 yield Result.success(this);
             }
 
-            case OrderStatus.Rejected _ -> Result.businessFailure(
-                    OrderErrorCode.ORDER_HAS_BEEN_REJECTED,
-                    "Commande rejetée", "Impossible d'accepter une commande rejetée");
+            case OrderStatus.Rejected _ -> Result.failure(new OrderLifecycleError.OrderAlreadyRejected());
 
-            case OrderStatus.Delivered _ -> Result.businessFailure(
-                    OrderErrorCode.ORDER_HAS_BEEN_DELIVERED,
-                    "Commande livrée", "Impossible d'accepter une commande déjà livrée");
+            case OrderStatus.Delivered _ -> Result.failure(new OrderLifecycleError.OrderAlreadyDelivered());
         };
     }
-    public Result<Order> reject(String reason, Instant rejectedAt) {
+
+    public Result<Order, OrderLifecycleError> reject(String reason, Instant rejectedAt) {
         return switch (this.orderStatus) {
             case OrderStatus.Rejectable _ -> {
                 this.orderStatus = new OrderStatus.Rejected(reason, rejectedAt);
@@ -108,27 +105,26 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 yield Result.success(this);
             }
 
-            case OrderStatus.Delivered _ -> Result.businessFailure(
-                    OrderErrorCode.ORDER_HAS_BEEN_DELIVERED,
-                    "Commande livrée",
-                    "Impossible de rejeter une commande déjà livrée"
-            );
+            case OrderStatus.Delivered _ -> Result.failure(new OrderLifecycleError.OrderAlreadyDelivered());
 
             case OrderStatus.Rejected _ -> Result.success(this);
         };
     }
-    public Result<Order> deliver(String observation, DeliveryMethod deliveryMethod, Instant deliveredAt) {
+
+    public Result<Order, OrderLifecycleError> deliver(String observation, DeliveryMethod deliveryMethod,
+                                                      Instant deliveredAt) {
         return switch (this.orderStatus) {
             case OrderStatus.Accepted _ -> {
                 this.orderStatus = new OrderStatus.Delivered(observation, deliveryMethod, deliveredAt);
                 addDomainEvent(new OrderDelivered(getId(), deliveryMethod));
                 yield Result.success(this);
             }
+
             case OrderStatus.Delivered _ -> Result.success(this);
-            case OrderStatus.Pending _ -> Result.businessFailure(OrderErrorCode.PENDING_ORDER,
-                    "Commande en attente", "Impossible de livrer une commande en attente");
-            case OrderStatus.Rejected _ -> Result.businessFailure(OrderErrorCode.ORDER_HAS_BEEN_REJECTED,
-                    "Commande rejetée", "Impossible de livrer une commande rejetée");
+
+            case OrderStatus.Pending _ -> Result.failure(new OrderLifecycleError.OrderStillPending());
+
+            case OrderStatus.Rejected _ -> Result.failure(new OrderLifecycleError.OrderAlreadyRejected());
         };
     }
 
