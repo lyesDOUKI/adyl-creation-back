@@ -2,7 +2,6 @@ package ld.domain.features.order.reject;
 
 import ld.domain.features.order.lifecycle.AbstractOrderLifecycleUseCase;
 import ld.domain.features.order.lifecycle.OrderEditor;
-import ld.domain.features.order.lifecycle.OrderLifecycleError;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.standard.lib.AggregateEventDispatcher;
@@ -12,7 +11,7 @@ import ld.standard.lib.validation.Result;
 import java.time.Clock;
 import java.time.Instant;
 
-public class RejectOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
+public class RejectOrderUseCaseImpl extends AbstractOrderLifecycleUseCase<RejectOrderError>
         implements RejectOrderUseCase {
 
     private final Clock clock;
@@ -27,8 +26,13 @@ public class RejectOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
     }
 
     @Override
-    public Result<OrderSnapshot, OrderLifecycleError> execute(RejectOrderCommand command) {
+    public Result<OrderSnapshot, RejectOrderError> execute(RejectOrderCommand command) {
         return executeOperation(command.orderId(),
-                order -> order.reject(command.reason(), Instant.now(clock)));
+                order -> order.reject(
+                        command.reason(),
+                        Instant.now(clock)
+                ),
+                RejectOrderError.OrderNotFound::new
+        );
     }
 }

@@ -2,7 +2,6 @@ package ld.domain.features.order.deliver;
 
 import ld.domain.features.order.lifecycle.AbstractOrderLifecycleUseCase;
 import ld.domain.features.order.lifecycle.OrderEditor;
-import ld.domain.features.order.lifecycle.OrderLifecycleError;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.standard.lib.AggregateEventDispatcher;
@@ -12,7 +11,7 @@ import ld.standard.lib.validation.Result;
 import java.time.Clock;
 import java.time.Instant;
 
-public class DeliverOrderUseCaseImpl extends AbstractOrderLifecycleUseCase implements DeliverOrderUseCase {
+public class DeliverOrderUseCaseImpl extends AbstractOrderLifecycleUseCase<DeliverOrderError> implements DeliverOrderUseCase {
 
     private final Clock clock;
 
@@ -24,10 +23,15 @@ public class DeliverOrderUseCaseImpl extends AbstractOrderLifecycleUseCase imple
     }
 
     @Override
-    public Result<OrderSnapshot, OrderLifecycleError> execute(DeliverOrderCommand deliverOrderCommand) {
-        return executeOperation(deliverOrderCommand.orderId(),
-                order -> order.deliver(deliverOrderCommand.observation(),
-                        deliverOrderCommand.deliveryMethod(), Instant.now(clock))
+    public Result<OrderSnapshot, DeliverOrderError> execute(DeliverOrderCommand deliverOrderCommand) {
+        return executeOperation(
+                deliverOrderCommand.orderId(),
+                order -> order.deliver(
+                        deliverOrderCommand.observation(),
+                        deliverOrderCommand.deliveryMethod(),
+                        Instant.now(clock)
+                ),
+                DeliverOrderError.OrderNotFound::new
         );
     }
 }

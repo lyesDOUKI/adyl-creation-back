@@ -9,7 +9,7 @@ import ld.standard.lib.validation.Result;
 import java.time.Clock;
 import java.time.Instant;
 
-public class AcceptOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
+public class AcceptOrderUseCaseImpl extends AbstractOrderLifecycleUseCase<AcceptOrderError>
         implements AcceptOrderUseCase {
 
     private final CustomerOrderHistoryFinder customerOrderHistoryFinder;
@@ -33,11 +33,13 @@ public class AcceptOrderUseCaseImpl extends AbstractOrderLifecycleUseCase
     }
 
     @Override
-    public Result<OrderSnapshot, OrderLifecycleError> execute(AcceptOrderCommand command) {
-        return executeOperation(command.orderId(), this::acceptWithDiscountHandling);
+    public Result<OrderSnapshot, AcceptOrderError> execute(AcceptOrderCommand command) {
+        return executeOperation(command.orderId(),
+                this::acceptWithDiscountHandling,
+                AcceptOrderError.OrderNotFound::new);
     }
 
-    private Result<Order, OrderLifecycleError> acceptWithDiscountHandling(Order order) {
+    private Result<Order, AcceptOrderError> acceptWithDiscountHandling(Order order) {
         AppliedDiscount discount = resolveDiscount(order);
         return order.accept(discount, Instant.now(clock));
     }
