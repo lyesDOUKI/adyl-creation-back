@@ -1,6 +1,8 @@
 package ld.domain.features.order.model;
 
-import ld.domain.features.order.lifecycle.OrderLifecycleError;
+import ld.domain.features.order.accept.AcceptOrderError;
+import ld.domain.features.order.deliver.DeliverOrderError;
+import ld.domain.features.order.reject.RejectOrderError;
 import ld.domain.valueObjects.Percentage;
 import ld.domain.valueObjects.Price;
 import ld.standard.lib.AggregateRoot;
@@ -72,7 +74,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 .reduce(Price.zero(), Price::add);
     }
 
-    public Result<Order, OrderLifecycleError> accept(AppliedDiscount discount, Instant acceptedAt) {
+    public Result<Order, AcceptOrderError> accept(AppliedDiscount discount, Instant acceptedAt) {
         return switch (this.orderStatus) {
             case OrderStatus.Accepted _ -> Result.success(this);
 
@@ -91,13 +93,13 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 yield Result.success(this);
             }
 
-            case OrderStatus.Rejected _ -> Result.failure(new OrderLifecycleError.OrderAlreadyRejected());
+            case OrderStatus.Rejected _ -> Result.failure(new AcceptOrderError.OrderAlreadyRejected());
 
-            case OrderStatus.Delivered _ -> Result.failure(new OrderLifecycleError.OrderAlreadyDelivered());
+            case OrderStatus.Delivered _ -> Result.failure(new AcceptOrderError.OrderAlreadyDelivered());
         };
     }
 
-    public Result<Order, OrderLifecycleError> reject(String reason, Instant rejectedAt) {
+    public Result<Order, RejectOrderError> reject(String reason, Instant rejectedAt) {
         return switch (this.orderStatus) {
             case OrderStatus.Rejectable _ -> {
                 this.orderStatus = new OrderStatus.Rejected(reason, rejectedAt);
@@ -105,14 +107,14 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
                 yield Result.success(this);
             }
 
-            case OrderStatus.Delivered _ -> Result.failure(new OrderLifecycleError.OrderAlreadyDelivered());
+            case OrderStatus.Delivered _ -> Result.failure(new RejectOrderError.OrderAlreadyDelivered());
 
             case OrderStatus.Rejected _ -> Result.success(this);
         };
     }
 
-    public Result<Order, OrderLifecycleError> deliver(String observation, DeliveryMethod deliveryMethod,
-                                                      Instant deliveredAt) {
+    public Result<Order, DeliverOrderError> deliver(String observation, DeliveryMethod deliveryMethod,
+                                                    Instant deliveredAt) {
         return switch (this.orderStatus) {
             case OrderStatus.Accepted _ -> {
                 this.orderStatus = new OrderStatus.Delivered(observation, deliveryMethod, deliveredAt);
@@ -122,9 +124,9 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
 
             case OrderStatus.Delivered _ -> Result.success(this);
 
-            case OrderStatus.Pending _ -> Result.failure(new OrderLifecycleError.OrderStillPending());
+            case OrderStatus.Pending _ -> Result.failure(new DeliverOrderError.OrderStillPending());
 
-            case OrderStatus.Rejected _ -> Result.failure(new OrderLifecycleError.OrderAlreadyRejected());
+            case OrderStatus.Rejected _ -> Result.failure(new DeliverOrderError.OrderAlreadyRejected());
         };
     }
 
