@@ -9,11 +9,8 @@ import ld.application.response.OrderLineResponse;
 import ld.application.response.ProductCategoryResponse;
 import ld.domain.features.order.model.OrderReference;
 import ld.domain.features.order.model.OrderStatus;
-import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.product.model.ProductCategory;
 import ld.domain.features.product.model.ProductStatus;
-import ld.standard.lib.helper.test.ResultTestSupport;
-import ld.standard.lib.validation.FailureType;
 import org.jooq.DSLContext;
 import org.jooq.JSON;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +23,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
 import java.time.Clock;
+import java.util.Optional;
 import java.util.UUID;
 
 import static ld.application.jooq.tables.Customers.CUSTOMERS;
@@ -66,7 +64,7 @@ class GetOrderServiceIntegrationTest {
     }
 
     @Test
-    void findById_returns_success_with_mapped_order_and_lines_when_order_exists() {
+    void findById_returns_mapped_order_and_lines_when_order_exists() {
         UUID productId = UUID.randomUUID();
 
         insertProduct(
@@ -98,13 +96,12 @@ class GetOrderServiceIntegrationTest {
                 BigDecimal.valueOf(0.10)
         );
 
-        var result =
+        Optional<GetOrderResponse> result =
                 getOrderService.findById(orderId, customerIdentitySubject);
 
-        assertThat(result.isSuccess()).isTrue();
+        assertThat(result).isPresent();
 
-        GetOrderResponse response =
-                ResultTestSupport.extractValue(result);
+        GetOrderResponse response = result.orElseThrow();
 
         assertThat(response.orderId()).isEqualTo(orderId);
         assertThat(response.customerId()).isEqualTo(customerIdentitySubject);
@@ -188,13 +185,12 @@ class GetOrderServiceIntegrationTest {
                 BigDecimal.ZERO
         );
 
-        var result =
+        Optional<GetOrderResponse> result =
                 getOrderService.findById(orderId, customerIdentitySubject);
 
-        assertThat(result.isSuccess()).isTrue();
+        assertThat(result).isPresent();
 
-        GetOrderResponse response =
-                ResultTestSupport.extractValue(result);
+        GetOrderResponse response = result.orElseThrow();
 
         assertThat(response.lineCount()).isEqualTo(2);
         assertThat(response.totalQuantity())
@@ -206,28 +202,22 @@ class GetOrderServiceIntegrationTest {
     }
 
     @Test
-    void findById_returns_resource_not_found_when_order_does_not_exist() {
+    void findById_returns_empty_when_order_does_not_exist() {
         UUID customerIdentitySubject = UUID.randomUUID();
 
         insertCustomer(customerIdentitySubject);
 
-        var result =
+        Optional<GetOrderResponse> result =
                 getOrderService.findById(
                         UUID.randomUUID(),
                         customerIdentitySubject
                 );
 
-        assertThat(result.isFailure()).isTrue();
-
-        ResultTestSupport.assertFailure(
-                result,
-                FailureType.RESOURCE_NOT_FOUND,
-                OrderErrorCode.ORDER_NOT_FOUND
-        );
+        assertThat(result).isEmpty();
     }
 
     @Test
-    void findById_returns_resource_not_found_when_order_belongs_to_another_customer() {
+    void findById_returns_empty_when_order_belongs_to_another_customer() {
         UUID productId = UUID.randomUUID();
 
         insertProduct(
@@ -262,19 +252,13 @@ class GetOrderServiceIntegrationTest {
         UUID otherCustomerIdentitySubject = UUID.randomUUID();
         insertCustomer(otherCustomerIdentitySubject);
 
-        var result =
+        Optional<GetOrderResponse> result =
                 getOrderService.findById(
                         orderId,
                         otherCustomerIdentitySubject
                 );
 
-        assertThat(result.isFailure()).isTrue();
-
-        ResultTestSupport.assertFailure(
-                result,
-                FailureType.RESOURCE_NOT_FOUND,
-                OrderErrorCode.ORDER_NOT_FOUND
-        );
+        assertThat(result).isEmpty();
     }
 
     @Test
@@ -505,9 +489,7 @@ class GetOrderServiceIntegrationTest {
                 .execute();
     }
 
-    private void insertDeliveryAddress(
-            UUID deliveryAddressId
-    ) {
+    private void insertDeliveryAddress(UUID deliveryAddressId) {
         dsl.insertInto(ORDER_DELIVERY_ADDRESSES)
                 .columns(
                         ORDER_DELIVERY_ADDRESSES.ID,

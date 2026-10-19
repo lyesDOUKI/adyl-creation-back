@@ -6,14 +6,13 @@ import ld.application.infra.db.read.GetOrderQueryRepository;
 import ld.application.response.GetOrderResponse;
 import ld.application.response.OrderLineResponse;
 import ld.application.response.ProductCategoryResponse;
-import ld.domain.features.order.validation.OrderErrorCode;
-import ld.standard.lib.validation.Result;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -26,11 +25,8 @@ public class GetOrderServiceImpl implements GetOrderService {
     }
 
     @Override
-    public Result<GetOrderResponse, ResourceNotFound> findById(UUID orderId, UUID customerId) {
-        return repository.findById(orderId, customerId)
-                .map(order -> Result.<GetOrderResponse, ResourceNotFound>success(toResponse(order)))
-                .orElseGet(() -> Result.failure(
-                        new ResourceNotFound(OrderErrorCode.ORDER_NOT_FOUND, "La commande", orderId)));
+    public Optional<GetOrderResponse> findById(UUID orderId, UUID customerId) {
+        return repository.findById(orderId, customerId).map(this::toResponse);
     }
 
     @Override

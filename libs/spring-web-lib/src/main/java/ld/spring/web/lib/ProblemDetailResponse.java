@@ -1,10 +1,14 @@
 package ld.spring.web.lib;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
+import ld.standard.lib.validation.ErrorCode;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
 
+import java.net.URI;
+
 @JsonPropertyOrder({
+        "type",
         "failureType",
         "code",
         "title",
@@ -12,50 +16,36 @@ import org.springframework.http.ProblemDetail;
         "status",
         "instance"
 })
-public final class ProblemDetailResponse extends ProblemDetail
-        implements ApiResponseBody {
+public final class ProblemDetailResponse extends ProblemDetail implements ApiResponseBody {
 
-    private String code;
+    private final String code;
+    private final FailureType failureType;
 
-    private String failureType;
-
-    private ProblemDetailResponse(
-            HttpStatus status,
-            String code,
-            String failureType
-    ) {
+    private ProblemDetailResponse(HttpStatus status, FailureType failureType, String code) {
         super(status.value());
-
-        this.code = code;
         this.failureType = failureType;
+        this.code = code;
     }
 
-
-    public static ProblemDetailResponse forStatus(
+    public static ProblemDetailResponse of(
             HttpStatus status,
-            String code,
-            String failureType
-    ) {
-        return new ProblemDetailResponse(
-                status,
-                code,
-                failureType
-        );
-    }
+            FailureType failureType,
+            ErrorCode code,
+            String title,
+            String detail) {
 
-    private ProblemDetailResponse(HttpStatus status) {
-        super(status.value());
-    }
-
-    public static ProblemDetailResponse forStatus(HttpStatus status) {
-        return new ProblemDetailResponse(status);
+        var problem = new ProblemDetailResponse(status, failureType, code.code());
+        problem.setTitle(title);
+        problem.setDetail(detail);
+        problem.setType(URI.create("urn:problem-type:" + code.code().toLowerCase().replace('_', '-')));
+        return problem;
     }
 
     public String getCode() {
         return code;
     }
 
-    public String getFailureType() {
+    public FailureType getFailureType() {
         return failureType;
     }
 }

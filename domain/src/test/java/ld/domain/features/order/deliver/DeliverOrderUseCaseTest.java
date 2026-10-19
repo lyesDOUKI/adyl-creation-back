@@ -5,12 +5,10 @@ import ld.domain.features.order.model.DeliveryMethod;
 import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderState;
 import ld.domain.features.order.model.OrderStatus;
-import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.shared.OrderSnapshotTestBuilder;
 import ld.domain.valueObjects.Percentage;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.standard.lib.helper.test.InMemoryUnitOfWork;
-import ld.standard.lib.validation.FailureType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -54,10 +52,9 @@ class DeliverOrderUseCaseTest {
 
             var result = deliverOrderUseCase.execute(command);
 
-            assertFailure(
+            assertFailureOfType(
                     result,
-                    FailureType.RESOURCE_NOT_FOUND,
-                    OrderErrorCode.ORDER_NOT_FOUND
+                    DeliverOrderError.OrderNotFound.class
             );
         }
 
@@ -99,10 +96,9 @@ class DeliverOrderUseCaseTest {
                     new DeliverOrderCommand(orderId, DeliveryMethod.HAND_DELIVERY, "Remis en main propre")
             );
 
-            assertFailure(
+            assertFailureOfType(
                     result,
-                    FailureType.BUSINESS_RULE,
-                    OrderErrorCode.PENDING_ORDER
+                    DeliverOrderError.OrderStillPending.class
             );
         }
 
@@ -340,10 +336,9 @@ class DeliverOrderUseCaseTest {
                     )
             );
 
-            assertFailure(
+            assertFailureOfType(
                     result,
-                    FailureType.BUSINESS_RULE,
-                    OrderErrorCode.ORDER_HAS_BEEN_REJECTED
+                    DeliverOrderError.OrderAlreadyRejected.class
             );
         }
 

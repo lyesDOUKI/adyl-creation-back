@@ -8,9 +8,7 @@ import ld.application.response.GetProductResponse;
 import ld.application.response.ProductCategoryResponse;
 import ld.application.shared.product.CreateProductCommandFixture;
 import ld.domain.features.product.CreateProductUseCase;
-import ld.domain.features.product.validation.ProductErrorCode;
 import ld.standard.lib.helper.test.ResultTestSupport;
-import ld.standard.lib.validation.FailureType;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,12 +19,12 @@ import org.springframework.data.domain.PageRequest;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 import java.util.UUID;
 
 import static ld.application.jooq.tables.ProductColors.PRODUCT_COLORS;
 import static ld.application.jooq.tables.ProductPhotos.PRODUCT_PHOTOS;
 import static ld.application.jooq.tables.Products.PRODUCTS;
-import static ld.standard.lib.helper.test.ResultTestSupport.assertFailure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @ProductIntegrationTest
@@ -62,14 +60,14 @@ class GetProductServiceIntegrationTest {
     }
 
     @Test
-    void findById_returns_success_with_mapped_fields_when_product_exists() {
+    void findById_returns_mapped_fields_when_product_exists() {
         var created = ResultTestSupport.extractValue(
                 createProductUseCase.execute(CreateProductCommandFixture.aValidCommand()));
 
-        var result = getProductService.findById(created.productId());
+        Optional<GetProductResponse> result = getProductService.findById(created.productId());
 
-        assertThat(result.isSuccess()).isTrue();
-        GetProductResponse response = ResultTestSupport.extractValue(result);
+        assertThat(result).isPresent();
+        GetProductResponse response = result.orElseThrow();
         assertThat(response.productId()).isEqualTo(created.productId());
         assertThat(response.name()).isEqualTo("T-shirt basique");
         assertThat(response.productCategory()).isEqualTo(ProductCategoryResponse.ACCESSORIES);
@@ -85,10 +83,10 @@ class GetProductServiceIntegrationTest {
         insertPhoto(created.productId(), "photo1.jpg");
         insertPhoto(created.productId(), "photo2.jpg");
 
-        var result = getProductService.findById(created.productId());
+        Optional<GetProductResponse> result = getProductService.findById(created.productId());
 
-        assertThat(result.isSuccess()).isTrue();
-        GetProductResponse response = ResultTestSupport.extractValue(result);
+        assertThat(result).isPresent();
+        GetProductResponse response = result.orElseThrow();
 
         String expectedPhoto1 = photoUrlResolver.resolve(created.productId(), "photo1.jpg");
         String expectedPhoto2 = photoUrlResolver.resolve(created.productId(), "photo2.jpg");
@@ -101,18 +99,17 @@ class GetProductServiceIntegrationTest {
         var created = ResultTestSupport.extractValue(
                 createProductUseCase.execute(CreateProductCommandFixture.aValidCommand()));
 
-        var result = getProductService.findById(created.productId());
+        Optional<GetProductResponse> result = getProductService.findById(created.productId());
 
-        assertThat(result.isSuccess()).isTrue();
-        assertThat(ResultTestSupport.extractValue(result).photosUri()).isEmpty();
+        assertThat(result).isPresent();
+        assertThat(result.orElseThrow().photosUri()).isEmpty();
     }
 
     @Test
-    void findById_returns_resource_not_found_when_product_does_not_exist() {
-        var result = getProductService.findById(UUID.randomUUID());
+    void findById_returns_empty_when_product_does_not_exist() {
+        Optional<GetProductResponse> result = getProductService.findById(UUID.randomUUID());
 
-        assertThat(result.isFailure()).isTrue();
-        assertFailure(result, FailureType.RESOURCE_NOT_FOUND, ProductErrorCode.PRODUCTS_NOT_FOUND);
+        assertThat(result).isEmpty();
     }
 
     @Test

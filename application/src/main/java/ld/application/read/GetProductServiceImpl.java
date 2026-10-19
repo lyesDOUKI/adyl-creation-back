@@ -5,13 +5,12 @@ import ld.application.infra.db.read.GetProductQueryRepository;
 import ld.application.response.GetProductResponse;
 import ld.application.response.ProductCategoryResponse;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
-import ld.domain.features.product.validation.ProductErrorCode;
-import ld.standard.lib.validation.Result;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 
@@ -30,13 +29,9 @@ public class GetProductServiceImpl implements GetProductService {
     }
 
     @Override
-    public Result<GetProductResponse, ResourceNotFound> findById(UUID productId) {
-
+    public Optional<GetProductResponse> findById(UUID productId) {
         return repository.findById(productId)
-                .map(productQuery -> Result.<GetProductResponse, ResourceNotFound>success(toResponse(productQuery)))
-                .orElseGet(() -> Result.failure(
-                        new ResourceNotFound(ProductErrorCode.PRODUCTS_NOT_FOUND, "Le produit", productId)
-                ));
+                .map(this::toResponse);
     }
 
     @Override

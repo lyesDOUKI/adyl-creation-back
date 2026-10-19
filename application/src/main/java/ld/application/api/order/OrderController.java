@@ -9,9 +9,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import ld.application.api.ApplicationResourceKind;
+import ld.application.api.docs.*;
 import ld.application.infra.security.AdminOnly;
 import ld.application.infra.security.CurrentCustomerId;
 import ld.application.infra.security.CustomerOnly;
+import ld.application.problems.AcceptOrderProblemMapper;
+import ld.application.problems.DeliverOrderProblemMapper;
+import ld.application.problems.OrderCreateProblemMapper;
+import ld.application.problems.RejectOrderProblemMapper;
 import ld.application.read.GetOrderService;
 import ld.application.request.CreateOrderRequest;
 import ld.application.request.DeliverOrderRequest;
@@ -34,6 +40,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.UUID;
 
 @RestController
+@ApiInternalServerErrorResponse
 @RequestMapping("/orders")
 @Tag(name = "Commandes", description = "API pour la gestion des commandes")
 public class OrderController {
@@ -61,31 +68,14 @@ public class OrderController {
             summary = "Création d'une demande de commande",
             description = "Envoi la demande de commande pour prise en compte et traitement"
     )
+    @ApiBadRequestResponse
+    @ApiResourceNotFoundResponse
+    @ApiProcessProblemResponse
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "201",
                     description = "Demande de commande enregistré avec succès",
                     content = @Content(schema = @Schema(implementation = CreateOrderResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Requête invalide",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Produits demande inexistants dans l'application",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "422",
-                    description = "Incohérence sur la création de la demande d'une commande",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Erreur interne du serveur",
-                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseBody> createOrder(
@@ -95,7 +85,7 @@ public class OrderController {
     ) {
         var response = this.createOrderUseCase.execute(request.toCommand(customerId))
                 .map(CreateOrderResponse::from);
-        return ResultToResponse.created(response, CreateOrderResponse::orderId, httpServletRequest);
+        return ResultToResponse.created(response, CreateOrderResponse::orderId, new OrderCreateProblemMapper(), httpServletRequest);
     }
 
     @AdminOnly
@@ -104,6 +94,9 @@ public class OrderController {
             summary = "Accepter une commande",
             description = "Accepte une commande en attente et applique, le cas échéant, la remise de première commande."
     )
+    @ApiBadRequestResponse
+    @ApiResourceNotFoundResponse
+    @ApiConflictResponse
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -111,26 +104,6 @@ public class OrderController {
                     content = @Content(
                             schema = @Schema(implementation = OrderAcceptedResponse.class)
                     )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Identifiant de commande invalide",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Commande inexistante",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "422",
-                    description = "La commande ne peut pas être acceptée dans son état actuel",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Erreur interne du serveur",
-                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseBody> acceptOrder(
@@ -147,6 +120,7 @@ public class OrderController {
 
         return ResultToResponse.ok(
                 response,
+                new AcceptOrderProblemMapper(),
                 httpServletRequest
         );
     }
@@ -156,6 +130,9 @@ public class OrderController {
     @Operation(
             summary = "Rejeter une commande"
     )
+    @ApiBadRequestResponse
+    @ApiResourceNotFoundResponse
+    @ApiProcessProblemResponse
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -163,26 +140,6 @@ public class OrderController {
                     content = @Content(
                             schema = @Schema(implementation = OrderRejectedResponse.class)
                     )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Identifiant de commande invalide",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Commande inexistante",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "422",
-                    description = "La commande ne peut pas être rejetée dans son état actuel",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Erreur interne du serveur",
-                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseBody> rejectOrder(
@@ -200,6 +157,7 @@ public class OrderController {
 
         return ResultToResponse.ok(
                 response,
+                new RejectOrderProblemMapper(),
                 httpServletRequest
         );
     }
@@ -209,6 +167,9 @@ public class OrderController {
     @Operation(
             summary = "Livrer une commande"
     )
+    @ApiBadRequestResponse
+    @ApiResourceNotFoundResponse
+    @ApiProcessProblemResponse
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -216,26 +177,6 @@ public class OrderController {
                     content = @Content(
                             schema = @Schema(implementation = OrderDeliveredResponse.class)
                     )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Identifiant de commande invalide",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Commande inexistante",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "422",
-                    description = "La commande ne peut pas être livrée dans son état actuel",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Erreur interne du serveur",
-                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseBody> deliverOrder(
@@ -249,7 +190,7 @@ public class OrderController {
     ) {
         var result = this.deliverOrderUseCase.execute(deliverOrderRequest.toCommand(orderId))
                 .map(OrderDeliveredResponse::from);
-        return ResultToResponse.ok(result, httpServletRequest);
+        return ResultToResponse.ok(result, new DeliverOrderProblemMapper(), httpServletRequest);
     }
 
     @CustomerOnly
@@ -257,20 +198,11 @@ public class OrderController {
     @Operation(
             summary = "Récupération des commandes"
     )
+    @ApiBadRequestResponse
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
                     description = "Commandes récupérées avec succès"
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Requête invalide",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Erreur interne du serveur",
-                    content = @Content
             )
     })
     public ResponseEntity<PageResponse<GetOrderResponse>> get(
@@ -285,33 +217,24 @@ public class OrderController {
     @Operation(
             summary = "Récupération d'une commande"
     )
+    @ApiBadRequestResponse
+    @ApiResourceNotFoundResponse
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
                     description = "Commande récupérée avec succès",
                     content = @Content(schema = @Schema(implementation = GetOrderResponse.class))
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Commande introuvable",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Requête invalide",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "500",
-                    description = "Erreur interne du serveur",
-                    content = @Content
             )
     })
     public ResponseEntity<ApiResponseBody> getById(
             @PathVariable("id") UUID orderId,
             @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId,
-            HttpServletRequest httpServletRequest
-    ) {
-        return ResultToResponse.ok(this.getOrderService.findById(orderId, currentCustomerId), httpServletRequest);
+            HttpServletRequest httpServletRequest) {
+
+        return ResultToResponse.okOrNotFound(
+                getOrderService.findById(orderId, currentCustomerId),
+                ApplicationResourceKind.ORDER,
+                orderId,
+                httpServletRequest);
     }
 }
