@@ -1,4 +1,4 @@
-package ld.domain.features.product.photos.validation;
+package ld.application.problems.product.photos;
 
 import ld.standard.lib.validation.ErrorCode;
 

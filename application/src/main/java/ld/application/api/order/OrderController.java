@@ -14,10 +14,15 @@ import ld.application.api.docs.*;
 import ld.application.infra.security.AdminOnly;
 import ld.application.infra.security.CurrentCustomerId;
 import ld.application.infra.security.CustomerOnly;
-import ld.application.problems.AcceptOrderProblemMapper;
-import ld.application.problems.DeliverOrderProblemMapper;
-import ld.application.problems.OrderCreateProblemMapper;
-import ld.application.problems.RejectOrderProblemMapper;
+import ld.application.problems.order.accept.AcceptOrderProblem;
+import ld.application.problems.order.accept.AcceptOrderProblemMapper;
+import ld.application.problems.order.create.CreateOrderProblem;
+import ld.application.problems.order.create.CreateOrderProblemMapper;
+import ld.application.problems.order.deliver.DeliverOrderProblem;
+import ld.application.problems.order.deliver.DeliverOrderProblemMapper;
+import ld.application.problems.order.reject.RejectOrderProblem;
+import ld.application.problems.order.reject.RejectOrderProblemMapper;
+import ld.spring.web.lib.ApiProblems;
 import ld.application.read.GetOrderService;
 import ld.application.request.CreateOrderRequest;
 import ld.application.request.DeliverOrderRequest;
@@ -71,6 +76,8 @@ public class OrderController {
     @ApiBadRequestResponse
     @ApiResourceNotFoundResponse
     @ApiProcessProblemResponse
+    @ApiConflictResponse
+    @ApiProblems(CreateOrderProblem.class)
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "201",
@@ -85,7 +92,7 @@ public class OrderController {
     ) {
         var response = this.createOrderUseCase.execute(request.toCommand(customerId))
                 .map(CreateOrderResponse::from);
-        return ResultToResponse.created(response, CreateOrderResponse::orderId, new OrderCreateProblemMapper(), httpServletRequest);
+        return ResultToResponse.created(response, CreateOrderResponse::orderId, new CreateOrderProblemMapper(), httpServletRequest);
     }
 
     @AdminOnly
@@ -97,6 +104,7 @@ public class OrderController {
     @ApiBadRequestResponse
     @ApiResourceNotFoundResponse
     @ApiConflictResponse
+    @ApiProblems(AcceptOrderProblem.class)
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -132,7 +140,8 @@ public class OrderController {
     )
     @ApiBadRequestResponse
     @ApiResourceNotFoundResponse
-    @ApiProcessProblemResponse
+    @ApiConflictResponse
+    @ApiProblems(RejectOrderProblem.class)
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -170,6 +179,8 @@ public class OrderController {
     @ApiBadRequestResponse
     @ApiResourceNotFoundResponse
     @ApiProcessProblemResponse
+    @ApiConflictResponse
+    @ApiProblems(DeliverOrderProblem.class)
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",

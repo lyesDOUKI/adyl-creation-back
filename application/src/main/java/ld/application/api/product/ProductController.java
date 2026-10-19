@@ -11,12 +11,14 @@ import jakarta.validation.Valid;
 import ld.application.api.ApplicationResourceKind;
 import ld.application.api.docs.*;
 import ld.application.infra.security.AdminOnly;
-import ld.application.problems.CreateProductProblemMapper;
+import ld.application.problems.product.CreateProductProblem;
+import ld.application.problems.product.CreateProductProblemMapper;
 import ld.application.read.GetProductService;
 import ld.application.request.CreateProductRequest;
 import ld.application.response.CreateProductResponse;
 import ld.application.response.GetProductResponse;
 import ld.domain.features.product.CreateProductUseCase;
+import ld.spring.web.lib.ApiProblems;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.PageResponse;
 import ld.spring.web.lib.ResultToResponse;
@@ -53,7 +55,8 @@ public class ProductController {
             description = "Créer un nouveau produit de crochet adyl-creation"
     )
     @ApiBadRequestResponse
-    @ApiProcessProblemResponse
+    @ApiConflictResponse
+    @ApiProblems(CreateProductProblem.class)
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "201",

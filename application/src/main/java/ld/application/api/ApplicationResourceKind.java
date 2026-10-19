@@ -1,7 +1,7 @@
 package ld.application.api;
 
-import ld.domain.features.order.validation.OrderErrorCode;
-import ld.domain.features.product.validation.ProductErrorCode;
+import ld.application.problems.order.OrderErrorCode;
+import ld.application.problems.product.ProductErrorCode;
 import ld.spring.web.lib.ResourceKind;
 import ld.standard.lib.validation.ErrorCode;
 
@@ -11,7 +11,7 @@ public enum ApplicationResourceKind implements ResourceKind {
             "Commande introuvable",
             "La commande %s est introuvable"),
 
-    PRODUCT(ProductErrorCode.PRODUCTS_NOT_FOUND,
+    PRODUCT(ProductErrorCode.PRODUCT_NOT_FOUND,
             "Produit introuvable",
             "Le produit %s est introuvable");
 
