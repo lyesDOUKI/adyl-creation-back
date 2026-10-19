@@ -4,11 +4,10 @@ import ld.domain.features.product.model.ProductCategory;
 import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductEvent;
 import ld.domain.features.product.model.ProductStatus;
-import ld.domain.features.product.validation.ProductErrorCode;
+import ld.domain.features.product.validation.CreateProductError;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.standard.lib.helper.test.InMemoryUnitOfWork;
-import ld.standard.lib.validation.FailureType;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,7 +51,7 @@ class CreateProductUseCaseTest {
         @DisplayName("Le résultat de la création doit etre un échec")
         public void shouldReturnFailureResult() {
             var result = createProductUseCase.execute(createCommand());
-            assertFailure(result, FailureType.BUSINESS_RULE, ProductErrorCode.PRODUCT_ALREADY_EXISTS);
+            assertFailureOfType(result, CreateProductError.ProductNameAlreadyExists.class);
         }
 
         @Test

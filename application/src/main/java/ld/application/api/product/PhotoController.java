@@ -8,7 +8,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotEmpty;
+import ld.application.api.docs.*;
 import ld.application.infra.security.AdminOnly;
+import ld.application.problems.AddProductPhotosProblemMapper;
 import ld.application.request.AddProductPhotosRequestMapper;
 import ld.application.response.AddProductPhotosResponse;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
@@ -33,6 +35,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@ApiInternalServerErrorResponse
 @RequestMapping("/products/{id}/photos")
 @Tag(name = "photos", description = "API pour la gestion des photos des produits")
 public class PhotoController {
@@ -58,13 +61,12 @@ public class PhotoController {
             summary = "Ajout de photos à un produit",
             description = "Ajoute une ou plusieurs photos à un produit de crochet adyl-creation existant"
     )
+    @ApiBadRequestResponse
+    @ApiResourceNotFoundResponse
+    @ApiProcessProblemResponse
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Photos ajoutées avec succès",
-                    content = @Content(schema = @Schema(implementation = AddProductPhotosResponse.class))),
-            @ApiResponse(responseCode = "400", description = "Requête invalide", content = @Content),
-            @ApiResponse(responseCode = "404", description = "Produit introuvable", content = @Content),
-            @ApiResponse(responseCode = "422", description = "Incohérence métier sur les photos fournies", content = @Content),
-            @ApiResponse(responseCode = "500", description = "Erreur interne du serveur", content = @Content)
+                    content = @Content(schema = @Schema(implementation = AddProductPhotosResponse.class)))
     })
     public ResponseEntity<ApiResponseBody> addPhotos(
             @PathVariable("id") UUID productId,
@@ -75,7 +77,7 @@ public class PhotoController {
                 .execute(AddProductPhotosRequestMapper.toCommand(productId, photos))
                 .map(result -> AddProductPhotosResponse.from(result, this.productPhotoUrlResolver));
 
-        return ResultToResponse.created(response, AddProductPhotosResponse::productId, httpServletRequest);
+        return ResultToResponse.created(response, AddProductPhotosResponse::productId, new AddProductPhotosProblemMapper(), httpServletRequest);
     }
 
     @GetMapping("/{fileName}")
@@ -84,14 +86,21 @@ public class PhotoController {
             description = "Renvoie le fichier binaire d'une photo stockée pour un produit donné"
     )
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Photo trouvée et renvoyée"),
-            @ApiResponse(responseCode = "404", description = "Photo introuvable", content = @Content)
+            @ApiResponse(
+                    responseCode = "200",
+                    description = "Photo trouvée et renvoyée",
+                    content = @Content(mediaType = "application/octet-stream")
+            ),
+            @ApiResponse(
+                    responseCode = "404",
+                    description = "Photo introuvable pour ce produit (réponse sans corps)",
+                    content = @Content
+            )
     })
     public ResponseEntity<byte[]> get(
             @PathVariable("id") UUID productId,
             @PathVariable("fileName") String fileName
     ) {
-        LOGGER.info("Starting adding photo for productId {} :", productId);
         Path filePath = this.rootDirectory.resolve(productId + "/" + fileName).normalize();
 
         if (!filePath.startsWith(this.rootDirectory) || !Files.exists(filePath)) {

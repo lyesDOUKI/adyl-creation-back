@@ -7,7 +7,6 @@ import ld.domain.features.appointment.model.OpeningInterval;
 import ld.domain.features.appointment.model.TimeSlot;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.standard.lib.helper.test.InMemoryUnitOfWork;
-import ld.standard.lib.validation.FailureType;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -61,7 +60,7 @@ class SubmitAppointmentUseCaseTest {
                     .build();
 
             var result = submitAppointmentUseCase.execute(command);
-            assertFailure(result, FailureType.BUSINESS_RULE, AppointmentErrorCode.SLOT_OUTSIDE_OPENING_HOURS);
+            assertFailureOfType(result, SubmitAppointmentError.SlotOutsideOpeningHours.class);
         }
 
         @Test
@@ -118,7 +117,7 @@ class SubmitAppointmentUseCaseTest {
                     .build();
 
             var result = submitAppointmentUseCase.execute(command);
-            assertFailure(result, FailureType.BUSINESS_RULE, AppointmentErrorCode.SLOT_ALREADY_BOOKED);
+            assertFailureOfType(result, SubmitAppointmentError.SlotAlreadyBooked.class);
         }
 
         @Test

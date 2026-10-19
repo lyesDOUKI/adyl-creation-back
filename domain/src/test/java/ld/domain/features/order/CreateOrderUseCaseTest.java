@@ -5,7 +5,6 @@ import ld.domain.features.order.model.OrderEvent;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderState;
 import ld.domain.features.order.model.OrderStatus;
-import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.product.InMemoryProductFinder;
 import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.product.model.ProductStatus;
@@ -13,7 +12,6 @@ import ld.domain.features.shared.ProductSnapshotTestBuilder;
 import ld.domain.valueObjects.Price;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.standard.lib.helper.test.InMemoryUnitOfWork;
-import ld.standard.lib.validation.FailureType;
 import org.assertj.core.util.BigDecimalComparator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -25,6 +23,7 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 import static ld.standard.lib.helper.test.ResultTestSupport.*;
@@ -98,7 +97,7 @@ class CreateOrderUseCaseTest {
             );
 
             var result = createOrderUseCase.execute(command);
-            assertFailure(result, FailureType.RESOURCE_NOT_FOUND, OrderErrorCode.PRODUCTS_NOT_FOUND);
+            assertFailure(result, new OrderCreateError.UnknownProducts(Set.of(productId)));
         }
 
         @Test
@@ -414,7 +413,7 @@ class CreateOrderUseCaseTest {
 
             var result = createOrderUseCase.execute(command);
 
-            assertFailure(result, FailureType.BUSINESS_RULE, OrderErrorCode.PRODUCT_NOT_AVAILABLE);
+            assertFailure(result, new OrderCreateError.UnavailableProducts(List.of(productOne)));
 
             assertThat(createOrderRepository.countOrders())
                     .isZero();
@@ -450,7 +449,10 @@ class CreateOrderUseCaseTest {
                             .build()
             );
 
-            assertFailure(createOrderUseCase.execute(command), FailureType.BUSINESS_RULE, OrderErrorCode.PRODUCT_COLOR_NOT_AVAILABLE);
+            assertFailure(
+                    createOrderUseCase.execute(command), new OrderCreateError.ColorNotAvailable(productId,
+                    "red", List.of(new ProductColor("black")))
+            );
         }
     }
 

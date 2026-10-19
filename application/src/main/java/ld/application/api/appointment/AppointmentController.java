@@ -10,8 +10,12 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import ld.application.api.docs.ApiBadRequestResponse;
+import ld.application.api.docs.ApiConflictResponse;
+import ld.application.api.docs.ApiInternalServerErrorResponse;
 import ld.application.infra.security.CurrentCustomerId;
 import ld.application.infra.security.CustomerOnly;
+import ld.application.problems.SubmitAppointmentProblemMapper;
 import ld.application.read.FindAvailableSlotsService;
 import ld.application.read.GetAppointmentService;
 import ld.application.request.SubmitAppointmentRequest;
@@ -19,7 +23,6 @@ import ld.application.response.AppointmentsResponse;
 import ld.application.response.AvailableSlotsResponse;
 import ld.application.response.SubmitAppointmentResponse;
 import ld.domain.features.appointment.create.SubmitAppointmentUseCase;
-import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -29,6 +32,7 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@ApiInternalServerErrorResponse
 @RequestMapping("/appointments")
 @Tag(name = "Appointment", description = "API pour la gestion des rendez-vous")
 public class AppointmentController {
@@ -48,11 +52,12 @@ public class AppointmentController {
     @Operation(
             summary = "Recherche les créneaux disponibles",
             description = """
-                    Retourne les créneaux disponibles à la réservation sur la période demandée,
-                    organisés par date. Chaque date de la période est présente dans la réponse,
-                    même celles ne comportant aucun créneau disponible.
-                    """
+                Retourne les créneaux disponibles à la réservation sur la période demandée,
+                organisés par date. Chaque date de la période est présente dans la réponse,
+                même celles ne comportant aucun créneau disponible.
+                """
     )
+    @ApiBadRequestResponse
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "200",
@@ -61,11 +66,6 @@ public class AppointmentController {
                             mediaType = "application/json",
                             schema = @Schema(implementation = AvailableSlotsResponse.class)
                     )
-            ),
-            @ApiResponse(
-                    responseCode = "400",
-                    description = "Paramètres invalides (ex: 'to' antérieur à 'from', dates manquantes ou mal formées)",
-                    content = @Content(mediaType = "application/json")
             )
     })
     @GetMapping("/available-slots")
@@ -96,6 +96,8 @@ public class AppointmentController {
                 en dehors des horaires d'ouverture, la création est refusée.
                 """
     )
+    @ApiBadRequestResponse
+    @ApiConflictResponse
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "201",
@@ -106,32 +108,26 @@ public class AppointmentController {
                     )
             ),
             @ApiResponse(
-                    responseCode = "400",
-                    description = "Requête invalide (ex: 'end' antérieur ou égal à 'start', champs manquants)",
-                    content = @Content(mediaType = "application/json")
-            ),
-            @ApiResponse(
                     responseCode = "401",
                     description = "Client non authentifié",
-                    content = @Content(mediaType = "application/json")
-            ),
-            @ApiResponse(
-                    responseCode = "409",
-                    description = "Le créneau demandé n'est plus disponible (déjà réservé ou hors horaires d'ouverture)",
                     content = @Content(mediaType = "application/json")
             )
     })
     @PostMapping
-    public ResponseEntity<ApiResponseBody> create(
+    public ResponseEntity<?> create(
             @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId,
             @Valid @RequestBody SubmitAppointmentRequest request,
-            HttpServletRequest httpServletRequest
-    ) {
-        var response = this.submitAppointmentUseCase
+            HttpServletRequest httpServletRequest) {
+
+        var result = submitAppointmentUseCase
                 .execute(request.to(currentCustomerId))
                 .map(SubmitAppointmentResponse::from);
 
-        return ResultToResponse.created(response, SubmitAppointmentResponse::appointmentId, httpServletRequest);
+        return ResultToResponse.created(
+                result,
+                SubmitAppointmentResponse::appointmentId,
+                new SubmitAppointmentProblemMapper(),
+                httpServletRequest);
     }
 
     @CustomerOnly

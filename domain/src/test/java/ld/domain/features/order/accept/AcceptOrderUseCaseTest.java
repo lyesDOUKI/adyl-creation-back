@@ -4,14 +4,12 @@ import ld.domain.features.order.lifecycle.InMemoryDiscountClaimer;
 import ld.domain.features.order.lifecycle.InMemoryDiscountProvider;
 import ld.domain.features.order.lifecycle.InMemoryOrderEditor;
 import ld.domain.features.order.model.*;
-import ld.domain.features.order.validation.OrderErrorCode;
 import ld.domain.features.product.model.ProductColor;
 import ld.domain.features.shared.OrderSnapshotTestBuilder;
 import ld.domain.valueObjects.Percentage;
 import ld.domain.valueObjects.Price;
 import ld.standard.lib.helper.test.InMemoryAggregateEventDispatcher;
 import ld.standard.lib.helper.test.InMemoryUnitOfWork;
-import ld.standard.lib.validation.FailureType;
 import org.assertj.core.util.BigDecimalComparator;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -72,7 +70,7 @@ class AcceptOrderUseCaseTest {
 
             var result = acceptOrderUseCase.execute(command);
 
-            assertFailure(result, FailureType.RESOURCE_NOT_FOUND, OrderErrorCode.ORDER_NOT_FOUND);
+            assertFailureOfType(result, AcceptOrderError.OrderNotFound.class);
         }
 
         @Test
@@ -450,7 +448,7 @@ class AcceptOrderUseCaseTest {
             );
 
             var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
-            assertFailure(result, FailureType.BUSINESS_RULE, OrderErrorCode.ORDER_HAS_BEEN_DELIVERED);
+            assertFailureOfType(result, AcceptOrderError.OrderAlreadyDelivered.class);
         }
 
         @Test
@@ -490,7 +488,7 @@ class AcceptOrderUseCaseTest {
             );
 
             var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
-            assertFailure(result, FailureType.BUSINESS_RULE, OrderErrorCode.ORDER_HAS_BEEN_REJECTED);
+            assertFailureOfType(result, AcceptOrderError.OrderAlreadyRejected.class);
         }
 
         @Test

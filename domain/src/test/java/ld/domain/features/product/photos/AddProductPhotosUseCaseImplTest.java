@@ -2,12 +2,10 @@ package ld.domain.features.product.photos;
 
 
 import ld.domain.features.product.model.ProductPhoto;
-import ld.domain.features.product.photos.validation.PhotoErrorCode;
+import ld.domain.features.product.photos.validation.AddProductPhotosError;
 import ld.domain.features.product.photos.validation.PhotoRule;
-import ld.domain.features.product.validation.ProductErrorCode;
 import ld.domain.features.shared.ProductSnapshotTestBuilder;
 import ld.standard.lib.helper.test.InMemoryUnitOfWork;
-import ld.standard.lib.validation.FailureType;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -70,7 +68,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            assertFailure(result, FailureType.RESOURCE_NOT_FOUND, ProductErrorCode.PRODUCTS_NOT_FOUND);
+            assertFailureOfType(result, AddProductPhotosError.ProductNotFound.class);
         }
 
         @Test
@@ -100,7 +98,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_LIST_EMPTY);
+            assertFailureOfType(result, AddProductPhotosError.NoPhotos.class);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -114,7 +112,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_LIST_EMPTY);
+            assertFailureOfType(result, AddProductPhotosError.NoPhotos.class);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -135,7 +133,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_SIZE_ZERO);
+            assertFailureOfType(result, AddProductPhotosError.EmptyPhoto.class);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -149,7 +147,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_SIZE_ZERO);
+            assertFailureOfType(result, AddProductPhotosError.EmptyPhoto.class);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -171,7 +169,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_MAX_SIZE_EXCEEDED);
+            assertFailureOfType(result, AddProductPhotosError.PhotoTooLarge.class);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -192,7 +190,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_EXTENSION_NOT_ALLOWED);
+            assertFailureOfType(result, AddProductPhotosError.ExtensionNotAllowed.class);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
@@ -207,7 +205,7 @@ class AddProductPhotosUseCaseImplTest {
 
             var result = addProductPhotosUseCase.execute(command);
 
-            assertFailure(result, FailureType.BUSINESS_RULE, PhotoErrorCode.PHOTO_EXTENSION_NOT_ALLOWED);
+            assertFailureOfType(result, AddProductPhotosError.ExtensionNotAllowed.class);
 
             assertThat(addProductPhotosRepository.countUpdates()).isZero();
             assertThat(productPhotoStoragePort.countStored()).isZero();
