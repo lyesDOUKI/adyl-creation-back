@@ -8,13 +8,18 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotEmpty;
-import ld.application.api.docs.*;
+import ld.application.api.docs.ApiBadRequestResponse;
+import ld.application.api.docs.ApiInternalServerErrorResponse;
+import ld.application.api.docs.ApiProcessProblemResponse;
+import ld.application.api.docs.ApiResourceNotFoundResponse;
 import ld.application.infra.security.AdminOnly;
-import ld.application.problems.AddProductPhotosProblemMapper;
+import ld.application.problems.product.photos.AddProductPhotosProblem;
+import ld.application.problems.product.photos.AddProductPhotosProblemMapper;
 import ld.application.request.AddProductPhotosRequestMapper;
 import ld.application.response.AddProductPhotosResponse;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
+import ld.spring.web.lib.ApiProblems;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
 import org.slf4j.Logger;
@@ -64,6 +69,7 @@ public class PhotoController {
     @ApiBadRequestResponse
     @ApiResourceNotFoundResponse
     @ApiProcessProblemResponse
+    @ApiProblems(AddProductPhotosProblem.class)
     @ApiResponses(value = {
             @ApiResponse(responseCode = "201", description = "Photos ajoutées avec succès",
                     content = @Content(schema = @Schema(implementation = AddProductPhotosResponse.class)))

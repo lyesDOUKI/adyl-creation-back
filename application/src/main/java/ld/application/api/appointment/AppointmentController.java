@@ -13,9 +13,11 @@ import jakarta.validation.Valid;
 import ld.application.api.docs.ApiBadRequestResponse;
 import ld.application.api.docs.ApiConflictResponse;
 import ld.application.api.docs.ApiInternalServerErrorResponse;
+import ld.application.api.docs.ApiProcessProblemResponse;
 import ld.application.infra.security.CurrentCustomerId;
 import ld.application.infra.security.CustomerOnly;
-import ld.application.problems.SubmitAppointmentProblemMapper;
+import ld.application.problems.appointment.SubmitAppointmentProblem;
+import ld.application.problems.appointment.SubmitAppointmentProblemMapper;
 import ld.application.read.FindAvailableSlotsService;
 import ld.application.read.GetAppointmentService;
 import ld.application.request.SubmitAppointmentRequest;
@@ -23,6 +25,7 @@ import ld.application.response.AppointmentsResponse;
 import ld.application.response.AvailableSlotsResponse;
 import ld.application.response.SubmitAppointmentResponse;
 import ld.domain.features.appointment.create.SubmitAppointmentUseCase;
+import ld.spring.web.lib.ApiProblems;
 import ld.spring.web.lib.ResultToResponse;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -98,6 +101,8 @@ public class AppointmentController {
     )
     @ApiBadRequestResponse
     @ApiConflictResponse
+    @ApiProcessProblemResponse
+    @ApiProblems(SubmitAppointmentProblem.class)
     @ApiResponses(value = {
             @ApiResponse(
                     responseCode = "201",

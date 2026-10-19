@@ -1,4 +1,4 @@
-package ld.domain.features.order.validation;
+package ld.application.problems.order;
 
 import ld.standard.lib.validation.ErrorCode;
 
@@ -8,6 +8,7 @@ public enum OrderErrorCode implements ErrorCode {
     PRODUCTS_NOT_FOUND,
     PRODUCT_NOT_AVAILABLE,
     ORDER_NOT_FOUND,
-    ORDER_HAS_BEEN_DELIVERED,
-    PENDING_ORDER, ORDER_HAS_BEEN_REJECTED
+    ORDER_ALREADY_DELIVERED,
+    ORDER_ALREADY_REJECTED,
+    ORDER_STILL_PENDING
 }
