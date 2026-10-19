@@ -30,7 +30,7 @@ import java.lang.annotation.Target;
                                   "title": "Unprocessable request",
                                   "detail": "The request is valid but cannot be processed due to a business rule",
                                   "status": 422,
-                                  "instance": "/resource"
+                                  "instance": "/resource{id}"
                                 }
                                 """
                 )
