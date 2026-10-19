@@ -25,7 +25,7 @@ import java.lang.annotation.Target;
                         value = """
                                 {
                                   "type": "urn:problem-type:conflict",
-                                  "failureType": "BUSINESS_RULE",
+                                  "failureType": "STATE_CONFLICT",
                                   "code": "CONFLICT",
                                   "title": "Conflict",
                                   "detail": "The request conflicts with the current state of the resource",

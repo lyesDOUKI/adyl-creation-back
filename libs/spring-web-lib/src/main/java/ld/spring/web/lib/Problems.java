@@ -19,7 +19,7 @@ public final class Problems {
     }
 
     public static ProblemDetailResponse conflict(ErrorCode code, String title, String detail) {
-        return ProblemDetailResponse.of(HttpStatus.CONFLICT, FailureType.BUSINESS_RULE, code, title, detail);
+        return ProblemDetailResponse.of(HttpStatus.CONFLICT, FailureType.STATE_CONFLICT, code, title, detail);
     }
 
     public static ProblemDetailResponse conflict(ErrorCode code, String title, String detail,
