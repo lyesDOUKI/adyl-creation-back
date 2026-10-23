@@ -13,7 +13,7 @@ public class LocalProductPhotoUrlResolver implements ProductPhotoUrlResolver {
     @Override
     public String resolve(UUID productId, String storageKey) {
         return MvcUriComponentsBuilder
-                .fromMethodCall(MvcUriComponentsBuilder.on(PhotoController.class).get(productId, storageKey))
+                .fromMethodCall(MvcUriComponentsBuilder.on(PhotoController.class).downloadPhoto(productId, storageKey))
                 .build()
                 .toUri()
                 .getPath();

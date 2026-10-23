@@ -1,5 +1,6 @@
 package ld.application.response;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import ld.domain.features.order.model.OrderSnapshot;
 import ld.domain.features.order.model.OrderStatus;
 import ld.domain.valueObjects.Percentage;
@@ -9,28 +10,35 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
+@Schema(description = "Commande acceptée")
 public record OrderAcceptedResponse(
+        @Schema(description = "Identifiant de la commande", requiredMode = REQUIRED)
         UUID orderId,
+
+        @Schema(description = "Taux de remise de première commande appliqué (0 si aucune remise)",
+                requiredMode = REQUIRED)
         BigDecimal discountRate,
+
+        @Schema(description = "État de la commande (toujours ACCEPTED)", enumAsRef = true, requiredMode = REQUIRED)
         OrderStateResponse orderState,
+
+        @Schema(description = "Horodatage de l'acceptation", example = "2026-09-15T07:00:00Z", requiredMode = REQUIRED)
         Instant acceptedAt
 ) implements ApiResponseBody {
 
     public static OrderAcceptedResponse from(OrderSnapshot orderSnapshot) {
-
         if (!(orderSnapshot.orderStatus() instanceof OrderStatus.Accepted(
                 Instant acceptedAt, Percentage discountApplied
         ))) {
-            throw new IllegalArgumentException(
-                    "Order snapshot must have an ACCEPTED status"
-            );
+            throw new IllegalArgumentException("Order snapshot must have an ACCEPTED status");
         }
 
         return new OrderAcceptedResponse(
                 orderSnapshot.orderId(),
                 discountApplied.value(),
                 OrderStateResponse.from(orderSnapshot.orderStatus().type()),
-                acceptedAt
-        );
+                acceptedAt);
     }
 }

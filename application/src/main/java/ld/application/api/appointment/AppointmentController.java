@@ -6,18 +6,13 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import ld.application.api.docs.ApiBadRequestResponse;
-import ld.application.api.docs.ApiConflictResponse;
-import ld.application.api.docs.ApiInternalServerErrorResponse;
-import ld.application.api.docs.ApiProcessProblemResponse;
 import ld.application.infra.security.CurrentCustomerId;
 import ld.application.infra.security.CustomerOnly;
+import ld.application.problems.appointment.SubmitAppointmentErrorCode;
 import ld.application.problems.appointment.SubmitAppointmentProblem;
-import ld.application.problems.appointment.SubmitAppointmentProblemMapper;
 import ld.application.read.FindAvailableSlotsService;
 import ld.application.read.GetAppointmentService;
 import ld.application.request.SubmitAppointmentRequest;
@@ -26,23 +21,30 @@ import ld.application.response.AvailableSlotsResponse;
 import ld.application.response.SubmitAppointmentResponse;
 import ld.domain.features.appointment.create.SubmitAppointmentUseCase;
 import ld.spring.web.lib.ApiProblems;
+import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 @RestController
-@ApiInternalServerErrorResponse
 @RequestMapping("/appointments")
-@Tag(name = "Appointment", description = "API pour la gestion des rendez-vous")
+@Tag(name = "Rendez-vous", description = "API pour la gestion des rendez-vous")
 public class AppointmentController {
 
     private final FindAvailableSlotsService findAvailableSlotsService;
     private final SubmitAppointmentUseCase submitAppointmentUseCase;
     private final GetAppointmentService getAppointmentService;
+
     public AppointmentController(FindAvailableSlotsService findAvailableSlotsService,
                                  SubmitAppointmentUseCase submitAppointmentUseCase,
                                  GetAppointmentService getAppointmentService) {
@@ -52,74 +54,49 @@ public class AppointmentController {
     }
 
     @CustomerOnly
+    @GetMapping("/available-slots")
     @Operation(
+            operationId = "findAvailableSlots",
             summary = "Recherche les créneaux disponibles",
             description = """
-                Retourne les créneaux disponibles à la réservation sur la période demandée,
-                organisés par date. Chaque date de la période est présente dans la réponse,
-                même celles ne comportant aucun créneau disponible.
-                """
+                    Retourne les créneaux disponibles à la réservation sur la période demandée, \
+                    organisés par date. Chaque date de la période est présente dans la réponse, \
+                    même celles ne comportant aucun créneau disponible."""
     )
-    @ApiBadRequestResponse
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Liste des créneaux disponibles par date",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = AvailableSlotsResponse.class)
-                    )
-            )
-    })
-    @GetMapping("/available-slots")
+    @ApiResponse(
+            responseCode = "200",
+            description = "Liste des créneaux disponibles par date",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = AvailableSlotsResponse.class)))
     public ResponseEntity<AvailableSlotsResponse> findAvailableSlots(
-            @Parameter(
-                    description = "Date de début de la période recherchée (incluse)",
-                    example = "2026-09-15",
-                    required = true
-            )
+            @Parameter(description = "Date de début de la période recherchée (incluse)", example = "2026-09-15")
             @RequestParam("from") LocalDate from,
 
-            @Parameter(
-                    description = "Date de fin de la période recherchée (incluse)",
-                    example = "2026-09-20",
-                    required = true
-            )
+            @Parameter(description = "Date de fin de la période recherchée (incluse)", example = "2026-09-20")
             @RequestParam("to") LocalDate to
     ) {
         return ResponseEntity.ok(findAvailableSlotsService.findAvailableSlots(from, to));
     }
 
     @CustomerOnly
+    @PostMapping
     @Operation(
+            operationId = "createAppointment",
             summary = "Crée un rendez-vous",
             description = """
-                Soumet une demande de rendez-vous sur le créneau donné, pour le client authentifié.
-                Le créneau doit être disponible : s'il chevauche un rendez-vous déjà réservé ou tombe
-                en dehors des horaires d'ouverture, la création est refusée.
-                """
+                    Soumet une demande de rendez-vous sur le créneau donné, pour le client authentifié. \
+                    Le créneau doit être disponible : s'il chevauche un rendez-vous déjà réservé ou tombe \
+                    en dehors des horaires d'ouverture, la création est refusée."""
     )
-    @ApiBadRequestResponse
-    @ApiConflictResponse
-    @ApiProcessProblemResponse
-    @ApiProblems(SubmitAppointmentProblem.class)
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Rendez-vous créé avec succès",
-                    content = @Content(
-                            mediaType = "application/json",
-                            schema = @Schema(implementation = SubmitAppointmentResponse.class)
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Client non authentifié",
-                    content = @Content(mediaType = "application/json")
-            )
-    })
-    @PostMapping
-    public ResponseEntity<?> create(
+    @ApiProblems(SubmitAppointmentErrorCode.class)
+    @ApiResponse(
+            responseCode = "201",
+            description = "Rendez-vous créé avec succès",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = SubmitAppointmentResponse.class)))
+    public ResponseEntity<ApiResponseBody> create(
             @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId,
             @Valid @RequestBody SubmitAppointmentRequest request,
             HttpServletRequest httpServletRequest) {
@@ -131,39 +108,27 @@ public class AppointmentController {
         return ResultToResponse.created(
                 result,
                 SubmitAppointmentResponse::appointmentId,
-                new SubmitAppointmentProblemMapper(),
+                SubmitAppointmentProblem::from,
                 httpServletRequest);
     }
 
     @CustomerOnly
-    @Operation(
-            summary = "Lister mes rendez-vous",
-            description = "Retourne l'ensemble des rendez-vous du client actuellement authentifié, "
-                    + "identifié à partir du token JWT. Aucun paramètre n'est requis : "
-                    + "le périmètre est automatiquement restreint au client courant."
-    )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Liste des rendez-vous du client (peut être vide)",
-                    content = @Content(
-                            mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = AppointmentsResponse.class))
-                    )
-            ),
-            @ApiResponse(
-                    responseCode = "401",
-                    description = "Authentification manquante ou invalide",
-                    content = @Content
-            ),
-            @ApiResponse(
-                    responseCode = "403",
-                    description = "Le token ne correspond pas à un customer",
-                    content = @Content
-            )
-    })
     @GetMapping
-    public ResponseEntity<List<AppointmentsResponse>> getAll(
+    @Operation(
+            operationId = "listAppointments",
+            summary = "Lister mes rendez-vous",
+            description = """
+                    Retourne l'ensemble des rendez-vous du client authentifié, identifié à partir du \
+                    token JWT. Aucun paramètre n'est requis : le périmètre est automatiquement \
+                    restreint au client courant."""
+    )
+    @ApiResponse(
+            responseCode = "200",
+            description = "Liste des rendez-vous du client (peut être vide)",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    array = @ArraySchema(schema = @Schema(implementation = AppointmentsResponse.class))))
+    public ResponseEntity<List<AppointmentsResponse>> listAppointments(
             @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId) {
         return ResponseEntity.ok(this.getAppointmentService.getAll(currentCustomerId));
     }

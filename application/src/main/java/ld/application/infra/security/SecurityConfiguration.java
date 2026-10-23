@@ -1,5 +1,6 @@
 package ld.application.infra.security;
 
+import ld.application.problems.security.SecurityProblemHandlers;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -17,10 +18,18 @@ public class SecurityConfiguration {
     @Bean
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            JwtAuthConverter jwtAuthenticationConverter
+            JwtAuthConverter jwtAuthenticationConverter,
+            SecurityProblemHandlers handlers
     ) {
 
         return http
+                .exceptionHandling(e -> e
+                        .authenticationEntryPoint(handlers.entryPoint())
+                        .accessDeniedHandler(handlers.accessDeniedHandler()))
+                .oauth2ResourceServer(o -> o
+                        .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter))
+                        .authenticationEntryPoint(handlers.entryPoint())
+                        .accessDeniedHandler(handlers.accessDeniedHandler()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
@@ -28,34 +37,15 @@ public class SecurityConfiguration {
                                 "/swagger-ui.html",
                                 "/swagger-ui/**",
                                 "/v3/api-docs/**"
-                        )
-                        .permitAll()
-                        .requestMatchers("/error")
-                        .permitAll()
+                        ).permitAll()
+                        .requestMatchers("/error").permitAll()
                         .requestMatchers(
                                 "/actuator/health",
                                 "/actuator/prometheus"
-                        )
-                        .permitAll()
-                        .requestMatchers(
-                                HttpMethod.POST,
-                                "/orders"
-                        )
-                        .permitAll()
-                        .requestMatchers(
-                                HttpMethod.GET,
-                                "/products/**"
-                        )
-                        .permitAll()
-                        .anyRequest()
-                        .authenticated()
-                )
-                .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt ->
-                                jwt.jwtAuthenticationConverter(
-                                        jwtAuthenticationConverter
-                                )
-                        )
+                        ).permitAll()
+                        .requestMatchers(HttpMethod.POST, "/orders").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/products/**").permitAll()
+                        .anyRequest().authenticated()
                 )
                 .build();
     }

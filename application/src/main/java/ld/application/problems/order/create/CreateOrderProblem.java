@@ -1,73 +1,55 @@
 package ld.application.problems.order.create;
 
-import ld.application.problems.order.OrderProblem;
-import ld.application.problems.order.OrderErrorCode;
+import io.swagger.v3.oas.annotations.media.Schema;
+import ld.domain.features.order.OrderCreateError;
+import ld.domain.features.product.model.ProductColor;
 import ld.spring.web.lib.ApiProblem;
-import ld.spring.web.lib.ConflictProblem;
-import ld.spring.web.lib.UnprocessableProblem;
 
-import java.util.Map;
-import java.util.Set;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
+
+import static java.util.stream.Collectors.toCollection;
+import static ld.application.problems.order.create.CreateOrderErrorCode.PRODUCTS_NOT_FOUND;
+import static ld.application.problems.order.create.CreateOrderErrorCode.PRODUCT_COLOR_NOT_AVAILABLE;
+import static ld.application.problems.order.create.CreateOrderErrorCode.PRODUCT_NOT_AVAILABLE;
 
 public sealed interface CreateOrderProblem extends ApiProblem {
 
-    @OrderProblem(OrderErrorCode.PRODUCTS_NOT_FOUND)
-    record unknownProducts(Set<UUID> products) implements CreateOrderProblem, UnprocessableProblem {
+    record UnknownProducts(
+            @Schema(description = "Identifiants des produits introuvables") SortedSet<UUID> productIds
+    ) implements CreateOrderProblem {
+        @Override public CreateOrderErrorCode getCode() { return PRODUCTS_NOT_FOUND; }
+        @Override public String getDetail() { return "Des produits de la commande sont introuvables."; }
+    }
 
-        public String title() {
-            return "Produits introuvables";
-        }
+    record UnavailableProducts(
+            @Schema(description = "Identifiants des produits indisponibles") SortedSet<UUID> productIds
+    ) implements CreateOrderProblem {
+        @Override public CreateOrderErrorCode getCode() { return PRODUCT_NOT_AVAILABLE; }
+        @Override public String getDetail() { return "Certains produits de la commande sont indisponibles."; }
+    }
 
-        public String detail() {
-            return "Des produits de la commande sont introuvables (identifiants : %s)"
-                    .formatted(products);
-        }
-
-        public Map<String, ?> properties() {
-            return Map.of("productIds", products);
+    record ColorNotAvailable(
+            @Schema(description = "Produit concerné") UUID productId,
+            @Schema(description = "Couleur demandée") String requestedColor,
+            @Schema(description = "Couleurs disponibles pour ce produit") SortedSet<String> availableColors
+    ) implements CreateOrderProblem {
+        @Override public CreateOrderErrorCode getCode() { return PRODUCT_COLOR_NOT_AVAILABLE; }
+        @Override public String getDetail() {
+            return "La couleur '%s' n'est pas disponible pour le produit %s.".formatted(requestedColor, productId);
         }
     }
 
-    @OrderProblem(OrderErrorCode.PRODUCT_NOT_AVAILABLE)
-    record unavailableProducts(Set<UUID> products) implements CreateOrderProblem, ConflictProblem {
-
-        public String title() {
-            return "Produits indisponibles";
-        }
-
-        public String detail() {
-            return "Les produits suivants sont indisponibles (identifiants : %s)"
-                    .formatted(products);
-        }
-
-        public Map<String, ?> properties() {
-            return Map.of("productIds", products);
-        }
-    }
-
-    @OrderProblem(OrderErrorCode.PRODUCT_COLOR_NOT_AVAILABLE)
-    record colorNotAvailable(
-            UUID productId,
-            String color,
-            Set<String> availableColors
-    ) implements CreateOrderProblem, UnprocessableProblem {
-
-        public String title() {
-            return "Couleur demandée non valide";
-        }
-
-        public String detail() {
-            return "La couleur '%s' n'est pas disponible pour le produit identifiant : %s. Couleurs disponibles : %s"
-                    .formatted(color, productId, availableColors);
-        }
-
-        public Map<String, ?> properties() {
-            return Map.of(
-                    "productId", productId,
-                    "requestedColor", color,
-                    "availableColors", availableColors
-            );
-        }
+    static CreateOrderProblem from(OrderCreateError error) {
+        return switch (error) {
+            case OrderCreateError.UnknownProducts e -> new UnknownProducts(new TreeSet<>(e.productIds()));
+            case OrderCreateError.UnavailableProducts e -> new UnavailableProducts(new TreeSet<>(e.productIds()));
+            case OrderCreateError.ColorNotAvailable e -> new ColorNotAvailable(
+                    e.productId(),
+                    e.color(),
+                    e.availableColors().stream().map(ProductColor::value)
+                            .collect(toCollection(TreeSet::new)));
+        };
     }
 }

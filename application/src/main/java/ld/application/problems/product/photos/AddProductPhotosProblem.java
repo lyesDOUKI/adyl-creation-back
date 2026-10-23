@@ -1,102 +1,70 @@
 package ld.application.problems.product.photos;
 
-import ld.application.problems.product.ProductProblem;
-import ld.application.problems.product.ProductErrorCode;
+import io.swagger.v3.oas.annotations.media.Schema;
+import ld.domain.features.product.photos.validation.AddProductPhotosError;
 import ld.spring.web.lib.ApiProblem;
-import ld.spring.web.lib.NotFoundProblem;
-import ld.spring.web.lib.UnprocessableProblem;
 
-import java.util.Collection;
-import java.util.Map;
+import java.util.SortedSet;
+import java.util.TreeSet;
 import java.util.UUID;
+
+import static ld.application.problems.product.photos.AddProductPhotosErrorCode.*;
 
 public sealed interface AddProductPhotosProblem extends ApiProblem {
 
-    @PhotoProblem(PhotoErrorCode.PHOTO_LIST_EMPTY)
-    record noPhotos() implements AddProductPhotosProblem, UnprocessableProblem {
-
-        public String title() {
-            return "Aucune image";
-        }
-
-        public String detail() {
-            return "La liste des images est vide";
-        }
-
+    record NoPhotos() implements AddProductPhotosProblem {
+        @Override public AddProductPhotosErrorCode getCode() { return PHOTO_LIST_EMPTY; }
+        @Override public String getDetail() { return "La liste des images est vide."; }
     }
 
-    @PhotoProblem(PhotoErrorCode.PHOTO_SIZE_ZERO)
-    record emptyPhoto(String fileName) implements AddProductPhotosProblem, UnprocessableProblem {
-
-        public String title() {
-            return "Taille incorrecte";
-        }
-
-        public String detail() {
-            return "La taille de l'image est à 0 (fichier : %s)".formatted(fileName);
-        }
-
-        public Map<String, ?> properties() {
-            return Map.of("fileName", fileName);
+    record EmptyPhoto(
+            @Schema(description = "Nom du fichier concerné") String fileName
+    ) implements AddProductPhotosProblem {
+        @Override public AddProductPhotosErrorCode getCode() { return PHOTO_SIZE_ZERO; }
+        @Override public String getDetail() {
+            return "La taille de l'image est à 0 (fichier : %s).".formatted(fileName);
         }
     }
 
-    @PhotoProblem(PhotoErrorCode.PHOTO_MAX_SIZE_EXCEEDED)
-    record photoTooLarge(String fileName, long sizeBytes, long maxSizeBytes)
-            implements AddProductPhotosProblem, UnprocessableProblem {
-
-        public String title() {
-            return "Taille incorrecte";
-        }
-
-        public String detail() {
-            return "La taille de l'image dépasse la taille maximum autorisée (%d octets, fichier : %s)"
+    record PhotoTooLarge(
+            @Schema(description = "Nom du fichier concerné") String fileName,
+            @Schema(description = "Taille du fichier, en octets") long sizeBytes,
+            @Schema(description = "Taille maximum autorisée, en octets") long maxSizeBytes
+    ) implements AddProductPhotosProblem {
+        @Override public AddProductPhotosErrorCode getCode() { return PHOTO_MAX_SIZE_EXCEEDED; }
+        @Override public String getDetail() {
+            return "La taille de l'image dépasse le maximum autorisé (%d octets, fichier : %s)."
                     .formatted(maxSizeBytes, fileName);
         }
-
-        public Map<String, ?> properties() {
-            return Map.of(
-                    "fileName", fileName,
-                    "sizeBytes", sizeBytes,
-                    "maxSizeBytes", maxSizeBytes
-            );
-        }
     }
 
-    @PhotoProblem(PhotoErrorCode.PHOTO_EXTENSION_NOT_ALLOWED)
-    record extensionNotAllowed(String fileName, Collection<String> allowedExtensions)
-            implements AddProductPhotosProblem, UnprocessableProblem {
-
-        public String title() {
-            return "Extension incorrecte";
-        }
-
-        public String detail() {
-            return "L'extension de la photo n'est pas autorisée (fichier : %s, autorisées : %s)"
+    record ExtensionNotAllowed(
+            @Schema(description = "Nom du fichier concerné") String fileName,
+            @Schema(description = "Extensions autorisées") SortedSet<String> allowedExtensions
+    ) implements AddProductPhotosProblem {
+        @Override public AddProductPhotosErrorCode getCode() { return PHOTO_EXTENSION_NOT_ALLOWED; }
+        @Override public String getDetail() {
+            return "L'extension de la photo n'est pas autorisée (fichier : %s, autorisées : %s)."
                     .formatted(fileName, allowedExtensions);
         }
-
-        public Map<String, ?> properties() {
-            return Map.of(
-                    "fileName", fileName,
-                    "allowedExtensions", allowedExtensions
-            );
-        }
     }
 
-    @ProductProblem(ProductErrorCode.PRODUCT_NOT_FOUND)
-    record productNotFound(UUID productId) implements AddProductPhotosProblem, NotFoundProblem {
+    record ProductNotFound(
+            @Schema(description = "Identifiant du produit introuvable") UUID productId
+    ) implements AddProductPhotosProblem {
+        @Override public AddProductPhotosErrorCode getCode() { return PRODUCT_NOT_FOUND; }
+        @Override public String getDetail() { return "Le produit est introuvable."; }
+    }
 
-        public String title() {
-            return "Produit introuvable";
-        }
-
-        public String detail() {
-            return "Le produit %s est introuvable".formatted(productId);
-        }
-
-        public Map<String, ?> properties() {
-            return Map.of("productId", productId);
-        }
+    static AddProductPhotosProblem from(AddProductPhotosError error) {
+        return switch (error) {
+            case AddProductPhotosError.NoPhotos _ -> new NoPhotos();
+            case AddProductPhotosError.EmptyPhoto e -> new EmptyPhoto(e.fileName());
+            case AddProductPhotosError.PhotoTooLarge e ->
+                    new PhotoTooLarge(e.fileName(), e.sizeBytes(), e.maxSizeBytes());
+            case AddProductPhotosError.ExtensionNotAllowed e ->
+                    new ExtensionNotAllowed(e.fileName(), new TreeSet<>(e.allowedExtensions()));
+            case AddProductPhotosError.ProductNotFound e -> new ProductNotFound(e.givenId());
+        };
     }
 }

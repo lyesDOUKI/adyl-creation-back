@@ -1,45 +1,35 @@
 package ld.application.problems.appointment;
 
-import ld.domain.features.appointment.model.TimeSlot;
+import io.swagger.v3.oas.annotations.media.Schema;
+import ld.application.response.TimeSlotResponse;
+import ld.domain.features.appointment.create.SubmitAppointmentError;
 import ld.spring.web.lib.ApiProblem;
-import ld.spring.web.lib.ConflictProblem;
-import ld.spring.web.lib.UnprocessableProblem;
 
-import java.util.Map;
+import static ld.application.problems.appointment.SubmitAppointmentErrorCode.SLOT_ALREADY_BOOKED;
+import static ld.application.problems.appointment.SubmitAppointmentErrorCode.SLOT_OUTSIDE_OPENING_HOURS;
 
 public sealed interface SubmitAppointmentProblem extends ApiProblem {
 
-    @AppointmentProblem(AppointmentErrorCode.SLOT_OUTSIDE_OPENING_HOURS)
-    record slotOutsideOpeningHours(TimeSlot requestedSlot)
-            implements SubmitAppointmentProblem, UnprocessableProblem {
-
-        public String title() {
-            return "Créneau hors horaires";
-        }
-
-        public String detail() {
-            return "Le créneau demandé est hors horaire autorisé";
-        }
-
-        public Map<String, ?> properties() {
-            return Map.of("requestedSlot", requestedSlot);
-        }
+    record SlotOutsideOpeningHours(
+            @Schema(description = "Créneau demandé") TimeSlotResponse requestedSlot
+    ) implements SubmitAppointmentProblem {
+        @Override public SubmitAppointmentErrorCode getCode() { return SLOT_OUTSIDE_OPENING_HOURS; }
+        @Override public String getDetail() { return "Le créneau demandé est hors des horaires autorisés."; }
     }
 
-    @AppointmentProblem(AppointmentErrorCode.SLOT_ALREADY_BOOKED)
-    record slotAlreadyBooked(TimeSlot requestedSlot)
-            implements SubmitAppointmentProblem, ConflictProblem {
+    record SlotAlreadyBooked(
+            @Schema(description = "Créneau demandé") TimeSlotResponse requestedSlot
+    ) implements SubmitAppointmentProblem {
+        @Override public SubmitAppointmentErrorCode getCode() { return SLOT_ALREADY_BOOKED; }
+        @Override public String getDetail() { return "Ce créneau est déjà réservé."; }
+    }
 
-        public String title() {
-            return "Créneau déjà réservé";
-        }
-
-        public String detail() {
-            return "Ce créneau est déjà réservé";
-        }
-
-        public Map<String, ?> properties() {
-            return Map.of("requestedSlot", requestedSlot);
-        }
+    static SubmitAppointmentProblem from(SubmitAppointmentError error) {
+        return switch (error) {
+            case SubmitAppointmentError.SlotOutsideOpeningHours e ->
+                    new SlotOutsideOpeningHours(TimeSlotResponse.from(e.requestedSlot()));
+            case SubmitAppointmentError.SlotAlreadyBooked e ->
+                    new SlotAlreadyBooked(TimeSlotResponse.from(e.requestedSlot()));
+        };
     }
 }

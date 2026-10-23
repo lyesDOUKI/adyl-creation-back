@@ -1,32 +1,37 @@
 package ld.application.problems.order.accept;
 
-import ld.application.problems.order.OrderProblem;
+import io.swagger.v3.oas.annotations.media.Schema;
+import ld.domain.features.order.accept.AcceptOrderError;
 import ld.spring.web.lib.ApiProblem;
-import ld.spring.web.lib.ConflictProblem;
-import ld.spring.web.lib.NotFoundProblem;
-import ld.application.problems.order.OrderErrorCode;
 
-import java.util.Map;
 import java.util.UUID;
+
+import static ld.application.problems.order.accept.AcceptOrderErrorCode.*;
 
 public sealed interface AcceptOrderProblem extends ApiProblem {
 
-    @OrderProblem(OrderErrorCode.ORDER_ALREADY_REJECTED)
-    record Rejected() implements AcceptOrderProblem, ConflictProblem {
-        public String title()  { return "Commande rejetée"; }
-        public String detail() { return "La commande a été rejetée, elle ne peut plus être acceptée."; }
+    record Rejected() implements AcceptOrderProblem {
+        @Override public AcceptOrderErrorCode getCode() { return ORDER_ALREADY_REJECTED; }
+        @Override public String getDetail() { return "La commande a été rejetée, elle ne peut plus être acceptée."; }
     }
 
-    @OrderProblem(OrderErrorCode.ORDER_ALREADY_DELIVERED)
-    record Delivered() implements AcceptOrderProblem, ConflictProblem {
-        public String title()  { return "Commande livrée"; }
-        public String detail() { return "La commande a déjà été livrée, elle ne peut plus être acceptée."; }
+    record Delivered() implements AcceptOrderProblem {
+        @Override public AcceptOrderErrorCode getCode() { return ORDER_ALREADY_DELIVERED; }
+        @Override public String getDetail() { return "La commande a déjà été livrée, elle ne peut plus être acceptée."; }
     }
 
-    @OrderProblem(OrderErrorCode.ORDER_NOT_FOUND)
-    record NotFound(UUID orderId) implements AcceptOrderProblem, NotFoundProblem {
-        public String title()  { return "Commande introuvable"; }
-        public String detail() { return "La commande %s est introuvable".formatted(orderId); }
-        public Map<String, ?> properties() { return Map.of("orderId", orderId); }
+    record NotFound(
+            @Schema(description = "Identifiant de la commande introuvable") UUID orderId
+    ) implements AcceptOrderProblem {
+        @Override public AcceptOrderErrorCode getCode() { return ORDER_NOT_FOUND; }
+        @Override public String getDetail() { return "La commande est introuvable."; }
+    }
+
+    static AcceptOrderProblem from(AcceptOrderError error) {
+        return switch (error) {
+            case AcceptOrderError.OrderAlreadyRejected _ -> new Rejected();
+            case AcceptOrderError.OrderAlreadyDelivered _ -> new Delivered();
+            case AcceptOrderError.OrderNotFound e -> new NotFound(e.orderId());
+        };
     }
 }

@@ -1,39 +1,39 @@
 package ld.application.problems.order.deliver;
 
-import ld.application.problems.order.OrderProblem;
-import ld.application.problems.order.OrderErrorCode;
+import io.swagger.v3.oas.annotations.media.Schema;
+import ld.domain.features.order.deliver.DeliverOrderError;
 import ld.spring.web.lib.ApiProblem;
-import ld.spring.web.lib.ConflictProblem;
-import ld.spring.web.lib.NotFoundProblem;
-import ld.spring.web.lib.UnprocessableProblem;
 
-import java.util.Map;
 import java.util.UUID;
+
+import static ld.application.problems.order.deliver.DeliverOrderErrorCode.ORDER_ALREADY_REJECTED;
+import static ld.application.problems.order.deliver.DeliverOrderErrorCode.ORDER_NOT_FOUND;
+import static ld.application.problems.order.deliver.DeliverOrderErrorCode.ORDER_STILL_PENDING;
 
 public sealed interface DeliverOrderProblem extends ApiProblem {
 
-    @OrderProblem(OrderErrorCode.ORDER_STILL_PENDING)
-    record pending() implements DeliverOrderProblem, UnprocessableProblem {
-        @Override
-        public String title() {
-            return "Commande en attente";
-        }
-        @Override
-        public String detail() {
-            return "Impossible de livrer une commande en attente";
-        }
+    record Pending() implements DeliverOrderProblem {
+        @Override public DeliverOrderErrorCode getCode() { return ORDER_STILL_PENDING; }
+        @Override public String getDetail() { return "Impossible de livrer une commande en attente."; }
     }
 
-    @OrderProblem(OrderErrorCode.ORDER_ALREADY_REJECTED)
-    record Rejected() implements DeliverOrderProblem, ConflictProblem {
-        public String title()  { return "Commande rejetée"; }
-        public String detail() { return "La commande a été rejetée, elle ne peut plus être acceptée."; }
+    record Rejected() implements DeliverOrderProblem {
+        @Override public DeliverOrderErrorCode getCode() { return ORDER_ALREADY_REJECTED; }
+        @Override public String getDetail() { return "La commande a été rejetée, elle ne peut plus être livrée."; }
     }
 
-    @OrderProblem(OrderErrorCode.ORDER_NOT_FOUND)
-    record NotFound(UUID orderId) implements DeliverOrderProblem, NotFoundProblem {
-        public String title()  { return "Commande introuvable"; }
-        public String detail() { return "La commande %s est introuvable".formatted(orderId); }
-        public Map<String, ?> properties() { return Map.of("orderId", orderId); }
+    record NotFound(
+            @Schema(description = "Identifiant de la commande introuvable") UUID orderId
+    ) implements DeliverOrderProblem {
+        @Override public DeliverOrderErrorCode getCode() { return ORDER_NOT_FOUND; }
+        @Override public String getDetail() { return "La commande est introuvable."; }
+    }
+
+    static DeliverOrderProblem from(DeliverOrderError error) {
+        return switch (error) {
+            case DeliverOrderError.OrderAlreadyRejected _ -> new Rejected();
+            case DeliverOrderError.OrderNotFound e -> new NotFound(e.orderId());
+            case DeliverOrderError.OrderStillPending _ -> new Pending();
+        };
     }
 }
