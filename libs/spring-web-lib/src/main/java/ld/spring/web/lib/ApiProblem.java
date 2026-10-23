@@ -1,9 +1,15 @@
 package ld.spring.web.lib;
 
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
-public interface ApiProblem {
-    String title();
-    String detail();
-    default Map<String, ?> properties() { return Map.of(); }
+
+@JsonPropertyOrder({"code", "title", "status", "detail"})
+public interface ApiProblem extends ApiResponseBody {
+
+    ApiErrorCode getCode();
+
+    String getDetail();
+
+    default String getTitle() { return getCode().title(); }
+    default int getStatus()   { return getCode().status().value(); }
 }

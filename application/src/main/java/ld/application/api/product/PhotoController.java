@@ -1,20 +1,17 @@
 package ld.application.api.product;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirements;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.constraints.NotEmpty;
-import ld.application.api.docs.ApiBadRequestResponse;
-import ld.application.api.docs.ApiInternalServerErrorResponse;
-import ld.application.api.docs.ApiProcessProblemResponse;
-import ld.application.api.docs.ApiResourceNotFoundResponse;
 import ld.application.infra.security.AdminOnly;
+import ld.application.problems.product.photos.AddProductPhotosErrorCode;
 import ld.application.problems.product.photos.AddProductPhotosProblem;
-import ld.application.problems.product.photos.AddProductPhotosProblemMapper;
 import ld.application.request.AddProductPhotosRequestMapper;
 import ld.application.response.AddProductPhotosResponse;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
@@ -28,7 +25,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.CacheControl;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -40,16 +42,16 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@ApiInternalServerErrorResponse
 @RequestMapping("/products/{id}/photos")
-@Tag(name = "photos", description = "API pour la gestion des photos des produits")
+@Tag(name = "Photos", description = "API pour la gestion des photos des produits")
 public class PhotoController {
 
-    private final Logger LOGGER = LoggerFactory.getLogger(PhotoController.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(PhotoController.class);
 
     private final AddProductPhotosUseCase addProductPhotosUseCase;
     private final ProductPhotoUrlResolver productPhotoUrlResolver;
     private final Path rootDirectory;
+
     public PhotoController(
             AddProductPhotosUseCase addProductPhotosUseCase,
             ProductPhotoUrlResolver productPhotoUrlResolver,
@@ -63,19 +65,21 @@ public class PhotoController {
     @AdminOnly
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @Operation(
+            operationId = "addProductPhotos",
             summary = "Ajout de photos à un produit",
-            description = "Ajoute une ou plusieurs photos à un produit de crochet adyl-creation existant"
+            description = "Ajoute une ou plusieurs photos à un produit de crochet adyl-creation existant."
     )
-    @ApiBadRequestResponse
-    @ApiResourceNotFoundResponse
-    @ApiProcessProblemResponse
-    @ApiProblems(AddProductPhotosProblem.class)
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "Photos ajoutées avec succès",
-                    content = @Content(schema = @Schema(implementation = AddProductPhotosResponse.class)))
-    })
+    @ApiProblems(AddProductPhotosErrorCode.class)
+    @ApiResponse(
+            responseCode = "201",
+            description = "Photos ajoutées avec succès",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = AddProductPhotosResponse.class)))
     public ResponseEntity<ApiResponseBody> addPhotos(
+            @Parameter(description = "Identifiant du produit")
             @PathVariable("id") UUID productId,
+            @Parameter(description = "Photos à ajouter (au moins une)")
             @RequestParam("photos") @NotEmpty(message = "La liste des photos ne peut pas être vide") List<MultipartFile> photos,
             HttpServletRequest httpServletRequest
     ) {
@@ -83,41 +87,45 @@ public class PhotoController {
                 .execute(AddProductPhotosRequestMapper.toCommand(productId, photos))
                 .map(result -> AddProductPhotosResponse.from(result, this.productPhotoUrlResolver));
 
-        return ResultToResponse.created(response, AddProductPhotosResponse::productId, new AddProductPhotosProblemMapper(), httpServletRequest);
+        return ResultToResponse.created(
+                response,
+                AddProductPhotosResponse::productId,
+                AddProductPhotosProblem::from,
+                httpServletRequest);
     }
 
     @GetMapping("/{fileName}")
+    @SecurityRequirements
     @Operation(
+            operationId = "downloadProductPhoto",
             summary = "Récupération d'une photo produit",
-            description = "Renvoie le fichier binaire d'une photo stockée pour un produit donné"
+            description = "Renvoie le fichier binaire d'une photo stockée pour un produit donné. Endpoint public."
     )
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "200",
-                    description = "Photo trouvée et renvoyée",
-                    content = @Content(mediaType = "application/octet-stream")
-            ),
-            @ApiResponse(
-                    responseCode = "404",
-                    description = "Photo introuvable pour ce produit (réponse sans corps)",
-                    content = @Content
-            )
-    })
-    public ResponseEntity<byte[]> get(
+    @ApiResponse(
+            responseCode = "200",
+            description = "Photo trouvée et renvoyée",
+            content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE))
+    @ApiResponse(
+            responseCode = "404",
+            description = "Photo introuvable pour ce produit (réponse sans corps)",
+            content = @Content)
+    public ResponseEntity<byte[]> downloadPhoto(
+            @Parameter(description = "Identifiant du produit")
             @PathVariable("id") UUID productId,
+            @Parameter(description = "Nom du fichier de la photo")
             @PathVariable("fileName") String fileName
     ) {
         Path filePath = this.rootDirectory.resolve(productId + "/" + fileName).normalize();
 
         if (!filePath.startsWith(this.rootDirectory) || !Files.exists(filePath)) {
-            LOGGER.warn("Warning: path does not exists");
+            LOGGER.warn("Photo not found: productId={}, fileName={}", productId, fileName);
             return ResponseEntity.notFound().build();
         }
 
         try {
             String contentType = Files.probeContentType(filePath);
             byte[] content = Files.readAllBytes(filePath);
-            LOGGER.info("Success storing photo named {} for productId {}", productId, filePath);
+            LOGGER.info("Success reading photo named {} for productId {}", fileName, productId);
             return ResponseEntity.ok()
                     .contentType(contentType != null
                             ? MediaType.parseMediaType(contentType)

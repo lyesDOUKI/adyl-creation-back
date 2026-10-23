@@ -1,42 +1,32 @@
 package ld.application.problems.order.reject;
 
-import ld.application.problems.order.OrderProblem;
-import ld.application.problems.order.OrderErrorCode;
+import io.swagger.v3.oas.annotations.media.Schema;
+import ld.domain.features.order.reject.RejectOrderError;
 import ld.spring.web.lib.ApiProblem;
-import ld.spring.web.lib.ConflictProblem;
-import ld.spring.web.lib.NotFoundProblem;
 
-import java.util.Map;
 import java.util.UUID;
+
+import static ld.application.problems.order.reject.RejectOrderErrorCode.ORDER_ALREADY_DELIVERED;
+import static ld.application.problems.order.reject.RejectOrderErrorCode.ORDER_NOT_FOUND;
 
 public sealed interface RejectOrderProblem extends ApiProblem {
 
-    @OrderProblem(OrderErrorCode.ORDER_ALREADY_DELIVERED)
-    record orderAlreadyDelivered() implements RejectOrderProblem, ConflictProblem {
-
-        public String title() {
-            return "Commande livrée";
-        }
-
-        public String detail() {
-            return "L'opération est impossible sur une commande déjà livrée";
-        }
-
+    record AlreadyDelivered() implements RejectOrderProblem {
+        @Override public RejectOrderErrorCode getCode() { return ORDER_ALREADY_DELIVERED; }
+        @Override public String getDetail() { return "L'opération est impossible sur une commande déjà livrée."; }
     }
 
-    @OrderProblem(OrderErrorCode.ORDER_NOT_FOUND)
-    record orderNotFound(UUID orderId) implements RejectOrderProblem, NotFoundProblem {
+    record NotFound(
+            @Schema(description = "Identifiant de la commande introuvable") UUID orderId
+    ) implements RejectOrderProblem {
+        @Override public RejectOrderErrorCode getCode() { return ORDER_NOT_FOUND; }
+        @Override public String getDetail() { return "La commande est introuvable."; }
+    }
 
-        public String title() {
-            return "Commande introuvable";
-        }
-
-        public String detail() {
-            return "La commande %s est introuvable".formatted(orderId);
-        }
-
-        public Map<String, ?> properties() {
-            return Map.of("orderId", orderId);
-        }
+    static RejectOrderProblem from(RejectOrderError error) {
+        return switch (error) {
+            case RejectOrderError.OrderAlreadyDelivered _ -> new AlreadyDelivered();
+            case RejectOrderError.OrderNotFound e -> new NotFound(e.orderId());
+        };
     }
 }

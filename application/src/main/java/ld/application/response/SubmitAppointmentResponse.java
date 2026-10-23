@@ -10,36 +10,36 @@ import java.time.Instant;
 import java.time.ZonedDateTime;
 import java.util.UUID;
 
+import static io.swagger.v3.oas.annotations.media.Schema.RequiredMode.REQUIRED;
+
 @Schema(description = "Rendez-vous créé")
 public record SubmitAppointmentResponse(
-        @Schema(description = "Identifiant du rendez-vous créé")
+        @Schema(description = "Identifiant du rendez-vous créé", requiredMode = REQUIRED)
         UUID appointmentId,
 
-        @Schema(description = "Début du créneau réservé", example = "2026-09-15T09:00:00+02:00")
+        @Schema(description = "Début du créneau réservé", example = "2026-09-15T09:00:00+02:00", requiredMode = REQUIRED)
         ZonedDateTime start,
 
-        @Schema(description = "Fin du créneau réservé", example = "2026-09-15T09:30:00+02:00")
+        @Schema(description = "Fin du créneau réservé", example = "2026-09-15T09:30:00+02:00", requiredMode = REQUIRED)
         ZonedDateTime end,
 
-        @Schema(description = "Statut du rendez-vous", example = "SUBMITTED")
-        String status,
+        @Schema(description = "Statut du rendez-vous (toujours SUBMITTED à la création)",
+                enumAsRef = true, requiredMode = REQUIRED)
+        AppointmentState status,
 
-        @Schema(description = "Horodatage de la soumission", example = "2026-09-15T07:00:00Z")
+        @Schema(description = "Horodatage de la soumission", example = "2026-09-15T07:00:00Z", requiredMode = REQUIRED)
         Instant submittedAt
 ) implements ApiResponseBody {
 
     public static SubmitAppointmentResponse from(AppointmentSnapshot appointmentSnapshot) {
         if (!(appointmentSnapshot.appointmentStatus() instanceof AppointmentStatus.Submitted(Instant submittedAt))) {
-            throw new IllegalArgumentException(
-                    "Appointment snapshot must have a SUBMITTED status"
-            );
+            throw new IllegalArgumentException("Appointment snapshot must have a SUBMITTED status");
         }
         return new SubmitAppointmentResponse(
                 appointmentSnapshot.appointmentId(),
                 appointmentSnapshot.timeSlot().start(),
                 appointmentSnapshot.timeSlot().end(),
-                AppointmentState.SUBMITTED.name(),
-                submittedAt
-        );
+                AppointmentState.SUBMITTED,
+                submittedAt);
     }
 }

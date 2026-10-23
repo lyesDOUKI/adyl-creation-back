@@ -3,7 +3,6 @@ package ld.spring.web.lib;
 import jakarta.servlet.http.HttpServletRequest;
 import ld.standard.lib.validation.DomainError;
 import ld.standard.lib.validation.Result;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
@@ -11,6 +10,7 @@ import java.net.URI;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class ResultToResponse {
 
@@ -18,21 +18,20 @@ public final class ResultToResponse {
 
     public static <T extends ApiResponseBody, E extends DomainError> ResponseEntity<ApiResponseBody> ok(
             Result<T, E> result,
-            ProblemMapper<E> problems,
-            HttpServletRequest request) {
+            Function<E, ? extends ApiProblem> toProblem) {
 
-        return result.<ResponseEntity<ApiResponseBody>>fold(
-                value -> ResponseEntity.ok(value),
-                error -> problem(problems.toProblem(error), request));
+        return result.fold(
+                ResponseEntity::ok,
+                error -> ProblemResponses.of(toProblem.apply(error)));
     }
 
     public static <T extends ApiResponseBody, E extends DomainError> ResponseEntity<ApiResponseBody> created(
             Result<T, E> result,
             Function<T, UUID> idExtractor,
-            ProblemMapper<E> problems,
+            Function<E, ? extends ApiProblem> toProblem,
             HttpServletRequest request) {
 
-        return result.<ResponseEntity<ApiResponseBody>>fold(
+        return result.fold(
                 value -> {
                     URI location = ServletUriComponentsBuilder.fromRequest(request)
                             .path("/{id}")
@@ -40,27 +39,15 @@ public final class ResultToResponse {
                             .toUri();
                     return ResponseEntity.created(location).body(value);
                 },
-                error -> problem(problems.toProblem(error), request));
+                error -> ProblemResponses.of(toProblem.apply(error)));
     }
 
     public static <T extends ApiResponseBody> ResponseEntity<ApiResponseBody> okOrNotFound(
             Optional<T> found,
-            ResourceKind kind,
-            UUID id,
-            HttpServletRequest request) {
+            Supplier<? extends ApiProblem> notFound) {
 
         return found
-                .<ResponseEntity<ApiResponseBody>>map(value -> ResponseEntity.ok(value))
-                .orElseGet(() -> problem(kind.notFound(id), request));
-    }
-
-
-    private static ResponseEntity<ApiResponseBody> problem(ProblemDetailResponse problem,
-                                                           HttpServletRequest request) {
-        problem.setInstance(URI.create(request.getRequestURI()));
-        return ResponseEntity
-                .status(problem.getStatus())
-                .contentType(MediaType.APPLICATION_PROBLEM_JSON)
-                .body(problem);
+                .<ResponseEntity<ApiResponseBody>>map(ResponseEntity::ok)
+                .orElseGet(() -> ProblemResponses.of(notFound.get()));
     }
 }

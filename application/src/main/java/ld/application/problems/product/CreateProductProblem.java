@@ -1,26 +1,23 @@
 package ld.application.problems.product;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+import ld.domain.features.product.validation.CreateProductError;
 import ld.spring.web.lib.ApiProblem;
-import ld.spring.web.lib.ConflictProblem;
 
-import java.util.Map;
+import static ld.application.problems.product.CreateProductErrorCode.PRODUCT_ALREADY_EXISTS;
 
 public sealed interface CreateProductProblem extends ApiProblem {
 
-    @ProductProblem(ProductErrorCode.PRODUCT_ALREADY_EXISTS)
-    record productNameAlreadyExists(String existingName)
-            implements CreateProductProblem, ConflictProblem {
+    record NameAlreadyExists(
+            @Schema(description = "Nom de produit déjà utilisé") String name
+    ) implements CreateProductProblem {
+        @Override public CreateProductErrorCode getCode() { return PRODUCT_ALREADY_EXISTS; }
+        @Override public String getDetail() { return "Un produit portant ce nom existe déjà."; }
+    }
 
-        public String title() {
-            return "Produit déjà existant";
-        }
-
-        public String detail() {
-            return "Le produit %s existe déjà".formatted(existingName);
-        }
-
-        public Map<String, ?> properties() {
-            return Map.of("name", existingName);
-        }
+    static CreateProductProblem from(CreateProductError error) {
+        return switch (error) {
+            case CreateProductError.ProductNameAlreadyExists e -> new NameAlreadyExists(e.existingName());
+        };
     }
 }

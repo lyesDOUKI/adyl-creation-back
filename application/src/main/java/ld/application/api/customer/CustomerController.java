@@ -5,11 +5,8 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
-import ld.application.api.docs.ApiBadRequestResponse;
-import ld.application.api.docs.ApiInternalServerErrorResponse;
 import ld.application.infra.security.CurrentCustomerId;
 import ld.application.infra.security.CustomerOnly;
 import ld.application.request.RegisterCustomerRequest;
@@ -26,9 +23,8 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.UUID;
 
 @RestController
-@ApiInternalServerErrorResponse
 @RequestMapping("/customer")
-@Tag(name = "Customer", description = "API pour la gestion des clients")
+@Tag(name = "Clients", description = "API pour la gestion des clients")
 public class CustomerController {
 
     private final RegisterCustomerService registerCustomerService;
@@ -40,16 +36,16 @@ public class CustomerController {
     @CustomerOnly
     @PostMapping(path = "me", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(
-            summary = "Enregistrer un client"
+            operationId = "registerCustomer",
+            summary = "Enregistrer un client",
+            description = "Enregistre le client authentifié (identifié par son jeton JWT) avec son e-mail et son téléphone."
     )
-    @ApiBadRequestResponse
-    @ApiResponses(value = {
-            @ApiResponse(
-                    responseCode = "201",
-                    description = "Client enregistré avec succès",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = CustomerResponse.class))
-            )
-    })
+    @ApiResponse(
+            responseCode = "201",
+            description = "Client enregistré avec succès",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = CustomerResponse.class)))
     public ResponseEntity<CustomerResponse> register(
             @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId,
             @RequestBody @Valid RegisterCustomerRequest registerCustomerRequest

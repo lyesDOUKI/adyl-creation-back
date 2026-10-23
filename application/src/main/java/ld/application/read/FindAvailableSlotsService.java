@@ -1,6 +1,5 @@
 package ld.application.read;
 
-import ld.application.api.resolver.AvailableSlotsResponseMapper;
 import ld.application.response.AvailableSlotsResponse;
 import ld.domain.features.appointment.availability.FindAvailableSlotsQuery;
 import ld.domain.features.appointment.availability.FindAvailableSlotsUseCase;
@@ -22,6 +21,6 @@ public class FindAvailableSlotsService {
     public AvailableSlotsResponse findAvailableSlots(LocalDate from, LocalDate to) {
         FindAvailableSlotsQuery query = new FindAvailableSlotsQuery(from, to);
         List<TimeSlot> slots = findAvailableSlotsUseCase.findAvailableSlots(query);
-        return AvailableSlotsResponseMapper.toResponse(from, to, slots);
+        return AvailableSlotsResponse.from(from, to, slots);
     }
 }
