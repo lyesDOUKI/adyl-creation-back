@@ -1,28 +1,44 @@
-name: CI - Java Maven
+name: API Contract
 
-# Workflow "lourd" : build, tests, drift check.
-# Il ne se relance PAS quand on ajoute/retire un label ou qu'on édite le titre
-# de la PR (voir api-contract.yml pour ces événements).
+# Contrôle complet du contrat d'API (application/openapi.yaml), sur les PR uniquement :
+#
+#   1. Régénère le contrat à partir du code de la PR.
+#   2. Drift check   : le contrat committé doit être identique au contrat régénéré.
+#   3. Compare avec la branche de base (oasdiff) et classe le changement :
+#        - aucun        : rien à faire
+#        - cosmétique   : seuls description / summary / title / examples changent -> OK
+#        - fonctionnel  : tout le reste -> il faut un `feat` (voir BUMP_POLICY)
+#   4. Si fonctionnel, vérifie la cohérence avec release-please (titre de PR ou commits),
+#      selon BUMP_POLICY (flexible | minor | major).
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-    types: [ opened, synchronize, reopened ]
+    # edited : relance quand le titre change (squash merge). Le job est relancé
+    # aussi si seule la description change : volontaire, pour ne jamais laisser
+    # un résultat périmé.
+    types: [ opened, synchronize, reopened, edited ]
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  group: api-contract-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  SPEC_PATH: application/openapi.yaml
+  # v1.33.0 : version stable de plus de 2 semaines. À mettre à jour volontairement.
+  OASDIFF_VERSION: "1.33.0"
 
 jobs:
-  build-and-test:
+  api-contract:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
 
     steps:
       - name: Checkout du code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Configuration de Java 25
         uses: actions/setup-java@v4
@@ -31,20 +47,228 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Compilation, tests et régénération de openapi.yaml
-        run: mvn clean verify
+      # ============================================================
+      # 1. RÉGÉNÉRATION DU CONTRAT À PARTIR DU CODE
+      # ============================================================
+      - name: Régénérer le contrat OpenAPI
+        run: mvn -B -ntp verify -pl application -am -DskipTests
 
-      # Le contrat committé doit correspondre au code.
-      - name: Vérifier que le contrat OpenAPI est à jour (drift check)
+      # ============================================================
+      # 2. DRIFT CHECK : contrat committé == contrat régénéré
+      # ============================================================
+      - name: Vérifier que le contrat committé est à jour (drift check)
         run: |
-          if [[ -n "$(git status --porcelain application/openapi.yaml)" ]]; then
-            echo "❌ Le fichier application/openapi.yaml est obsolète."
-            echo "   Le code a été modifié sans régénérer et committer le contrat d'API."
+          if [[ -n "$(git status --porcelain -- "$SPEC_PATH")" ]]; then
+            echo "❌ $SPEC_PATH est obsolète : le code a été modifié sans committer le contrat régénéré."
             echo ""
-            echo "   Pour corriger : mvn clean verify"
-            echo "   puis : git add application/openapi.yaml"
+            echo "   Pour corriger :"
+            echo "     mvn verify -pl application -am -DskipTests"
+            echo "     git add $SPEC_PATH"
+            echo "     git commit -m \"chore: régénère openapi.yaml\""
             echo ""
-            git --no-pager diff application/openapi.yaml
+            git --no-pager diff -- "$SPEC_PATH" || true
             exit 1
           fi
-          echo "✅ application/openapi.yaml est à jour."
+          echo "✅ $SPEC_PATH est à jour."
+
+      # ============================================================
+      # 3. INSTALLATION D'OASDIFF (version épinglée + checksum vérifié)
+      # ============================================================
+      - name: Installer oasdiff
+        run: |
+          set -euo pipefail
+          ARCHIVE="oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+          BASE_URL="https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}"
+          mkdir -p "$RUNNER_TEMP/oasdiff"
+          cd "$RUNNER_TEMP/oasdiff"
+          curl -fsSLO "${BASE_URL}/${ARCHIVE}"
+          curl -fsSLO "${BASE_URL}/checksums.txt"
+          grep " ${ARCHIVE}\$" checksums.txt | sha256sum -c -
+          tar -xzf "$ARCHIVE" oasdiff
+          echo "$PWD" >> "$GITHUB_PATH"
+          ./oasdiff --version
+
+      # ============================================================
+      # 4. COMPARAISON AVEC LA BRANCHE DE BASE
+      #    Produit : change   = none | cosmetic | functional
+      #              breaking = true | false
+      # ============================================================
+      - name: Comparer le contrat avec la branche de base
+        id: analyse
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          # Niveau à partir duquel oasdiff considère un changement comme cassant : ERR | WARN
+          BREAKING_LEVEL: ERR
+          # Éléments considérés comme purement cosmétiques
+          COSMETIC_ELEMENTS: description,examples,summary,title
+        run: |
+          set -euo pipefail
+          BASE_FILE="$RUNNER_TEMP/base-openapi.yaml"
+          OUT="$RUNNER_TEMP"
+
+          emit() { echo "change=$1" >> "$GITHUB_OUTPUT"; echo "breaking=$2" >> "$GITHUB_OUTPUT"; }
+
+          # --- Première introduction du contrat : rien à comparer
+          if ! git cat-file -e "origin/${BASE_REF}:${SPEC_PATH}" 2>/dev/null; then
+            echo "ℹ️ $SPEC_PATH n'existe pas encore dans '${BASE_REF}' (première introduction). Comparaison ignorée."
+            emit none false
+            exit 0
+          fi
+          git show "origin/${BASE_REF}:${SPEC_PATH}" > "$BASE_FILE"
+
+          # --- Contrat strictement identique
+          if cmp -s "$BASE_FILE" "$SPEC_PATH"; then
+            echo "✅ Le contrat est identique à celui de '${BASE_REF}'."
+            emit none false
+            exit 0
+          fi
+
+          # --- Différence fonctionnelle ? (diff en ignorant les éléments cosmétiques)
+          # Codes de sortie oasdiff : 0 = aucune différence, 1 = différence, autre = erreur (spec illisible...)
+          code=0
+          oasdiff diff "$BASE_FILE" "$SPEC_PATH" \
+            --exclude-elements "$COSMETIC_ELEMENTS" --format text --fail-on-diff \
+            > "$OUT/diff.txt" 2>&1 || code=$?
+
+          if [[ $code -eq 0 ]]; then
+            echo "✅ Le contrat a changé, mais uniquement sur des éléments cosmétiques ($COSMETIC_ELEMENTS)."
+            echo "::notice::Changement cosmétique du contrat d'API : aucun 'feat' requis."
+            {
+              echo "### Contrat OpenAPI : changement cosmétique uniquement"
+              echo "Seuls ${COSMETIC_ELEMENTS//,/, } ont changé. Aucun \`feat\` requis."
+            } >> "$GITHUB_STEP_SUMMARY"
+            emit cosmetic false
+            exit 0
+          elif [[ $code -ne 1 ]]; then
+            echo "❌ oasdiff a échoué (code $code) :"
+            cat "$OUT/diff.txt"
+            exit 1
+          fi
+
+          # --- Changement fonctionnel : y a-t-il un breaking change ?
+          bcode=0
+          oasdiff breaking "$BASE_FILE" "$SPEC_PATH" \
+            --fail-on "$BREAKING_LEVEL" --format text \
+            > "$OUT/breaking.txt" 2>&1 || bcode=$?
+
+          if [[ $bcode -eq 0 ]]; then
+            BREAKING=false
+          elif [[ $bcode -eq 1 ]]; then
+            BREAKING=true
+          else
+            echo "❌ oasdiff breaking a échoué (code $bcode) :"
+            cat "$OUT/breaking.txt"
+            exit 1
+          fi
+
+          oasdiff changelog "$BASE_FILE" "$SPEC_PATH" --format text > "$OUT/changelog.txt" 2>&1 || true
+
+          {
+            echo "### Contrat OpenAPI : changement fonctionnel détecté"
+            if [[ "$BREAKING" == "true" ]]; then
+              echo "⚠️ **Breaking change** (niveau ${BREAKING_LEVEL})"
+            else
+              echo "Changement **non cassant**."
+            fi
+            echo ""
+            echo "#### Changelog oasdiff"
+            echo '```'
+            cat "$OUT/changelog.txt"
+            echo '```'
+            echo "<details><summary>Diff structurel (hors éléments cosmétiques)</summary>"
+            echo ""
+            echo '```'
+            cat "$OUT/diff.txt"
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          cat "$OUT/changelog.txt"
+          if [[ "$BREAKING" == "true" ]]; then
+            echo ""
+            echo "Breaking change(s) :"
+            cat "$OUT/breaking.txt"
+          fi
+
+          emit functional "$BREAKING"
+
+      # ============================================================
+      # 5. COHÉRENCE AVEC release-please (uniquement si changement fonctionnel)
+      #
+      #    Règle commune : il faut un `feat` ou `feat!` (titre de PR ou commit de la PR).
+      #
+      #    BUMP_POLICY=flexible : l'auteur choisit.
+      #        `feat:`  -> bump mineur (5.0.0 -> 5.1.0)
+      #        `feat!:` ou `BREAKING CHANGE:` -> bump majeur voulu (6.0.0), signalé par une notice.
+      #    BUMP_POLICY=minor : verrou strict sur la version majeure actuelle.
+      #        Tout `!` ou `BREAKING CHANGE` est refusé.
+      #    BUMP_POLICY=major : un breaking change détecté doit être marqué `type!:`
+      #        ou `BREAKING CHANGE:`.
+      # ============================================================
+      - name: Vérifier la cohérence avec release-please
+        if: steps.analyse.outputs.change == 'functional'
+        env:
+          BUMP_POLICY: flexible   # flexible | minor | major
+          BREAKING: ${{ steps.analyse.outputs.breaking }}
+          BASE_REF: ${{ github.base_ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          set -euo pipefail
+          FEAT_RE='^feat(\([^)]+\))?!?:'
+          BANG_RE='^[a-zA-Z]+(\([^)]+\))?!:'
+          FOOTER_RE='^BREAKING[ -]CHANGE:'
+
+          SUBJECTS=$(git log "origin/${BASE_REF}..${HEAD_SHA}" --format='%s')
+          BODIES=$(git log "origin/${BASE_REF}..${HEAD_SHA}" --format='%B')
+          ALL_SUBJECTS=$(printf '%s\n%s\n' "$PR_TITLE" "$SUBJECTS")
+
+          HAS_FEAT=false
+          grep -Eq "$FEAT_RE" <<< "$ALL_SUBJECTS" && HAS_FEAT=true
+
+          HAS_BANG=false
+          grep -Eq "$BANG_RE" <<< "$ALL_SUBJECTS" && HAS_BANG=true
+          grep -Eq "$FOOTER_RE" <<< "$BODIES" && HAS_BANG=true
+
+          echo "Politique : ${BUMP_POLICY} | breaking : ${BREAKING} | feat : ${HAS_FEAT} | marqueur breaking (!) : ${HAS_BANG}"
+
+          if [[ "$HAS_FEAT" != "true" ]]; then
+            echo "❌ Le contrat d'API a changé fonctionnellement : un 'feat' est requis."
+            echo "   Utilisez 'feat: ...' (bump mineur) ou 'feat!: ...' (bump majeur) dans le titre de la PR (squash merge)"
+            echo "   ou dans au moins un commit (merge commit / rebase)."
+            echo "   (Un simple changement de description/summary/title/exemple n'exige pas de feat.)"
+            exit 1
+          fi
+
+          if [[ "$BUMP_POLICY" == "flexible" ]]; then
+            if [[ "$HAS_BANG" == "true" ]]; then
+              echo "::notice::Cette PR provoquera un bump MAJEUR (marqueur '!' ou 'BREAKING CHANGE' détecté)."
+              echo "✅ Politique 'flexible' : 'feat' + marqueur breaking, release-please proposera une version majeure."
+              exit 0
+            fi
+            if [[ "$BREAKING" == "true" ]]; then
+              echo "::warning::Breaking change d'API détecté, mais publié en version MINEURE (pas de '!'). Si c'est une rupture assumée, utilisez 'feat!: ...' pour un bump majeur."
+            fi
+            echo "✅ Politique 'flexible' : 'feat' présent, release-please proposera un bump mineur."
+            exit 0
+          fi
+
+          if [[ "$BUMP_POLICY" == "minor" ]]; then
+            if [[ "$HAS_BANG" == "true" ]]; then
+              echo "❌ Politique 'minor' : '!' ou 'BREAKING CHANGE' provoquerait un bump MAJEUR (6.0.0)."
+              echo "   Retirez-les pour obtenir un bump mineur (5.x -> 5.(x+1).0), avec un simple 'feat: ...'."
+              exit 1
+            fi
+            if [[ "$BREAKING" == "true" ]]; then
+              echo "::warning::Breaking change d'API détecté, publié en version MINEURE (politique 'minor'). Vérifiez que c'est voulu (voir le résumé du job)."
+            fi
+            echo "✅ 'feat' présent sans marqueur breaking : release-please proposera un bump mineur."
+            exit 0
+          fi
+
+          # Politique 'major'
+          if [[ "$BREAKING" == "true" && "$HAS_BANG" != "true" ]]; then
+            echo "❌ Politique 'major' : breaking change détecté, il faut 'feat!: ...' (ou un footer 'BREAKING CHANGE:')."
+            exit 1
+          fi
+          echo "✅ Cohérent avec release-please (politique 'major')."

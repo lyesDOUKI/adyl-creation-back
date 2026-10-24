@@ -1,8 +1,7 @@
 name: CI - Java Maven
 
-# Workflow "lourd" : build, tests, drift check.
-# Il ne se relance PAS quand on ajoute/retire un label ou qu'on édite le titre
-# de la PR (voir api-contract.yml pour ces événements).
+# Build + tests uniquement.
+# Tout ce qui concerne le contrat d'API est dans api-contract.yml.
 on:
   push:
     branches: [ "main" ]
@@ -17,6 +16,7 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
 
@@ -31,20 +31,5 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Compilation, tests et régénération de openapi.yaml
-        run: mvn clean verify
-
-      # Le contrat committé doit correspondre au code.
-      - name: Vérifier que le contrat OpenAPI est à jour (drift check)
-        run: |
-          if [[ -n "$(git status --porcelain application/openapi.yaml)" ]]; then
-            echo "❌ Le fichier application/openapi.yaml est obsolète."
-            echo "   Le code a été modifié sans régénérer et committer le contrat d'API."
-            echo ""
-            echo "   Pour corriger : mvn clean verify"
-            echo "   puis : git add application/openapi.yaml"
-            echo ""
-            git --no-pager diff application/openapi.yaml
-            exit 1
-          fi
-          echo "✅ application/openapi.yaml est à jour."
+      - name: Compilation et tests
+        run: mvn -B -ntp clean verify
