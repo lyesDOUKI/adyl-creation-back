@@ -135,6 +135,19 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+            </resource>
+
+            <resource>
+                <directory>${project.basedir}/api-contract</directory>
+                <includes>
+                    <include>version.txt</include>
+                </includes>
+                <targetPath>META-INF</targetPath>
+            </resource>
+        </resources>
         <finalName>application</finalName>
         <plugins>
             <!-- Plugin Spring Boot : repackage + start/stop pour la génération OpenAPI -->
@@ -285,8 +298,7 @@
                 <configuration>
                     <apiDocsUrl>http://localhost:8080/v3/api-docs.yaml</apiDocsUrl>
                     <outputFileName>openapi.yaml</outputFileName>
-                    <!-- Commit du fichier à la racine du module -->
-                    <outputDir>${project.basedir}</outputDir>
+                    <outputDir>${project.basedir}/api-contract</outputDir>
                 </configuration>
             </plugin>
         </plugins>

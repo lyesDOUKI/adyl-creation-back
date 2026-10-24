@@ -1,0 +1,99 @@
+
+
+
+name: API Contract
+
+# Contrôle du contrat OpenAPI Code First :
+# 1. Régénère la spec depuis le code Java.
+# 2. Vérifie que la spec committée correspond à la spec générée.
+# 3. Compare le contrat avec main, en ignorant info.version pour classifier les changements.
+# 4. Vérifie que version.txt respecte la politique SemVer :
+#      aucun changement -> version inchangée
+#      cosmétique       -> patch
+#      fonctionnel      -> minor
+#      breaking         -> major
+# 5. Publie un rapport de comparaison sur la PR.
+# La version API est pilotée manuellement par application/api-contract/version.txt,
+# indépendamment de Release Please et des conventions de commit.
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, synchronize, reopened, edited ]
+
+concurrency:
+  group: api-contract-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  SPEC_PATH: application/api-contract/openapi.yaml
+  VERSION_FILE: application/api-contract/version.txt
+  OASDIFF_VERSION: "1.33.0"
+
+jobs:
+  api-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configuration de Java 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # 1. RÉGÉNÉRATION DU CONTRAT À PARTIR DU CODE
+      - name: Régénérer le contrat OpenAPI
+        run: mvn -B -ntp verify -pl application -am -DskipTests
+
+      # 2. INSTALLATION DES OUTILS ÉPINGLÉS ET VÉRIFICATION DES CHECKSUMS
+      - name: Installer oasdiff et yq
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+          BASE_URL="https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}"
+          mkdir -p "$RUNNER_TEMP/oasdiff"
+          cd "$RUNNER_TEMP/oasdiff"
+          curl -fsSLO "${BASE_URL}/${ARCHIVE}"
+          curl -fsSLO "${BASE_URL}/checksums.txt"
+          grep " ${ARCHIVE}\$" checksums.txt | sha256sum -c -
+          tar -xzf "$ARCHIVE" oasdiff
+          echo "$PWD" >> "$GITHUB_PATH"
+          ./oasdiff --version
+
+          YQ_VERSION="v4.45.1"
+          YQ_SHA256="654d2943ca1d3be2024089eb4f270f4070f491a0610481d128509b2834870049"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
+            -o "$RUNNER_TEMP/yq"
+          echo "${YQ_SHA256}  $RUNNER_TEMP/yq" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/yq"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/yq" --version
+
+      # 3. VERSION ACTUELLE + DRIFT CHECK
+      - name: Vérifier version.txt, info.version et le drift
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f "$VERSION_FILE" ]]; then
+            echo "❌ Fichier de version absent : $VERSION_FILE"
+            exit 1
+          fi
+          if [[ ! -f "$SPEC_PATH" ]]; then
+            echo "❌ Spécification OpenAPI absente : $SPEC_PATH"
+            exit 1
+          fi
+
+          API_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+          SPEC_VERSION="$(yq -r '.info.version // ""' "$SPEC_PATH")"
+

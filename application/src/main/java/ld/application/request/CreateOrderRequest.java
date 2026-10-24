@@ -14,6 +14,11 @@ import java.util.UUID;
 @Schema(description = "Demande de commande")
 public record CreateOrderRequest(
 
+        @NotNull
+        @NotBlank
+        @Schema(description = "test", requiredMode = Schema.RequiredMode.REQUIRED)
+        String test,
+
         @NotBlank
         @Schema(description = "Adresse de livraison", example = "12 rue des Lilas")
         String customerAddress,
