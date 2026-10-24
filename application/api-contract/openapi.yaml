@@ -4,8 +4,8 @@ info:
   description: |-
     API de gestion des commandes, produits et rendez-vous d'Adyl Creation.
     Les erreurs sont retournées en `application/problem+json` (RFC 9457) :
-    Le champ `code` est l'identifiant unique d'une erreur.
-  version: 1.0.0
+    le champ `code` est l'identifiant unique d'une erreur.
+  version: 1.0.1
 servers:
 - url: /
   description: Résolu dynamiquement selon l'hôte de déploiement
@@ -325,8 +325,8 @@ paths:
       tags:
       - Commandes
       summary: Récupération des commandes
-      description: "Retourne, de façon paginée, les commandes du client authentifié\
-        ."
+      description: "Retourne, de façon paginée, les demandes de commandes du client\
+        \ authentifié."
       operationId: listOrders
       parameters:
       - name: page
