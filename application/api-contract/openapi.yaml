@@ -325,8 +325,8 @@ paths:
       tags:
       - Commandes
       summary: Récupération des commandes
-      description: "Retourne, de façon paginée, les commandes du client authentifié\
-        ."
+      description: "Retourne, de façon paginée, les demandes de commandes du client\
+        \ authentifié."
       operationId: listOrders
       parameters:
       - name: page
@@ -1539,6 +1539,10 @@ components:
       type: object
       description: Demande de commande
       properties:
+        test:
+          type: string
+          description: test
+          minLength: 1
         customerAddress:
           type: string
           description: Adresse de livraison
@@ -1565,6 +1569,7 @@ components:
       - customerAddress
       - customerCity
       - items
+      - test
     ItemOrderRequest:
       type: object
       description: Ligne d'une demande de commande

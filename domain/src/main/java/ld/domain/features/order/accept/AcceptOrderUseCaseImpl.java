@@ -41,7 +41,6 @@ public class AcceptOrderUseCaseImpl extends AbstractOrderLifecycleUseCase<Accept
 
     private Result<Order, AcceptOrderError> acceptWithDiscountHandling(Order order) {
         AppliedDiscount discount = resolveDiscount(order);
-        System.out.println("test oasdiff");
         return order.accept(discount, Instant.now(clock));
     }
 

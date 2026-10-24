@@ -183,7 +183,7 @@ public class OrderController {
     @Operation(
             operationId = "listOrders",
             summary = "Récupération des commandes",
-            description = "Retourne, de façon paginée, les commandes du client authentifié."
+            description = "Retourne, de façon paginée, les demandes de commandes du client authentifié."
     )
     public ResponseEntity<PageResponse<GetOrderResponse>> listOrders(
             @ParameterObject @PageableDefault(size = 20) Pageable pageable,
