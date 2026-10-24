@@ -1,5 +1,20 @@
 # Changelog
 
+## [5.0.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v4.0.0...v5.0.0) (2026-10-24)
+
+
+### ⚠ BREAKING CHANGES
+
+* new design of the api documentation - API management as code
+
+### Features
+
+* add more documentation for api problems ([1efab4f](https://github.com/lyesDOUKI/adyl-creation-back/commit/1efab4fd53c83b85423e89896fac6db3c5c34168))
+* add versionning tools for openapi doc ([1a2f757](https://github.com/lyesDOUKI/adyl-creation-back/commit/1a2f757c28d2e3d7d955e894cef10fa8a220db85))
+* dynamic resolve for instance in http response problem details examples ([2c47587](https://github.com/lyesDOUKI/adyl-creation-back/commit/2c47587bf5b89fbeed04024bb85941a661dc5c0e))
+* modify Result error pattern ([59b134c](https://github.com/lyesDOUKI/adyl-creation-back/commit/59b134c2847514dad1766b5fa24cdb743edbf03d))
+* new design of the api documentation - API management as code ([888c2ec](https://github.com/lyesDOUKI/adyl-creation-back/commit/888c2ec5956a0e46d3443f46374408274729d1e0))
+
 ## [4.0.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v3.1.0...v4.0.0) (2026-10-13)
 
 
