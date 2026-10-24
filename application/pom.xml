@@ -137,21 +137,47 @@
     <build>
         <finalName>application</finalName>
         <plugins>
+            <!-- Plugin Spring Boot : repackage + start/stop pour la génération OpenAPI -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <!-- Active le profil openapi (charge application-openapi.yaml) -->
+                    <profiles>
+                        <profile>openapi</profile>
+                    </profiles>
+                    <!-- Requis pour que spring-boot:stop puisse arrêter proprement l'app -->
+                    <jvmArguments>-Dspring.application.admin.enabled=true</jvmArguments>
+                </configuration>
                 <executions>
+                    <!-- Repackage du jar exécutable -->
                     <execution>
                         <goals>
                             <goal>repackage</goal>
                         </goals>
                     </execution>
+                    <!-- Démarre l'app avant la phase integration-test -->
+                    <execution>
+                        <id>pre-integration-test</id>
+                        <goals>
+                            <goal>start</goal>
+                        </goals>
+                    </execution>
+                    <!-- Arrête l'app après la phase integration-test -->
+                    <execution>
+                        <id>post-integration-test</id>
+                        <goals>
+                            <goal>stop</goal>
+                        </goals>
+                    </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
             </plugin>
+
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
@@ -179,6 +205,7 @@
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <groupId>org.jooq</groupId>
                 <artifactId>jooq-codegen-maven</artifactId>
@@ -223,6 +250,7 @@
                     </execution>
                 </executions>
             </plugin>
+
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>build-helper-maven-plugin</artifactId>
@@ -238,6 +266,28 @@
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+
+            <!-- Plugin SpringDoc : appelle /v3/api-docs.yaml et écrit le fichier -->
+            <plugin>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-maven-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>generate-openapi</id>
+                        <phase>integration-test</phase>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <apiDocsUrl>http://localhost:8080/v3/api-docs.yaml</apiDocsUrl>
+                    <outputFileName>openapi.yaml</outputFileName>
+                    <!-- Commit du fichier à la racine du module -->
+                    <outputDir>${project.basedir}</outputDir>
+                </configuration>
             </plugin>
         </plugins>
     </build>

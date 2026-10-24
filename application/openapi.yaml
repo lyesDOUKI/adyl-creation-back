@@ -1,0 +1,3178 @@
+openapi: 3.1.0
+info:
+  title: Adyl Creation API
+  description: |-
+    API de gestion des commandes, produits et rendez-vous d'Adyl Creation.
+    Les erreurs sont retournées en `application/problem+json` (RFC 9457) :
+    Le champ `code` est l'identifiant unique d'une erreur.
+  version: 1.0.0
+servers:
+- url: /
+  description: Résolu dynamiquement selon l'hôte de déploiement
+tags:
+- name: Rendez-vous
+  description: API pour la gestion des rendez-vous
+- name: Commandes
+  description: API pour la gestion des commandes
+- name: Produits
+  description: API pour la gestion des produits
+- name: Clients
+  description: API pour la gestion des clients
+- name: Photos
+  description: API pour la gestion des photos des produits
+paths:
+  /products:
+    get:
+      tags:
+      - Produits
+      summary: Récupération des produits
+      description: "Retourne, de façon paginée, le catalogue des produits. Endpoint\
+        \ public."
+      operationId: listProducts
+      parameters:
+      - name: page
+        in: query
+        description: Zero-based page index (0..N)
+        required: false
+        schema:
+          type: integer
+          default: 0
+          minimum: 0
+      - name: size
+        in: query
+        description: The size of the page to be returned
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - name: sort
+        in: query
+        description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponseGetProductResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_SORT_FIELD` : Champ de tri invalide (champs additionnels : reason)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INVALID_SORT_FIELD: "#/components/schemas/Request_INVALID_SORT_FIELD"
+                oneOf:
+                - $ref: "#/components/schemas/Request_INVALID_SORT_FIELD"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+      security: []
+    post:
+      tags:
+      - Produits
+      summary: Création d'un produit
+      description: Crée un nouveau produit de crochet adyl-creation.
+      operationId: createProduct
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProductRequest"
+        required: true
+      responses:
+        "201":
+          description: Produit créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateProductResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_REQUEST_BODY` : Requête invalide (champs additionnels : errors)
+            - `VALIDATION_FAILED` : Validation échouée (champs additionnels : errors)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    VALIDATION_FAILED: "#/components/schemas/Request_VALIDATION_FAILED"
+                    INVALID_REQUEST_BODY: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+                oneOf:
+                - $ref: "#/components/schemas/Request_VALIDATION_FAILED"
+                - $ref: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "409":
+          description: |-
+            Conflit avec l'état actuel de la ressource
+
+            - `PRODUCT_ALREADY_EXISTS` : Produit déjà existant (champs additionnels : name)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    PRODUCT_ALREADY_EXISTS: "#/components/schemas/CreateProduct_PRODUCT_ALREADY_EXISTS"
+                oneOf:
+                - $ref: "#/components/schemas/CreateProduct_PRODUCT_ALREADY_EXISTS"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+  /products/{id}/photos:
+    post:
+      tags:
+      - Photos
+      summary: Ajout de photos à un produit
+      description: Ajoute une ou plusieurs photos à un produit de crochet adyl-creation
+        existant.
+      operationId: addProductPhotos
+      parameters:
+      - name: id
+        in: path
+        description: Identifiant du produit
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                photos:
+                  type: array
+                  description: Photos à ajouter (au moins une)
+                  items:
+                    type: string
+                    format: binary
+              required:
+              - photos
+        required: true
+      responses:
+        "201":
+          description: Photos ajoutées avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AddProductPhotosResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_MULTIPART_REQUEST` : Requête multipart invalide (champs additionnels : reason)
+            - `INVALID_PARAMETER` : Paramètre invalide (champs additionnels : parameter, reason)
+            - `VALIDATION_FAILED` : Validation échouée (champs additionnels : errors)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INVALID_MULTIPART_REQUEST: "#/components/schemas/Request_INVALID_MULTIPART_REQUEST"
+                    VALIDATION_FAILED: "#/components/schemas/Request_VALIDATION_FAILED"
+                    INVALID_PARAMETER: "#/components/schemas/Request_INVALID_PARAMETER"
+                oneOf:
+                - $ref: "#/components/schemas/Request_INVALID_MULTIPART_REQUEST"
+                - $ref: "#/components/schemas/Request_VALIDATION_FAILED"
+                - $ref: "#/components/schemas/Request_INVALID_PARAMETER"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "404":
+          description: |-
+            Ressource introuvable
+
+            - `PRODUCT_NOT_FOUND` : Produit introuvable (champs additionnels : productId)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    PRODUCT_NOT_FOUND: "#/components/schemas/AddProductPhotos_PRODUCT_NOT_FOUND"
+                oneOf:
+                - $ref: "#/components/schemas/AddProductPhotos_PRODUCT_NOT_FOUND"
+        "422":
+          description: |-
+            Règle métier non respectée
+
+            - `PHOTO_EXTENSION_NOT_ALLOWED` : Extension incorrecte (champs additionnels : allowedExtensions, fileName)
+            - `PHOTO_LIST_EMPTY` : Aucune image
+            - `PHOTO_MAX_SIZE_EXCEEDED` : Image trop volumineuse (champs additionnels : fileName, maxSizeBytes, sizeBytes)
+            - `PHOTO_SIZE_ZERO` : Image vide (champs additionnels : fileName)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    PHOTO_LIST_EMPTY: "#/components/schemas/AddProductPhotos_PHOTO_LIST_EMPTY"
+                    PHOTO_SIZE_ZERO: "#/components/schemas/AddProductPhotos_PHOTO_SIZE_ZERO"
+                    PHOTO_MAX_SIZE_EXCEEDED: "#/components/schemas/AddProductPhotos_PHOTO_MAX_SIZE_EXCEEDED"
+                    PHOTO_EXTENSION_NOT_ALLOWED: "#/components/schemas/AddProductPhotos_PHOTO_EXTENSION_NOT_ALLOWED"
+                oneOf:
+                - $ref: "#/components/schemas/AddProductPhotos_PHOTO_LIST_EMPTY"
+                - $ref: "#/components/schemas/AddProductPhotos_PHOTO_SIZE_ZERO"
+                - $ref: "#/components/schemas/AddProductPhotos_PHOTO_MAX_SIZE_EXCEEDED"
+                - $ref: "#/components/schemas/AddProductPhotos_PHOTO_EXTENSION_NOT_ALLOWED"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+  /orders:
+    get:
+      tags:
+      - Commandes
+      summary: Récupération des commandes
+      description: "Retourne, de façon paginée, les commandes du client authentifié\
+        ."
+      operationId: listOrders
+      parameters:
+      - name: page
+        in: query
+        description: Zero-based page index (0..N)
+        required: false
+        schema:
+          type: integer
+          default: 0
+          minimum: 0
+      - name: size
+        in: query
+        description: The size of the page to be returned
+        required: false
+        schema:
+          type: integer
+          default: 20
+          minimum: 1
+      - name: sort
+        in: query
+        description: "Sorting criteria in the format: property,(asc|desc). Default\
+          \ sort order is ascending. Multiple sort criteria are supported."
+        required: false
+        schema:
+          type: array
+          items:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PageResponseGetOrderResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_SORT_FIELD` : Champ de tri invalide (champs additionnels : reason)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INVALID_SORT_FIELD: "#/components/schemas/Request_INVALID_SORT_FIELD"
+                oneOf:
+                - $ref: "#/components/schemas/Request_INVALID_SORT_FIELD"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+    post:
+      tags:
+      - Commandes
+      summary: Création d'une demande de commande
+      description: Envoie la demande de commande pour prise en compte et traitement.
+      operationId: createOrder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+        required: true
+      responses:
+        "201":
+          description: Demande de commande enregistrée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateOrderResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_REQUEST_BODY` : Requête invalide (champs additionnels : errors)
+            - `VALIDATION_FAILED` : Validation échouée (champs additionnels : errors)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    VALIDATION_FAILED: "#/components/schemas/Request_VALIDATION_FAILED"
+                    INVALID_REQUEST_BODY: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+                oneOf:
+                - $ref: "#/components/schemas/Request_VALIDATION_FAILED"
+                - $ref: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "409":
+          description: |-
+            Conflit avec l'état actuel de la ressource
+
+            - `PRODUCT_NOT_AVAILABLE` : Produits indisponibles (champs additionnels : productIds)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    PRODUCT_NOT_AVAILABLE: "#/components/schemas/CreateOrder_PRODUCT_NOT_AVAILABLE"
+                oneOf:
+                - $ref: "#/components/schemas/CreateOrder_PRODUCT_NOT_AVAILABLE"
+        "422":
+          description: |-
+            Règle métier non respectée
+
+            - `PRODUCTS_NOT_FOUND` : Produits introuvables (champs additionnels : productIds)
+            - `PRODUCT_COLOR_NOT_AVAILABLE` : Couleur demandée non disponible (champs additionnels : availableColors, productId, requestedColor)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    PRODUCTS_NOT_FOUND: "#/components/schemas/CreateOrder_PRODUCTS_NOT_FOUND"
+                    PRODUCT_COLOR_NOT_AVAILABLE: "#/components/schemas/CreateOrder_PRODUCT_COLOR_NOT_AVAILABLE"
+                oneOf:
+                - $ref: "#/components/schemas/CreateOrder_PRODUCTS_NOT_FOUND"
+                - $ref: "#/components/schemas/CreateOrder_PRODUCT_COLOR_NOT_AVAILABLE"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+  /orders/{id}/reject:
+    post:
+      tags:
+      - Commandes
+      summary: Rejeter une commande
+      description: "Rejette une commande, avec un motif optionnel. Une commande dé\
+        jà livrée ne peut plus être rejetée."
+      operationId: rejectOrder
+      parameters:
+      - name: id
+        in: path
+        description: Identifiant de la commande à rejeter
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectOrderRequest"
+        required: true
+      responses:
+        "200":
+          description: Commande rejetée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderRejectedResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_PARAMETER` : Paramètre invalide (champs additionnels : parameter, reason)
+            - `INVALID_REQUEST_BODY` : Requête invalide (champs additionnels : errors)
+            - `VALIDATION_FAILED` : Validation échouée (champs additionnels : errors)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    VALIDATION_FAILED: "#/components/schemas/Request_VALIDATION_FAILED"
+                    INVALID_REQUEST_BODY: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+                    INVALID_PARAMETER: "#/components/schemas/Request_INVALID_PARAMETER"
+                oneOf:
+                - $ref: "#/components/schemas/Request_VALIDATION_FAILED"
+                - $ref: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+                - $ref: "#/components/schemas/Request_INVALID_PARAMETER"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "404":
+          description: |-
+            Ressource introuvable
+
+            - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    ORDER_NOT_FOUND: "#/components/schemas/RejectOrder_ORDER_NOT_FOUND"
+                oneOf:
+                - $ref: "#/components/schemas/RejectOrder_ORDER_NOT_FOUND"
+        "409":
+          description: |-
+            Conflit avec l'état actuel de la ressource
+
+            - `ORDER_ALREADY_DELIVERED` : Commande livrée
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    ORDER_ALREADY_DELIVERED: "#/components/schemas/RejectOrder_ORDER_ALREADY_DELIVERED"
+                oneOf:
+                - $ref: "#/components/schemas/RejectOrder_ORDER_ALREADY_DELIVERED"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+  /orders/{id}/deliver:
+    post:
+      tags:
+      - Commandes
+      summary: Livrer une commande
+      description: "Marque une commande acceptée comme livrée, avec son mode de livraison."
+      operationId: deliverOrder
+      parameters:
+      - name: id
+        in: path
+        description: Identifiant de la commande à livrer
+        required: true
+        schema:
+          type: string
+          format: uuid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeliverOrderRequest"
+        required: true
+      responses:
+        "200":
+          description: Commande livrée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderDeliveredResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_PARAMETER` : Paramètre invalide (champs additionnels : parameter, reason)
+            - `INVALID_REQUEST_BODY` : Requête invalide (champs additionnels : errors)
+            - `VALIDATION_FAILED` : Validation échouée (champs additionnels : errors)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    VALIDATION_FAILED: "#/components/schemas/Request_VALIDATION_FAILED"
+                    INVALID_REQUEST_BODY: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+                    INVALID_PARAMETER: "#/components/schemas/Request_INVALID_PARAMETER"
+                oneOf:
+                - $ref: "#/components/schemas/Request_VALIDATION_FAILED"
+                - $ref: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+                - $ref: "#/components/schemas/Request_INVALID_PARAMETER"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "404":
+          description: |-
+            Ressource introuvable
+
+            - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    ORDER_NOT_FOUND: "#/components/schemas/DeliverOrder_ORDER_NOT_FOUND"
+                oneOf:
+                - $ref: "#/components/schemas/DeliverOrder_ORDER_NOT_FOUND"
+        "409":
+          description: |-
+            Conflit avec l'état actuel de la ressource
+
+            - `ORDER_ALREADY_REJECTED` : Commande rejetée
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    ORDER_ALREADY_REJECTED: "#/components/schemas/DeliverOrder_ORDER_ALREADY_REJECTED"
+                oneOf:
+                - $ref: "#/components/schemas/DeliverOrder_ORDER_ALREADY_REJECTED"
+        "422":
+          description: |-
+            Règle métier non respectée
+
+            - `ORDER_STILL_PENDING` : Commande en attente
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    ORDER_STILL_PENDING: "#/components/schemas/DeliverOrder_ORDER_STILL_PENDING"
+                oneOf:
+                - $ref: "#/components/schemas/DeliverOrder_ORDER_STILL_PENDING"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+  /orders/{id}/accept:
+    post:
+      tags:
+      - Commandes
+      summary: Accepter une commande
+      description: "Accepte une commande en attente et applique, le cas échéant, la\
+        \ remise de première commande."
+      operationId: acceptOrder
+      parameters:
+      - name: id
+        in: path
+        description: Identifiant de la commande à accepter
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Commande acceptée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderAcceptedResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_PARAMETER` : Paramètre invalide (champs additionnels : parameter, reason)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INVALID_PARAMETER: "#/components/schemas/Request_INVALID_PARAMETER"
+                oneOf:
+                - $ref: "#/components/schemas/Request_INVALID_PARAMETER"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "404":
+          description: |-
+            Ressource introuvable
+
+            - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    ORDER_NOT_FOUND: "#/components/schemas/AcceptOrder_ORDER_NOT_FOUND"
+                oneOf:
+                - $ref: "#/components/schemas/AcceptOrder_ORDER_NOT_FOUND"
+        "409":
+          description: |-
+            Conflit avec l'état actuel de la ressource
+
+            - `ORDER_ALREADY_DELIVERED` : Commande livrée
+            - `ORDER_ALREADY_REJECTED` : Commande rejetée
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    ORDER_ALREADY_REJECTED: "#/components/schemas/AcceptOrder_ORDER_ALREADY_REJECTED"
+                    ORDER_ALREADY_DELIVERED: "#/components/schemas/AcceptOrder_ORDER_ALREADY_DELIVERED"
+                oneOf:
+                - $ref: "#/components/schemas/AcceptOrder_ORDER_ALREADY_REJECTED"
+                - $ref: "#/components/schemas/AcceptOrder_ORDER_ALREADY_DELIVERED"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+  /customer/me:
+    post:
+      tags:
+      - Clients
+      summary: Enregistrer un client
+      description: Enregistre le client authentifié (identifié par son jeton JWT)
+        avec son e-mail et son téléphone.
+      operationId: registerCustomer
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterCustomerRequest"
+        required: true
+      responses:
+        "201":
+          description: Client enregistré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_REQUEST_BODY` : Requête invalide (champs additionnels : errors)
+            - `VALIDATION_FAILED` : Validation échouée (champs additionnels : errors)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    VALIDATION_FAILED: "#/components/schemas/Request_VALIDATION_FAILED"
+                    INVALID_REQUEST_BODY: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+                oneOf:
+                - $ref: "#/components/schemas/Request_VALIDATION_FAILED"
+                - $ref: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+  /appointments:
+    get:
+      tags:
+      - Rendez-vous
+      summary: Lister mes rendez-vous
+      description: "Retourne l'ensemble des rendez-vous du client authentifié, identifié\
+        \ à partir du token JWT. Aucun paramètre n'est requis : le périmètre est automatiquement\
+        \ restreint au client courant."
+      operationId: listAppointments
+      responses:
+        "200":
+          description: Liste des rendez-vous du client (peut être vide)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AppointmentsResponse"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+    post:
+      tags:
+      - Rendez-vous
+      summary: Crée un rendez-vous
+      description: "Soumet une demande de rendez-vous sur le créneau donné, pour le\
+        \ client authentifié. Le créneau doit être disponible : s'il chevauche un\
+        \ rendez-vous déjà réservé ou tombe en dehors des horaires d'ouverture, la\
+        \ création est refusée."
+      operationId: createAppointment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitAppointmentRequest"
+        required: true
+      responses:
+        "201":
+          description: Rendez-vous créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmitAppointmentResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_REQUEST_BODY` : Requête invalide (champs additionnels : errors)
+            - `VALIDATION_FAILED` : Validation échouée (champs additionnels : errors)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    VALIDATION_FAILED: "#/components/schemas/Request_VALIDATION_FAILED"
+                    INVALID_REQUEST_BODY: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+                oneOf:
+                - $ref: "#/components/schemas/Request_VALIDATION_FAILED"
+                - $ref: "#/components/schemas/Request_INVALID_REQUEST_BODY"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "409":
+          description: |-
+            Conflit avec l'état actuel de la ressource
+
+            - `SLOT_ALREADY_BOOKED` : Créneau déjà réservé (champs additionnels : requestedSlot)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    SLOT_ALREADY_BOOKED: "#/components/schemas/SubmitAppointment_SLOT_ALREADY_BOOKED"
+                oneOf:
+                - $ref: "#/components/schemas/SubmitAppointment_SLOT_ALREADY_BOOKED"
+        "422":
+          description: |-
+            Règle métier non respectée
+
+            - `SLOT_OUTSIDE_OPENING_HOURS` : Créneau hors horaires (champs additionnels : requestedSlot)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    SLOT_OUTSIDE_OPENING_HOURS: "#/components/schemas/SubmitAppointment_SLOT_OUTSIDE_OPENING_HOURS"
+                oneOf:
+                - $ref: "#/components/schemas/SubmitAppointment_SLOT_OUTSIDE_OPENING_HOURS"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+  /products/{id}:
+    get:
+      tags:
+      - Produits
+      summary: Récupération d'un produit
+      description: Retourne un produit du catalogue. Endpoint public.
+      operationId: getProduct
+      parameters:
+      - name: id
+        in: path
+        description: Identifiant du produit
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Produit récupéré avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetProductResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_PARAMETER` : Paramètre invalide (champs additionnels : parameter, reason)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INVALID_PARAMETER: "#/components/schemas/Request_INVALID_PARAMETER"
+                oneOf:
+                - $ref: "#/components/schemas/Request_INVALID_PARAMETER"
+        "404":
+          description: |-
+            Ressource introuvable
+
+            - `PRODUCT_NOT_FOUND` : Produit introuvable (champs additionnels : productId)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    PRODUCT_NOT_FOUND: "#/components/schemas/GetProduct_PRODUCT_NOT_FOUND"
+                oneOf:
+                - $ref: "#/components/schemas/GetProduct_PRODUCT_NOT_FOUND"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+      security: []
+  /products/{id}/photos/{fileName}:
+    get:
+      tags:
+      - Photos
+      summary: Récupération d'une photo produit
+      description: Renvoie le fichier binaire d'une photo stockée pour un produit
+        donné. Endpoint public.
+      operationId: downloadProductPhoto
+      parameters:
+      - name: id
+        in: path
+        description: Identifiant du produit
+        required: true
+        schema:
+          type: string
+          format: uuid
+      - name: fileName
+        in: path
+        description: Nom du fichier de la photo
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: Photo trouvée et renvoyée
+          content:
+            application/octet-stream: {}
+        "404":
+          description: Photo introuvable pour ce produit (réponse sans corps)
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_PARAMETER` : Paramètre invalide (champs additionnels : parameter, reason)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INVALID_PARAMETER: "#/components/schemas/Request_INVALID_PARAMETER"
+                oneOf:
+                - $ref: "#/components/schemas/Request_INVALID_PARAMETER"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+      security: []
+  /orders/{id}:
+    get:
+      tags:
+      - Commandes
+      summary: Récupération d'une commande
+      description: Retourne une commande du client authentifié.
+      operationId: getOrder
+      parameters:
+      - name: id
+        in: path
+        description: Identifiant de la commande
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Commande récupérée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetOrderResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_PARAMETER` : Paramètre invalide (champs additionnels : parameter, reason)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INVALID_PARAMETER: "#/components/schemas/Request_INVALID_PARAMETER"
+                oneOf:
+                - $ref: "#/components/schemas/Request_INVALID_PARAMETER"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "404":
+          description: |-
+            Ressource introuvable
+
+            - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    ORDER_NOT_FOUND: "#/components/schemas/GetOrder_ORDER_NOT_FOUND"
+                oneOf:
+                - $ref: "#/components/schemas/GetOrder_ORDER_NOT_FOUND"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+  /appointments/available-slots:
+    get:
+      tags:
+      - Rendez-vous
+      summary: Recherche les créneaux disponibles
+      description: "Retourne les créneaux disponibles à la réservation sur la période\
+        \ demandée, organisés par date. Chaque date de la période est présente dans\
+        \ la réponse, même celles ne comportant aucun créneau disponible."
+      operationId: findAvailableSlots
+      parameters:
+      - name: from
+        in: query
+        description: Date de début de la période recherchée (incluse)
+        required: true
+        schema:
+          type: string
+          format: date
+        example: 2026-09-15
+      - name: to
+        in: query
+        description: Date de fin de la période recherchée (incluse)
+        required: true
+        schema:
+          type: string
+          format: date
+        example: 2026-09-20
+      responses:
+        "200":
+          description: Liste des créneaux disponibles par date
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AvailableSlotsResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_PARAMETER` : Paramètre invalide (champs additionnels : parameter, reason)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INVALID_PARAMETER: "#/components/schemas/Request_INVALID_PARAMETER"
+                oneOf:
+                - $ref: "#/components/schemas/Request_INVALID_PARAMETER"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/Security_UNAUTHENTICATED"
+                oneOf:
+                - $ref: "#/components/schemas/Security_UNAUTHENTICATED"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/Security_FORBIDDEN"
+                oneOf:
+                - $ref: "#/components/schemas/Security_FORBIDDEN"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/Server_INTERNAL_ERROR"
+                oneOf:
+                - $ref: "#/components/schemas/Server_INTERNAL_ERROR"
+components:
+  schemas:
+    CreateProductRequest:
+      type: object
+      description: Création d'un produit
+      properties:
+        name:
+          type: string
+          description: Nom du produit (unique)
+          example: Bonnet en laine
+          minLength: 1
+        productCategoryRequest:
+          $ref: "#/components/schemas/ProductCategoryRequest"
+          description: Catégorie du produit
+        colors:
+          type:
+          - array
+          - "null"
+          description: Couleurs disponibles
+          example:
+          - rouge
+          - bleu
+          items:
+            type: string
+        price:
+          type: number
+          description: "Prix unitaire strictement positif, en euros"
+          example: 24.9
+      required:
+      - name
+      - price
+      - productCategoryRequest
+    ProductCategoryRequest:
+      type: string
+      description: "Catégorie de produit : ACCESSORIES (accessoires) ou CLOTHING (vê\
+        tements)"
+      enum:
+      - ACCESSORIES
+      - CLOTHING
+    CreateProductResponse:
+      type: object
+      description: Produit créé
+      properties:
+        productId:
+          type: string
+          format: uuid
+          description: Identifiant du produit créé
+        name:
+          type: string
+          description: Nom du produit
+          example: Bonnet en laine
+        price:
+          type: number
+          description: "Prix unitaire, en euros"
+          example: 24.9
+      required:
+      - name
+      - price
+      - productId
+    AddProductPhotosResponse:
+      type: object
+      description: Photos d'un produit après ajout
+      properties:
+        productId:
+          type: string
+          format: uuid
+          description: Identifiant du produit
+        photos:
+          type: array
+          description: "Photos du produit, triées par position"
+          items:
+            $ref: "#/components/schemas/ProductPhotoResponse"
+      required:
+      - photos
+      - productId
+    ProductPhotoResponse:
+      type: object
+      description: Photo d'un produit
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifiant de la photo
+        url:
+          type: string
+          description: URL de téléchargement de la photo
+        position:
+          type: integer
+          format: int32
+          description: Position de la photo dans la galerie du produit
+          minimum: 0
+      required:
+      - id
+      - position
+      - url
+    CreateOrderRequest:
+      type: object
+      description: Demande de commande
+      properties:
+        customerAddress:
+          type: string
+          description: Adresse de livraison
+          example: 12 rue des Lilas
+          minLength: 1
+        customerCity:
+          type: string
+          description: Ville de livraison
+          example: Avignon
+          minLength: 1
+        customerMessage:
+          type:
+          - string
+          - "null"
+          description: Message libre du client pour la commande
+          example: Merci de livrer le matin
+        items:
+          type: array
+          description: Produits commandés (au moins un)
+          items:
+            $ref: "#/components/schemas/ItemOrderRequest"
+          minItems: 1
+      required:
+      - customerAddress
+      - customerCity
+      - items
+    ItemOrderRequest:
+      type: object
+      description: Ligne d'une demande de commande
+      properties:
+        productId:
+          type: string
+          format: uuid
+          description: Identifiant du produit commandé
+        quantity:
+          type: integer
+          format: int32
+          description: Quantité commandée
+          example: 2
+          minimum: 1
+        color:
+          type:
+          - string
+          - "null"
+          description: "Couleur choisie, parmi celles proposées par le produit"
+          example: rouge
+      required:
+      - productId
+      - quantity
+    CreateOrderResponse:
+      type: object
+      description: Commande enregistrée
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande créée
+        total:
+          type: number
+          description: "Montant total de la commande, en euros"
+          example: 42.5
+      required:
+      - orderId
+      - total
+    RejectOrderRequest:
+      type: object
+      description: Rejet d'une commande
+      properties:
+        reason:
+          type:
+          - string
+          - "null"
+          description: "Motif du rejet, facultatif"
+          example: Produit épuisé
+          maxLength: 500
+          minLength: 0
+    OrderRejectedResponse:
+      type: object
+      description: Commande rejetée
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande
+        reason:
+          type:
+          - string
+          - "null"
+          description: "Motif du rejet, s'il a été renseigné"
+        total:
+          type: number
+          description: "Montant total de la commande rejetée, en euros"
+          example: 42.5
+        orderState:
+          $ref: "#/components/schemas/OrderStateResponse"
+          description: État de la commande (toujours REJECTED)
+        rejectedAt:
+          type: string
+          format: date-time
+          description: Horodatage du rejet
+          example: 2026-09-15T07:00:00Z
+      required:
+      - orderId
+      - orderState
+      - rejectedAt
+      - total
+    OrderStateResponse:
+      type: string
+      description: "État d'une commande : PENDING (en attente), ACCEPTED, REJECTED\
+        \ ou DELIVERED"
+      enum:
+      - PENDING
+      - REJECTED
+      - DELIVERED
+      - ACCEPTED
+    DeliverOrderRequest:
+      type: object
+      description: Livraison d'une commande
+      properties:
+        deliveryMethod:
+          $ref: "#/components/schemas/DeliveryMethodRequest"
+          description: Mode de livraison
+        observation:
+          type:
+          - string
+          - "null"
+          description: Observation libre sur la livraison
+          example: Remis au voisin
+      required:
+      - deliveryMethod
+    DeliveryMethodRequest:
+      type: string
+      description: "Mode de livraison : PICKUP_POINT (point relais) ou HAND_DELIVERY\
+        \ (remise en main propre)"
+      enum:
+      - PICKUP_POINT
+      - HAND_DELIVERY
+    DeliveryMethodResponse:
+      type: string
+      description: "Mode de livraison : PICKUP_POINT (point relais) ou HAND_DELIVERY\
+        \ (remise en main propre)"
+      enum:
+      - PICKUP_POINT
+      - HAND_DELIVERY
+    OrderDeliveredResponse:
+      type: object
+      description: Commande livrée
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande
+        observation:
+          type:
+          - string
+          - "null"
+          description: "Observation saisie lors de la livraison, s'il y en a une"
+        deliveryMethod:
+          $ref: "#/components/schemas/DeliveryMethodResponse"
+          description: Mode de livraison
+        orderState:
+          $ref: "#/components/schemas/OrderStateResponse"
+          description: État de la commande (toujours DELIVERED)
+        deliveredAt:
+          type: string
+          format: date-time
+          description: Horodatage de la livraison
+          example: 2026-09-15T07:00:00Z
+      required:
+      - deliveredAt
+      - deliveryMethod
+      - orderId
+      - orderState
+    OrderAcceptedResponse:
+      type: object
+      description: Commande acceptée
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande
+        discountRate:
+          type: number
+          description: Taux de remise de première commande appliqué (0 si aucune remise)
+        orderState:
+          $ref: "#/components/schemas/OrderStateResponse"
+          description: État de la commande (toujours ACCEPTED)
+        acceptedAt:
+          type: string
+          format: date-time
+          description: Horodatage de l'acceptation
+          example: 2026-09-15T07:00:00Z
+      required:
+      - acceptedAt
+      - discountRate
+      - orderId
+      - orderState
+    RegisterCustomerRequest:
+      type: object
+      description: Enregistrement du client authentifié
+      properties:
+        email:
+          type: string
+          format: email
+          description: Adresse e-mail du client
+          example: marie@example.com
+          minLength: 1
+        phone:
+          type: string
+          description: "Numéro de téléphone, avec ou sans « + », de 10 à 15 chiffres"
+          example: "+33612345678"
+          minLength: 1
+          pattern: "^\\+?[0-9]{10,15}$"
+      required:
+      - email
+      - phone
+    CustomerResponse:
+      type: object
+      description: Client enregistré
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifiant du client
+        identitySubject:
+          type: string
+          format: uuid
+          description: Identifiant de l'identité (claim `sub` du jeton JWT)
+        email:
+          type: string
+          description: Adresse e-mail du client
+          example: marie@example.com
+        phone:
+          type: string
+          description: Numéro de téléphone du client
+          example: "+33612345678"
+      required:
+      - email
+      - id
+      - identitySubject
+      - phone
+    SubmitAppointmentRequest:
+      type: object
+      description: Demande de création d'un rendez-vous
+      properties:
+        start:
+          type: string
+          format: date-time
+          description: Début du créneau souhaité
+          example: 2026-09-15T09:00:00+02:00
+        end:
+          type: string
+          format: date-time
+          description: Fin du créneau souhaité
+          example: 2026-09-15T09:30:00+02:00
+        notes:
+          type:
+          - string
+          - "null"
+          description: Notes libres pour le rendez-vous
+          example: Première visite
+      required:
+      - end
+      - start
+    AppointmentState:
+      type: string
+      enum:
+      - SUBMITTED
+      - CANCELLED
+    SubmitAppointmentResponse:
+      type: object
+      description: Rendez-vous créé
+      properties:
+        appointmentId:
+          type: string
+          format: uuid
+          description: Identifiant du rendez-vous créé
+        start:
+          type: string
+          format: date-time
+          description: Début du créneau réservé
+          example: 2026-09-15T09:00:00+02:00
+        end:
+          type: string
+          format: date-time
+          description: Fin du créneau réservé
+          example: 2026-09-15T09:30:00+02:00
+        status:
+          $ref: "#/components/schemas/AppointmentState"
+          description: Statut du rendez-vous (toujours SUBMITTED à la création)
+        submittedAt:
+          type: string
+          format: date-time
+          description: Horodatage de la soumission
+          example: 2026-09-15T07:00:00Z
+      required:
+      - appointmentId
+      - end
+      - start
+      - status
+      - submittedAt
+    GetProductResponse:
+      type: object
+      description: Produit du catalogue
+      properties:
+        productId:
+          type: string
+          format: uuid
+          description: Identifiant du produit
+        productCategory:
+          $ref: "#/components/schemas/ProductCategoryResponse"
+          description: Catégorie du produit
+        name:
+          type: string
+          description: Nom du produit
+          example: Bonnet en laine
+        price:
+          type: number
+          description: "Prix unitaire, en euros"
+          example: 24.9
+        colors:
+          type: array
+          description: Couleurs disponibles
+          example:
+          - rouge
+          - bleu
+          items:
+            type: string
+        photosUri:
+          type: array
+          description: "URL des photos du produit, dans l'ordre d'affichage"
+          items:
+            type: string
+        numberOfOrders:
+          type: integer
+          format: int32
+          description: Nombre de commandes contenant ce produit
+          minimum: 0
+      required:
+      - colors
+      - name
+      - numberOfOrders
+      - photosUri
+      - price
+      - productCategory
+      - productId
+    PageResponseGetProductResponse:
+      type: object
+      description: |
+        Représente une page de résultats.
+        Contient les éléments de la page courante et les métadonnées
+        nécessaires à la navigation entre les pages.
+      properties:
+        content:
+          type: array
+          description: Éléments contenus dans la page courante. La liste peut être
+            vide.
+          items:
+            $ref: "#/components/schemas/GetProductResponse"
+        page:
+          type: integer
+          format: int32
+          description: "Index de la page courante, à partir de zéro."
+          example: 0
+          minimum: 0
+        size:
+          type: integer
+          format: int32
+          description: Taille de la page utilisée pour la pagination.
+          example: 20
+          minimum: 1
+        totalElements:
+          type: integer
+          format: int64
+          description: "Nombre total d'éléments correspondant à la requête, toutes\
+            \ pages confondues."
+          example: 125
+          minimum: 0
+        totalPages:
+          type: integer
+          format: int32
+          description: Nombre total de pages disponibles.
+          example: 7
+          minimum: 0
+      required:
+      - content
+      - page
+      - size
+      - totalElements
+      - totalPages
+    ProductCategoryResponse:
+      type: string
+      description: "Catégorie de produit : ACCESSORIES (accessoires) ou CLOTHING (vê\
+        tements)"
+      enum:
+      - ACCESSORIES
+      - CLOTHING
+    GetOrderResponse:
+      type: object
+      description: Commande d'un client
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande
+        customerId:
+          type: string
+          format: uuid
+          description: Identifiant du client
+        orderReference:
+          type: string
+          description: Référence lisible de la commande
+        customerMessage:
+          type:
+          - string
+          - "null"
+          description: "Message laissé par le client, s'il y en a un"
+        createdAt:
+          type: string
+          format: date-time
+          description: "Date de création (heure locale, sans fuseau)"
+          example: 2026-09-15T09:00:00
+        updatedAt:
+          type: string
+          format: date-time
+          description: "Date de dernière mise à jour (heure locale, sans fuseau)"
+          example: 2026-09-15T09:30:00
+        total:
+          type: number
+          description: "Montant total, en euros"
+          example: 42.5
+        status:
+          type: string
+          description: "Statut de la commande (valeurs de OrderState : PENDING, ACCEPTED,\
+            \ REJECTED, DELIVERED)"
+        lines:
+          type: array
+          description: Lignes de la commande
+          items:
+            $ref: "#/components/schemas/OrderLineResponse"
+        lineCount:
+          type: integer
+          format: int32
+          description: Nombre de lignes
+          minimum: 0
+        totalQuantity:
+          type: number
+          description: "Quantité totale, tous produits confondus"
+      required:
+      - createdAt
+      - customerId
+      - lineCount
+      - lines
+      - orderId
+      - orderReference
+      - status
+      - total
+      - totalQuantity
+      - updatedAt
+    OrderLineResponse:
+      type: object
+      description: Ligne d'une commande
+      properties:
+        productId:
+          type: string
+          format: uuid
+          description: Identifiant du produit
+        productName:
+          type: string
+          description: Nom du produit au moment de la commande
+        productCategory:
+          $ref: "#/components/schemas/ProductCategoryResponse"
+          description: Catégorie du produit
+        quantity:
+          type: number
+          description: Quantité commandée
+        unitPrice:
+          type: number
+          description: "Prix unitaire, en euros"
+          example: 24.9
+        chosenColor:
+          type:
+          - string
+          - "null"
+          description: "Couleur choisie, si le produit en propose"
+        subtotalBeforeDiscount:
+          type: number
+          description: "Sous-total avant remise, en euros"
+        discountRate:
+          type: number
+          description: Taux de remise appliqué à la ligne
+        discountAmount:
+          type: number
+          description: "Montant de la remise, en euros"
+        totalAmount:
+          type: number
+          description: "Total de la ligne après remise, en euros"
+      required:
+      - discountAmount
+      - discountRate
+      - productCategory
+      - productId
+      - productName
+      - quantity
+      - subtotalBeforeDiscount
+      - totalAmount
+      - unitPrice
+    PageResponseGetOrderResponse:
+      type: object
+      description: |
+        Représente une page de résultats.
+        Contient les éléments de la page courante et les métadonnées
+        nécessaires à la navigation entre les pages.
+      properties:
+        content:
+          type: array
+          description: Éléments contenus dans la page courante. La liste peut être
+            vide.
+          items:
+            $ref: "#/components/schemas/GetOrderResponse"
+        page:
+          type: integer
+          format: int32
+          description: "Index de la page courante, à partir de zéro."
+          example: 0
+          minimum: 0
+        size:
+          type: integer
+          format: int32
+          description: Taille de la page utilisée pour la pagination.
+          example: 20
+          minimum: 1
+        totalElements:
+          type: integer
+          format: int64
+          description: "Nombre total d'éléments correspondant à la requête, toutes\
+            \ pages confondues."
+          example: 125
+          minimum: 0
+        totalPages:
+          type: integer
+          format: int32
+          description: Nombre total de pages disponibles.
+          example: 7
+          minimum: 0
+      required:
+      - content
+      - page
+      - size
+      - totalElements
+      - totalPages
+    AppointmentsResponse:
+      type: object
+      description: Rendez-vous d'un client
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Identifiant du rendez-vous
+        startAt:
+          type: string
+          format: date-time
+          description: Début du rendez-vous
+          example: 2026-09-15T09:00:00+02:00
+        endAt:
+          type: string
+          format: date-time
+          description: Fin du rendez-vous
+          example: 2026-09-15T09:30:00+02:00
+        status:
+          $ref: "#/components/schemas/AppointmentState"
+          description: Statut du rendez-vous
+        cancelledAt:
+          type:
+          - string
+          - "null"
+          format: date-time
+          description: "Date d'annulation, présente uniquement si le rendez-vous est\
+            \ annulé"
+        cancelledReason:
+          type:
+          - string
+          - "null"
+          description: "Motif d'annulation, s'il a été renseigné"
+      required:
+      - endAt
+      - id
+      - startAt
+      - status
+    AvailableSlotsByDateResponse:
+      type: object
+      description: Créneaux disponibles pour une date
+      properties:
+        date:
+          type: string
+          format: date
+          description: Date concernée
+          example: 2026-09-15
+        slots:
+          type: array
+          description: Créneaux disponibles ce jour-là (liste vide s'il n'y en a aucun)
+          items:
+            $ref: "#/components/schemas/TimeSlotResponse"
+      required:
+      - date
+      - slots
+    AvailableSlotsResponse:
+      type: object
+      description: "Créneaux disponibles, regroupés par date"
+      properties:
+        availability:
+          type: array
+          description: "Une entrée par date de la période demandée, y compris celles\
+            \ sans créneau"
+          items:
+            $ref: "#/components/schemas/AvailableSlotsByDateResponse"
+      required:
+      - availability
+    TimeSlotResponse:
+      type: object
+      properties:
+        start:
+          type: string
+          format: date-time
+          description: Début du créneau
+          example: 2026-09-15T09:00:00+02:00
+        end:
+          type: string
+          format: date-time
+          description: Fin du créneau
+          example: 2026-09-15T09:30:00+02:00
+      required:
+      - end
+      - start
+    Server_INTERNAL_ERROR:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - INTERNAL_ERROR
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Erreur interne du serveur
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 500
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Erreur interne du serveur
+    AddProductPhotosErrorCode:
+      type: string
+      description: |-
+        - `PRODUCT_NOT_FOUND` : Produit introuvable (champs additionnels : productId)
+        - `PHOTO_LIST_EMPTY` : Aucune image
+        - `PHOTO_SIZE_ZERO` : Image vide (champs additionnels : fileName)
+        - `PHOTO_MAX_SIZE_EXCEEDED` : Image trop volumineuse (champs additionnels : fileName, maxSizeBytes, sizeBytes)
+        - `PHOTO_EXTENSION_NOT_ALLOWED` : Extension incorrecte (champs additionnels : allowedExtensions, fileName)
+      enum:
+      - PRODUCT_NOT_FOUND
+      - PHOTO_LIST_EMPTY
+      - PHOTO_SIZE_ZERO
+      - PHOTO_MAX_SIZE_EXCEEDED
+      - PHOTO_EXTENSION_NOT_ALLOWED
+    FieldViolation:
+      type: object
+      properties:
+        field:
+          type: string
+          description: Champ ou chemin du champ concerné dans le corps de la requête
+        message:
+          type: string
+          description: Explication lisible de l'erreur constatée pour ce champ
+    AcceptOrder_ORDER_NOT_FOUND:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - ORDER_NOT_FOUND
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande introuvable
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 404
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande introuvable
+      required:
+      - code
+      - detail
+      - orderId
+      - status
+      - title
+      title: Commande introuvable
+    GetProduct_PRODUCT_NOT_FOUND:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PRODUCT_NOT_FOUND
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Produit introuvable
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 404
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        productId:
+          type: string
+          format: uuid
+          description: Identifiant du produit introuvable
+      required:
+      - code
+      - detail
+      - productId
+      - status
+      - title
+      title: Produit introuvable
+    Request_VALIDATION_FAILED:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - VALIDATION_FAILED
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Validation échouée
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 400
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        errors:
+          type: array
+          description: "Violations constatées, une par champ"
+          items:
+            $ref: "#/components/schemas/FieldViolation"
+      required:
+      - code
+      - detail
+      - errors
+      - status
+      - title
+      title: Validation échouée
+    AddProductPhotos_PHOTO_EXTENSION_NOT_ALLOWED:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PHOTO_EXTENSION_NOT_ALLOWED
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Extension incorrecte
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 422
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        fileName:
+          type: string
+          description: Nom du fichier concerné
+        allowedExtensions:
+          type: array
+          description: Extensions autorisées
+          items:
+            type: string
+          uniqueItems: true
+      required:
+      - allowedExtensions
+      - code
+      - detail
+      - fileName
+      - status
+      - title
+      title: Extension incorrecte
+    AcceptOrder_ORDER_ALREADY_DELIVERED:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - ORDER_ALREADY_DELIVERED
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande livrée
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 409
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Commande livrée
+    GetOrder_ORDER_NOT_FOUND:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - ORDER_NOT_FOUND
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande introuvable
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 404
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande introuvable
+      required:
+      - code
+      - detail
+      - orderId
+      - status
+      - title
+      title: Commande introuvable
+    CreateProduct_PRODUCT_ALREADY_EXISTS:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PRODUCT_ALREADY_EXISTS
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Produit déjà existant
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 409
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        name:
+          type: string
+          description: Nom de produit déjà utilisé
+      required:
+      - code
+      - detail
+      - name
+      - status
+      - title
+      title: Produit déjà existant
+    CreateOrder_PRODUCTS_NOT_FOUND:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PRODUCTS_NOT_FOUND
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Produits introuvables
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 422
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        productIds:
+          type: array
+          description: Identifiants des produits introuvables
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+      required:
+      - code
+      - detail
+      - productIds
+      - status
+      - title
+      title: Produits introuvables
+    AddProductPhotos_PHOTO_SIZE_ZERO:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PHOTO_SIZE_ZERO
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Image vide
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 422
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        fileName:
+          type: string
+          description: Nom du fichier concerné
+      required:
+      - code
+      - detail
+      - fileName
+      - status
+      - title
+      title: Image vide
+    AddProductPhotos_PHOTO_LIST_EMPTY:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PHOTO_LIST_EMPTY
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Aucune image
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 422
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Aucune image
+    RejectOrder_ORDER_ALREADY_DELIVERED:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - ORDER_ALREADY_DELIVERED
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande livrée
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 409
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Commande livrée
+    SubmitAppointmentErrorCode:
+      type: string
+      description: |-
+        - `SLOT_OUTSIDE_OPENING_HOURS` : Créneau hors horaires (champs additionnels : requestedSlot)
+        - `SLOT_ALREADY_BOOKED` : Créneau déjà réservé (champs additionnels : requestedSlot)
+      enum:
+      - SLOT_OUTSIDE_OPENING_HOURS
+      - SLOT_ALREADY_BOOKED
+    Request_INVALID_PARAMETER:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - INVALID_PARAMETER
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Paramètre invalide
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 400
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        parameter:
+          type: string
+          description: Nom du paramètre concerné
+        reason:
+          type: string
+          description: Raison du refus
+      required:
+      - code
+      - detail
+      - parameter
+      - reason
+      - status
+      - title
+      title: Paramètre invalide
+    CreateOrderErrorCode:
+      type: string
+      description: |-
+        - `PRODUCTS_NOT_FOUND` : Produits introuvables (champs additionnels : productIds)
+        - `PRODUCT_NOT_AVAILABLE` : Produits indisponibles (champs additionnels : productIds)
+        - `PRODUCT_COLOR_NOT_AVAILABLE` : Couleur demandée non disponible (champs additionnels : availableColors, productId, requestedColor)
+      enum:
+      - PRODUCTS_NOT_FOUND
+      - PRODUCT_NOT_AVAILABLE
+      - PRODUCT_COLOR_NOT_AVAILABLE
+    CreateOrder_PRODUCT_NOT_AVAILABLE:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PRODUCT_NOT_AVAILABLE
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Produits indisponibles
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 409
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        productIds:
+          type: array
+          description: Identifiants des produits indisponibles
+          items:
+            type: string
+            format: uuid
+          uniqueItems: true
+      required:
+      - code
+      - detail
+      - productIds
+      - status
+      - title
+      title: Produits indisponibles
+    DeliverOrder_ORDER_STILL_PENDING:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - ORDER_STILL_PENDING
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande en attente
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 422
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Commande en attente
+    GetProductErrorCode:
+      type: string
+      description: "- `PRODUCT_NOT_FOUND` : Produit introuvable (champs additionnels\
+        \ : productId)"
+      enum:
+      - PRODUCT_NOT_FOUND
+    DeliverOrderErrorCode:
+      type: string
+      description: |-
+        - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
+        - `ORDER_ALREADY_REJECTED` : Commande rejetée
+        - `ORDER_STILL_PENDING` : Commande en attente
+      enum:
+      - ORDER_NOT_FOUND
+      - ORDER_ALREADY_REJECTED
+      - ORDER_STILL_PENDING
+    DeliverOrder_ORDER_NOT_FOUND:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - ORDER_NOT_FOUND
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande introuvable
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 404
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande introuvable
+      required:
+      - code
+      - detail
+      - orderId
+      - status
+      - title
+      title: Commande introuvable
+    CreateProductErrorCode:
+      type: string
+      description: "- `PRODUCT_ALREADY_EXISTS` : Produit déjà existant (champs additionnels\
+        \ : name)"
+      enum:
+      - PRODUCT_ALREADY_EXISTS
+    AddProductPhotos_PRODUCT_NOT_FOUND:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PRODUCT_NOT_FOUND
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Produit introuvable
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 404
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        productId:
+          type: string
+          format: uuid
+          description: Identifiant du produit introuvable
+      required:
+      - code
+      - detail
+      - productId
+      - status
+      - title
+      title: Produit introuvable
+    RejectOrder_ORDER_NOT_FOUND:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - ORDER_NOT_FOUND
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande introuvable
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 404
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande introuvable
+      required:
+      - code
+      - detail
+      - orderId
+      - status
+      - title
+      title: Commande introuvable
+    Request_INVALID_SORT_FIELD:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - INVALID_SORT_FIELD
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Champ de tri invalide
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 400
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        reason:
+          type: string
+          description: Raison du refus
+      required:
+      - code
+      - detail
+      - reason
+      - status
+      - title
+      title: Champ de tri invalide
+    AddProductPhotos_PHOTO_MAX_SIZE_EXCEEDED:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PHOTO_MAX_SIZE_EXCEEDED
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Image trop volumineuse
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 422
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        fileName:
+          type: string
+          description: Nom du fichier concerné
+        sizeBytes:
+          type: integer
+          format: int64
+          description: "Taille du fichier, en octets"
+        maxSizeBytes:
+          type: integer
+          format: int64
+          description: "Taille maximum autorisée, en octets"
+      required:
+      - code
+      - detail
+      - fileName
+      - maxSizeBytes
+      - sizeBytes
+      - status
+      - title
+      title: Image trop volumineuse
+    AcceptOrder_ORDER_ALREADY_REJECTED:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - ORDER_ALREADY_REJECTED
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande rejetée
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 409
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Commande rejetée
+    Security_FORBIDDEN:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - FORBIDDEN
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Accès refusé
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 403
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Accès refusé
+    Security_UNAUTHENTICATED:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - UNAUTHENTICATED
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Non authentifié
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 401
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Non authentifié
+    SubmitAppointment_SLOT_OUTSIDE_OPENING_HOURS:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - SLOT_OUTSIDE_OPENING_HOURS
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Créneau hors horaires
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 422
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        requestedSlot:
+          $ref: "#/components/schemas/TimeSlotResponse"
+          description: Créneau demandé
+      required:
+      - code
+      - detail
+      - requestedSlot
+      - status
+      - title
+      title: Créneau hors horaires
+    Request_INVALID_MULTIPART_REQUEST:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - INVALID_MULTIPART_REQUEST
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Requête multipart invalide
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 400
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        reason:
+          type: string
+          description: Raison du refus
+      required:
+      - code
+      - detail
+      - reason
+      - status
+      - title
+      title: Requête multipart invalide
+    RejectOrderErrorCode:
+      type: string
+      description: |-
+        - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
+        - `ORDER_ALREADY_DELIVERED` : Commande livrée
+      enum:
+      - ORDER_NOT_FOUND
+      - ORDER_ALREADY_DELIVERED
+    SubmitAppointment_SLOT_ALREADY_BOOKED:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - SLOT_ALREADY_BOOKED
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Créneau déjà réservé
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 409
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        requestedSlot:
+          $ref: "#/components/schemas/TimeSlotResponse"
+          description: Créneau demandé
+      required:
+      - code
+      - detail
+      - requestedSlot
+      - status
+      - title
+      title: Créneau déjà réservé
+    CreateOrder_PRODUCT_COLOR_NOT_AVAILABLE:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - PRODUCT_COLOR_NOT_AVAILABLE
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Couleur demandée non disponible
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 422
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        productId:
+          type: string
+          format: uuid
+          description: Produit concerné
+        requestedColor:
+          type: string
+          description: Couleur demandée
+        availableColors:
+          type: array
+          description: Couleurs disponibles pour ce produit
+          items:
+            type: string
+          uniqueItems: true
+      required:
+      - availableColors
+      - code
+      - detail
+      - productId
+      - requestedColor
+      - status
+      - title
+      title: Couleur demandée non disponible
+    AcceptOrderErrorCode:
+      type: string
+      description: |-
+        - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
+        - `ORDER_ALREADY_REJECTED` : Commande rejetée
+        - `ORDER_ALREADY_DELIVERED` : Commande livrée
+      enum:
+      - ORDER_NOT_FOUND
+      - ORDER_ALREADY_REJECTED
+      - ORDER_ALREADY_DELIVERED
+    GetOrderErrorCode:
+      type: string
+      description: "- `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels\
+        \ : orderId)"
+      enum:
+      - ORDER_NOT_FOUND
+    DeliverOrder_ORDER_ALREADY_REJECTED:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - ORDER_ALREADY_REJECTED
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande rejetée
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 409
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Commande rejetée
+    Request_INVALID_REQUEST_BODY:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+          enum:
+          - INVALID_REQUEST_BODY
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Requête invalide
+        status:
+          type: integer
+          format: int32
+          description: Statut HTTP
+          enum:
+          - 400
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        errors:
+          type: array
+          description: |
+            Erreurs de lecture identifiées dans le corps de la requête.
+            La liste peut être vide lorsqu'aucun champ précis ne peut être identifié.
+          items:
+            $ref: "#/components/schemas/FieldViolation"
+      required:
+      - code
+      - detail
+      - errors
+      - status
+      - title
+      title: Requête invalide

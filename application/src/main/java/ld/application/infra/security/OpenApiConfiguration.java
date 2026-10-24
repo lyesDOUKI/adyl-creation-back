@@ -6,6 +6,7 @@ import io.swagger.v3.oas.models.security.*;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 
 @Configuration
 public class OpenApiConfiguration {
@@ -15,6 +16,7 @@ public class OpenApiConfiguration {
     private static final String OPENID_SCOPE_DESCRIPTION = "OpenID";
 
     @Bean
+    @Profile("!openapi")
     public OpenAPI openAPI(
             @Value("${oidc.authorization-url}") String authorizationUrl,
             @Value("${oidc.token-url}") String tokenUrl
