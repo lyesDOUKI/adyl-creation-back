@@ -1,0 +1,736 @@
+name: API Contract
+
+# Contrôle complet du contrat d'API (application/api-contract/openapi.yaml), sur les PR uniquement :
+#
+#   1. Régénère le contrat à partir du code de la PR.
+#   2. Drift check   : le contrat committé doit être identique au contrat régénéré.
+#   3. Compare avec la branche de base (oasdiff) et classe le changement :
+#        - aucun        : seul info.version (ou rien) change
+#        - cosmétique   : seuls description / summary / title / examples changent
+#        - fonctionnel  : tout le reste (cassant ou non cassant)
+#   4. Publie le rapport oasdiff en commentaire de PR (mis à jour à chaque run)
+#      + le rapport HTML en artefact + le lien de revue interactive oasdiff.com.
+#   5. Vérifie la cohérence entre la version de base, les changements détectés
+#      et la version déclarée dans version.txt (politique SemVer stricte) :
+#
+#        Changement du contrat                | Version attendue
+#        -------------------------------------|----------------------------
+#        Aucun (hors info.version)            | inchangée
+#        Cosmétique uniquement                | patch  : 1.4.0 -> 1.4.1
+#        Fonctionnel non cassant              | mineur : 1.4.0 -> 1.5.0
+#        Fonctionnel cassant (breaking)       | majeur : 1.4.0 -> 2.0.0
+#
+#   La version est décidée dans version.txt, indépendamment de Release Please
+#   et des conventions de commit. Le numéro reste le choix du développeur ;
+#   la CI vérifie uniquement qu'il est cohérent avec les changements réels.
+#   L'échec de la politique de version intervient en DERNIER, pour que les
+#   rapports (commentaire, artefact, revue interactive) soient toujours publiés.
+
+on:
+  pull_request:
+    branches: [ "main" ]
+    types: [ opened, synchronize, reopened ]
+
+concurrency:
+  group: api-contract-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  SPEC_PATH: application/api-contract/openapi.yaml
+  VERSION_FILE: application/api-contract/version.txt
+  OASDIFF_VERSION: "1.33.0"
+
+jobs:
+  api-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout du code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configuration de Java 25
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # ============================================================
+      # 1. RÉGÉNÉRATION DU CONTRAT À PARTIR DU CODE
+      # ============================================================
+      - name: Régénérer le contrat OpenAPI
+        run: mvn -B -ntp verify -pl application -am -DskipTests
+
+      # ============================================================
+      # 2. INSTALLATION DES OUTILS (versions épinglées + checksum vérifié)
+      # ============================================================
+      - name: Installer oasdiff et yq
+        run: |
+          set -euo pipefail
+
+          # oasdiff : comparaison de compatibilité OpenAPI
+          ARCHIVE="oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+          BASE_URL="https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}"
+          mkdir -p "$RUNNER_TEMP/oasdiff"
+          cd "$RUNNER_TEMP/oasdiff"
+          curl -fsSLO "${BASE_URL}/${ARCHIVE}"
+          curl -fsSLO "${BASE_URL}/checksums.txt"
+          grep " ${ARCHIVE}\$" checksums.txt | sha256sum -c -
+          tar -xzf "$ARCHIVE" oasdiff
+          echo "$PWD" >> "$GITHUB_PATH"
+          ./oasdiff --version
+
+          # yq : neutraliser uniquement info.version pour la comparaison fonctionnelle.
+          # La version publiée reste contrôlée par version.txt et le drift check.
+          YQ_VERSION="v4.45.1"
+          YQ_SHA256="654d2943ca1d3be2024089eb4f270f4070f491a0610481d128509b2834870049"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
+            -o "$RUNNER_TEMP/yq"
+          echo "${YQ_SHA256}  $RUNNER_TEMP/yq" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/yq"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/yq" --version
+
+      # ============================================================
+      # 3. COHÉRENCE version.txt / openapi.yaml ET DRIFT CHECK
+      # ============================================================
+      - name: Vérifier la version du contrat et le drift
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f "$VERSION_FILE" ]]; then
+            echo "❌ Le fichier de version du contrat est absent : $VERSION_FILE"
+            exit 1
+          fi
+
+          API_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+          SPEC_VERSION="$(yq -r '.info.version // ""' "$SPEC_PATH")"
+
+          if [[ -z "$API_VERSION" ]]; then
+            echo "❌ $VERSION_FILE est vide."
+            exit 1
+          fi
+
+          # Politique stricte : version stable X.Y.Z uniquement (pas de pré-release ni de build).
+          if [[ ! "$API_VERSION" =~ ^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$ ]]; then
+            echo "❌ Version API invalide dans $VERSION_FILE : '$API_VERSION' (format stable X.Y.Z attendu)."
+            exit 1
+          fi
+
+          if [[ "$SPEC_VERSION" != "$API_VERSION" ]]; then
+            echo "❌ Version incohérente : $VERSION_FILE contient '$API_VERSION', mais $SPEC_PATH indique '$SPEC_VERSION'."
+            echo "   Vérifiez OpenApiConfig et la copie de version.txt vers META-INF/version.txt."
+            exit 1
+          fi
+
+          if [[ -n "$(git status --porcelain -- "$SPEC_PATH")" ]]; then
+            echo "❌ $SPEC_PATH est obsolète : le contrat committé ne correspond pas au contrat régénéré."
+            echo ""
+            echo "   Pour corriger :"
+            echo "     mvn verify -pl application -am -DskipTests"
+            echo "     git add $SPEC_PATH"
+            echo '     git commit -m "chore: régénère openapi.yaml"'
+            echo ""
+            git --no-pager diff -- "$SPEC_PATH" || true
+            exit 1
+          fi
+
+          echo "✅ Version du contrat cohérente : $API_VERSION."
+          echo "✅ $SPEC_PATH est à jour."
+
+      # ============================================================
+      # 4. COMPARAISON AVEC LA BRANCHE DE BASE (hors info.version)
+      #    Produit : change       = none | cosmetic | functional
+      #              breaking     = true | false
+      #              base_version = version du contrat sur la base (vide si absent)
+      #              spec_version = version du contrat de la PR
+      #              n_err / n_warn / n_info
+      #              + fichiers diff.txt, diff.html, breaking.txt,
+      #                changelog.txt, breaking-bullets.md
+      # ============================================================
+      - name: Comparer le contrat avec la branche de base
+        id: analyse
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          BREAKING_LEVEL: ERR
+          COSMETIC_ELEMENTS: description,examples,summary,title
+        run: |
+          set -euo pipefail
+          BASE_FILE="$RUNNER_TEMP/base-openapi.yaml"
+          NORMALIZED_BASE_FILE="$RUNNER_TEMP/base-openapi-normalized.yaml"
+          NORMALIZED_REVISION_FILE="$RUNNER_TEMP/revision-openapi-normalized.yaml"
+          OUT="$RUNNER_TEMP"
+
+          emit() {
+            echo "change=$1" >> "$GITHUB_OUTPUT"
+            echo "breaking=$2" >> "$GITHUB_OUTPUT"
+          }
+
+          # Fichiers toujours présents pour que les étapes suivantes
+          # puissent les lire sans erreur, quel que soit le chemin pris.
+          : > "$OUT/diff.txt"
+          : > "$OUT/changelog.txt"
+          : > "$OUT/breaking.txt"
+          : > "$OUT/breaking-bullets.md"
+          echo "n_err=0"  >> "$GITHUB_OUTPUT"
+          echo "n_warn=0" >> "$GITHUB_OUTPUT"
+          echo "n_info=0" >> "$GITHUB_OUTPUT"
+
+          # La version du contrat est pilotée séparément par version.txt.
+          # On neutralise uniquement info.version pour évaluer les changements fonctionnels.
+          SPEC_VERSION="$(yq -r '.info.version // ""' "$SPEC_PATH")"
+          if [[ -z "$SPEC_VERSION" ]]; then
+            echo "❌ $SPEC_PATH ne contient pas info.version."
+            exit 1
+          fi
+          echo "spec_version=$SPEC_VERSION" >> "$GITHUB_OUTPUT"
+
+          yq '.info.version = "__API_CONTRACT_VERSION__"' \
+            "$SPEC_PATH" > "$NORMALIZED_REVISION_FILE"
+
+          # --- Première introduction du contrat : rien à comparer
+          if ! git cat-file -e "origin/${BASE_REF}:${SPEC_PATH}" 2>/dev/null; then
+            echo "ℹ️ $SPEC_PATH n'existe pas encore dans '${BASE_REF}' (première introduction). Comparaison ignorée."
+            echo "base_version=" >> "$GITHUB_OUTPUT"
+            emit none false
+            exit 0
+          fi
+
+          git show "origin/${BASE_REF}:${SPEC_PATH}" > "$BASE_FILE"
+
+          BASE_VERSION="$(yq -r '.info.version // ""' "$BASE_FILE")"
+          if [[ -z "$BASE_VERSION" ]]; then
+            echo "❌ Le contrat de base ne contient pas info.version."
+            exit 1
+          fi
+          echo "base_version=$BASE_VERSION" >> "$GITHUB_OUTPUT"
+
+          yq '.info.version = "__API_CONTRACT_VERSION__"' \
+            "$BASE_FILE" > "$NORMALIZED_BASE_FILE"
+
+          # --- Aucun changement fonctionnel (info.version exclu)
+          if cmp -s "$NORMALIZED_BASE_FILE" "$NORMALIZED_REVISION_FILE"; then
+            echo "✅ Aucune différence contractuelle hors info.version par rapport à '${BASE_REF}'."
+            emit none false
+            exit 0
+          fi
+
+          # --- Différence fonctionnelle ?
+          # Le diff exclut les éléments cosmétiques.
+          code=0
+          oasdiff diff "$NORMALIZED_BASE_FILE" "$NORMALIZED_REVISION_FILE" \
+            --exclude-elements "$COSMETIC_ELEMENTS" --format text --fail-on-diff \
+            > "$OUT/diff.txt" 2>&1 || code=$?
+
+          # --- Génération du rapport HTML interactif oasdiff
+          oasdiff diff "$NORMALIZED_BASE_FILE" "$NORMALIZED_REVISION_FILE" \
+            --exclude-elements "$COSMETIC_ELEMENTS" --format html \
+            > "$OUT/diff.html" 2>&1 || true
+
+          if [[ $code -eq 0 ]]; then
+            echo "✅ Le contrat a changé, mais uniquement sur des éléments cosmétiques ($COSMETIC_ELEMENTS)."
+            echo "::notice::Changement cosmétique du contrat d'API : incrément de patch attendu."
+            {
+              echo "### Contrat OpenAPI : changement cosmétique uniquement"
+              echo "Seuls ${COSMETIC_ELEMENTS//,/, } ont changé. Incrément de **patch** attendu."
+            } >> "$GITHUB_STEP_SUMMARY"
+            emit cosmetic false
+            exit 0
+          elif [[ $code -ne 1 ]]; then
+            echo "❌ oasdiff a échoué (code $code) :"
+            cat "$OUT/diff.txt"
+            exit 1
+          fi
+
+          # --- Changement fonctionnel : y a-t-il un breaking change ?
+          bcode=0
+          oasdiff breaking "$NORMALIZED_BASE_FILE" "$NORMALIZED_REVISION_FILE" \
+            --fail-on "$BREAKING_LEVEL" --format text \
+            > "$OUT/breaking.txt" 2>&1 || bcode=$?
+
+          if [[ $bcode -eq 0 ]]; then
+            BREAKING=false
+          elif [[ $bcode -eq 1 ]]; then
+            BREAKING=true
+          else
+            echo "❌ oasdiff breaking a échoué (code $bcode) :"
+            cat "$OUT/breaking.txt"
+            exit 1
+          fi
+
+          oasdiff changelog "$NORMALIZED_BASE_FILE" "$NORMALIZED_REVISION_FILE" \
+            --format text > "$OUT/changelog.txt" 2>&1 || true
+
+          # --- Préparation des bullets de breaking changes.
+          #     Le format de `oasdiff changelog --format text` est :
+          #       error\t[check-id] at path
+          #       warning\t...
+          #       info\t...
+          #     On matche minuscule + tab/espace, pas `^Error:`.
+          awk '
+            /^error[[:space:]]/   { line=$0; sub(/^error[[:space:]]+/,"",line);   print "- ❌ **ERR** — " line }
+            /^warning[[:space:]]/ { line=$0; sub(/^warning[[:space:]]+/,"",line); print "- ⚠️ **WARN** — " line }
+            /^info[[:space:]]/    { line=$0; sub(/^info[[:space:]]+/,"",line);    print "- ℹ️ **INFO** — " line }
+          ' "$OUT/changelog.txt" > "$OUT/breaking-bullets.md" || true
+
+          # --- Compteurs
+          N_ERR=$(awk  '/^error[[:space:]]/   {c++} END {print c+0}' "$OUT/changelog.txt")
+          N_WARN=$(awk '/^warning[[:space:]]/ {c++} END {print c+0}' "$OUT/changelog.txt")
+          N_INFO=$(awk '/^info[[:space:]]/    {c++} END {print c+0}' "$OUT/changelog.txt")
+          echo "n_err=$N_ERR"   >> "$GITHUB_OUTPUT"
+          echo "n_warn=$N_WARN" >> "$GITHUB_OUTPUT"
+          echo "n_info=$N_INFO" >> "$GITHUB_OUTPUT"
+
+          {
+            echo "### Contrat OpenAPI : changement fonctionnel détecté"
+            if [[ "$BREAKING" == "true" ]]; then
+              echo "⚠️ **Breaking change** (niveau ${BREAKING_LEVEL}) : incrément **majeur** attendu."
+            else
+              echo "Changement **non cassant** : incrément **mineur** attendu."
+            fi
+            echo ""
+            echo "#### Changelog oasdiff"
+            echo '```'
+            cat "$OUT/changelog.txt"
+            echo '```'
+            echo "<details><summary>Diff structurel (hors éléments cosmétiques)</summary>"
+            echo ""
+            echo '```'
+            cat "$OUT/diff.txt"
+            echo '```'
+            echo "</details>"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          cat "$OUT/changelog.txt"
+          if [[ "$BREAKING" == "true" ]]; then
+            echo ""
+            echo "Breaking change(s) :"
+            cat "$OUT/breaking.txt"
+          fi
+
+          emit functional "$BREAKING"
+
+      # ============================================================
+      # 5. POLITIQUE DE VERSION : calcul de la version attendue
+      #    (ne fait JAMAIS échouer le job ici : le verdict est appliqué
+      #     en dernière étape, après publication des rapports)
+      #    Produit : status   = ok | ko | skip
+      #              expected = version attendue
+      #              bump     = none | patch | minor | major
+      #              message  = explication (une seule ligne)
+      # ============================================================
+      - name: Évaluer la cohérence de version
+        id: version
+        env:
+          CHANGE: ${{ steps.analyse.outputs.change }}
+          BREAKING: ${{ steps.analyse.outputs.breaking }}
+          BASE_VERSION: ${{ steps.analyse.outputs.base_version }}
+          DECLARED_VERSION: ${{ steps.analyse.outputs.spec_version }}
+        run: |
+          set -euo pipefail
+          STABLE_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+
+          result() {
+            # $1 status, $2 expected, $3 bump, $4 message
+            {
+              echo "status=$1"
+              echo "expected=$2"
+              echo "bump=$3"
+              echo "message=$4"
+            } >> "$GITHUB_OUTPUT"
+            {
+              echo "### Version du contrat"
+              echo "- Base : \`${BASE_VERSION:-—}\` · Déclarée : \`${DECLARED_VERSION}\` · Attendue : \`${2:-—}\`"
+              echo "- $4"
+            } >> "$GITHUB_STEP_SUMMARY"
+            echo "$4"
+          }
+
+          # --- Première introduction du contrat : aucune version de base
+          if [[ -z "$BASE_VERSION" ]]; then
+            result skip "" none "Première introduction du contrat (version ${DECLARED_VERSION}) : aucune version de base à comparer."
+            exit 0
+          fi
+
+          if [[ ! "$BASE_VERSION" =~ $STABLE_RE ]]; then
+            result ko "" none "Version de base '${BASE_VERSION}' non conforme (format stable X.Y.Z requis pour appliquer la politique de version)."
+            exit 0
+          fi
+
+          IFS=. read -r MAJ MIN PAT <<< "$BASE_VERSION"
+
+          case "${CHANGE}:${BREAKING}" in
+            none:*)
+              BUMP=none;  EXPECTED="${BASE_VERSION}"
+              RULE="Aucun changement contractuel (hors info.version) : la version doit rester inchangée" ;;
+            cosmetic:*)
+              BUMP=patch; EXPECTED="${MAJ}.${MIN}.$((PAT + 1))"
+              RULE="Changement cosmétique uniquement : incrément de patch requis" ;;
+            functional:false)
+              BUMP=minor; EXPECTED="${MAJ}.$((MIN + 1)).0"
+              RULE="Changement fonctionnel non cassant : incrément mineur requis" ;;
+            functional:true)
+              BUMP=major; EXPECTED="$((MAJ + 1)).0.0"
+              RULE="Breaking change : incrément majeur requis" ;;
+            *)
+              echo "❌ Classification inattendue : change='${CHANGE}' breaking='${BREAKING}'."
+              exit 1 ;;
+          esac
+
+          if [[ ! "$DECLARED_VERSION" =~ $STABLE_RE ]]; then
+            result ko "$EXPECTED" "$BUMP" "Version déclarée '${DECLARED_VERSION}' non conforme (format stable X.Y.Z requis). ${RULE} : ${BASE_VERSION} → ${EXPECTED}."
+            exit 0
+          fi
+
+          if [[ "$DECLARED_VERSION" == "$EXPECTED" ]]; then
+            result ok "$EXPECTED" "$BUMP" "${RULE} : ${BASE_VERSION} → ${EXPECTED} ✅"
+          else
+            result ko "$EXPECTED" "$BUMP" "${RULE} : ${BASE_VERSION} → ${EXPECTED}, mais ${DECLARED_VERSION} est déclarée."
+          fi
+
+      # ============================================================
+      # 6. SAUVEGARDE DU RAPPORT HTML (ARTÉFACT 7 JOURS)
+      # ============================================================
+      - name: Sauvegarder le rapport HTML oasdiff
+        if: steps.analyse.outputs.change != 'none'
+        uses: actions/upload-artifact@v4
+        with:
+          name: oasdiff-report
+          path: ${{ runner.temp }}/diff.html
+          retention-days: 7
+
+      # ============================================================
+      # 7. COMMENTAIRE DE PR : rapport oasdiff + verdict de version
+      # ============================================================
+      - name: Publier le rapport sur la PR
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BASE_REF: ${{ github.base_ref }}
+          CHANGE: ${{ steps.analyse.outputs.change }}
+          BREAKING: ${{ steps.analyse.outputs.breaking }}
+          N_ERR: ${{ steps.analyse.outputs.n_err }}
+          N_WARN: ${{ steps.analyse.outputs.n_warn }}
+          N_INFO: ${{ steps.analyse.outputs.n_info }}
+          BASE_VERSION: ${{ steps.analyse.outputs.base_version }}
+          DECLARED_VERSION: ${{ steps.analyse.outputs.spec_version }}
+          VERSION_STATUS: ${{ steps.version.outputs.status }}
+          EXPECTED_VERSION: ${{ steps.version.outputs.expected }}
+          VERSION_BUMP: ${{ steps.version.outputs.bump }}
+          VERSION_MESSAGE: ${{ steps.version.outputs.message }}
+        run: |
+          set -euo pipefail
+          MARKER='<!-- api-contract-report -->'
+          FILE="$RUNNER_TEMP/pr-comment.md"
+
+          IDS=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id")
+          ID=$(printf '%s\n' "$IDS" | head -n1)
+
+          # --- Libellés de la politique de version
+          case "$VERSION_BUMP" in
+            major) BUMP_LABEL="incrément **majeur**" ;;
+            minor) BUMP_LABEL="incrément **mineur**" ;;
+            patch) BUMP_LABEL="incrément de **patch**" ;;
+            *)     BUMP_LABEL="version **inchangée**" ;;
+          esac
+
+          case "$VERSION_STATUS" in
+            ok)   VERDICT="✅ Cohérente" ;;
+            skip) VERDICT="ℹ️ Première introduction du contrat" ;;
+            *)    VERDICT="❌ Incohérente" ;;
+          esac
+
+          # --- Bloc "Version du contrat" commun aux trois cas
+          version_block() {
+            echo "### 🏷️ Version du contrat"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Version de base** (\`${BASE_REF}\`) | \`${BASE_VERSION:-—}\` |"
+            echo "| **Version déclarée** (\`version.txt\`) | \`${DECLARED_VERSION}\` |"
+            if [[ -n "$EXPECTED_VERSION" ]]; then
+              echo "| **Version attendue** | \`${EXPECTED_VERSION}\` (${BUMP_LABEL}) |"
+            else
+              echo "| **Version attendue** | — |"
+            fi
+            echo "| **Verdict** | ${VERDICT} |"
+            echo ""
+            if [[ "$VERSION_STATUS" == "ko" ]]; then
+              echo "> ❌ ${VERSION_MESSAGE}"
+              echo ">"
+              if [[ -n "$EXPECTED_VERSION" ]]; then
+                echo "> 🔧 **Pour corriger** : mettez \`${EXPECTED_VERSION}\` dans \`version.txt\`, puis"
+                echo "> \`mvn verify -pl application -am -DskipTests\` et committez \`openapi.yaml\` régénéré."
+              else
+                echo "> 🔧 Corrigez \`version.txt\` (format stable \`X.Y.Z\`), puis régénérez le contrat avec Maven."
+              fi
+            else
+              echo "> ${VERSION_MESSAGE}"
+            fi
+            echo ""
+            echo "<details><summary>Politique de version (SemVer strict)</summary>"
+            echo ""
+            echo "| Changement du contrat | Version attendue |"
+            echo "|---|---|"
+            echo "| Aucun (hors \`info.version\`) | Inchangée |"
+            echo "| Cosmétique uniquement | Patch : \`1.4.0\` → \`1.4.1\` |"
+            echo "| Fonctionnel non cassant | Mineur : \`1.4.0\` → \`1.5.0\` |"
+            echo "| Breaking change | Majeur : \`1.4.0\` → \`2.0.0\` |"
+            echo ""
+            echo "</details>"
+            echo ""
+          }
+
+          # ------------------------------------------------------
+          # Cas 1 : AUCUN changement → commentaire court
+          # ------------------------------------------------------
+          if [[ "$CHANGE" == "none" ]]; then
+            # Rien à dire : pas de commentaire existant et version cohérente
+            if [[ -z "$ID" && "$VERSION_STATUS" != "ko" ]]; then
+              echo "Aucun changement et aucun commentaire à créer."
+              exit 0
+            fi
+            {
+              echo "$MARKER"
+              if [[ "$VERSION_STATUS" == "ko" ]]; then
+                echo "## 🔎 Contrat OpenAPI — ❌ Version incohérente"
+              else
+                echo "## 🔎 Contrat OpenAPI — ✅ Aucun changement"
+              fi
+              echo ""
+              echo "Aucune différence contractuelle hors \`info.version\` par rapport à \`${BASE_REF}\`."
+              echo ""
+              version_block
+              echo "<sub>Vérifié par oasdiff le $(date -u '+%Y-%m-%d %H:%M UTC')</sub>"
+            } > "$FILE"
+
+          # ------------------------------------------------------
+          # Cas 2 : changement COSMÉTIQUE → commentaire informatif
+          # ------------------------------------------------------
+          elif [[ "$CHANGE" == "cosmetic" ]]; then
+            {
+              echo "$MARKER"
+              if [[ "$VERSION_STATUS" == "ko" ]]; then
+                echo "## 🔎 Contrat OpenAPI — ❌ Version incohérente (changement cosmétique)"
+              else
+                echo "## 🔎 Contrat OpenAPI — ✅ Changement cosmétique"
+              fi
+              echo ""
+              echo "| | |"
+              echo "|---|---|"
+              echo "| **Statut** | Cosmétique uniquement |"
+              echo "| **Base** | \`${BASE_REF}\` |"
+              echo ""
+              echo "Seuls \`description\`, \`examples\`, \`summary\` et \`title\` ont changé."
+              echo ""
+              echo "> ℹ️ **Aucun impact** pour les consommateurs. Incrément de **patch** attendu."
+              echo ">"
+              echo "> 🔗 La revue côte-à-côte oasdiff.com (si générée) est publiée dans un commentaire séparé, recréé à chaque run."
+              echo ""
+              version_block
+              echo "<details><summary>Voir le diff</summary>"
+              echo ""
+              echo '```diff'
+              head -c 20000 "$RUNNER_TEMP/diff.txt" || true
+              echo '```'
+              echo "</details>"
+              echo ""
+              echo "<sub>Vérifié par oasdiff le $(date -u '+%Y-%m-%d %H:%M UTC')</sub>"
+            } > "$FILE"
+
+          # ------------------------------------------------------
+          # Cas 3 : changement FONCTIONNEL → rapport complet
+          # ------------------------------------------------------
+          else
+            if [[ "$BREAKING" == "true" ]]; then
+              STATUT_ICON="⚠️"
+              STATUT_TITRE="Breaking change détecté"
+            else
+              STATUT_ICON="✅"
+              STATUT_TITRE="Changement non cassant"
+            fi
+
+            VERSION_ICON=""
+            [[ "$VERSION_STATUS" == "ko" ]] && VERSION_ICON=" · ❌ version incohérente"
+
+            {
+              echo "$MARKER"
+              echo "## 🔎 Contrat OpenAPI — ${STATUT_ICON} ${STATUT_TITRE}${VERSION_ICON}"
+              echo ""
+
+              # ---- Tableau récapitulatif
+              echo "| | |"
+              echo "|---|---|"
+              echo "| **Statut** | ${STATUT_ICON} ${STATUT_TITRE} |"
+              echo "| **Base de comparaison** | \`${BASE_REF}\` |"
+              echo "| **Classification** | \`functional\` / \`breaking=${BREAKING}\` |"
+              echo "| **Erreurs (ERR)** | ${N_ERR:-0} |"
+              echo "| **Warnings (WARN)** | ${N_WARN:-0} |"
+              echo "| **Infos (INFO)** | ${N_INFO:-0} |"
+              echo ""
+
+              # ---- Breaking changes (si présents)
+              if [[ -s "$RUNNER_TEMP/breaking-bullets.md" ]]; then
+                echo "### 🛑 Changements cassants"
+                echo ""
+                cat "$RUNNER_TEMP/breaking-bullets.md"
+                echo ""
+              fi
+
+              # ---- Version du contrat (remplace l'ancienne section "Action requise")
+              version_block
+
+              # ---- Changelog
+              echo "### 📋 Changelog"
+              echo ""
+              echo "<details><summary>Voir le changelog complet</summary>"
+              echo ""
+              echo '```'
+              head -c 30000 "$RUNNER_TEMP/changelog.txt" || true
+              echo '```'
+              echo "</details>"
+              echo ""
+
+              # ---- Diff structurel
+              echo "### 🔧 Diff structurel"
+              echo ""
+              echo "<details><summary>Voir le diff (hors éléments cosmétiques)</summary>"
+              echo ""
+              echo '```diff'
+              head -c 20000 "$RUNNER_TEMP/diff.txt" || true
+              echo '```'
+              echo "</details>"
+              echo ""
+
+              # ---- Rapports et liens
+              echo "### 📎 Rapports et liens"
+              echo ""
+              echo "- 🖥️ **Rapport HTML interactif** : téléchargeable en artefact \`oasdiff-report\` depuis l'onglet *Summary* de ce run (7 jours)."
+              echo "- 🔗 **Revue côte-à-côte oasdiff.com** : publiée dans un commentaire séparé, recréé à chaque run (lien toujours à jour)."
+              echo ""
+              echo "<sub>Ce commentaire est mis à jour à chaque push sur la PR · Vérifié le $(date -u '+%Y-%m-%d %H:%M UTC')</sub>"
+            } > "$FILE"
+          fi
+
+          if [[ -n "$ID" ]]; then
+            gh api -X PATCH "repos/${REPO}/issues/comments/${ID}" -F body=@"$FILE" > /dev/null
+            echo "Commentaire #${ID} mis à jour."
+          else
+            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" -F body=@"$FILE" > /dev/null
+            echo "Commentaire créé."
+          fi
+
+      # ============================================================
+      # 8. LIEN DE REVUE INTERACTIVE (oasdiff.com)
+      #    L'action gratuite oasdiff poste un commentaire contenant le lien
+      #    de revue, mais ne le met pas à jour de façon fiable à chaque run
+      #    (et ne retire rien quand le contrat redevient identique/cosmétique).
+      #    On supprime donc systématiquement les anciens commentaires de revue,
+      #    puis l'action en reposte un nouveau dès que le contrat a changé
+      #    (fonctionnel OU cosmétique). Si le contrat redevient identique à la
+      #    base, plus rien n'est à relire : aucun lien n'est reposté.
+      #    Le lien affiché est donc toujours celui du dernier push.
+      # ============================================================
+      - name: Supprimer les anciens commentaires de revue oasdiff.com
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          MARKER='<!-- api-contract-report -->'
+
+          # Commentaires du bot GitHub Actions qui contiennent un lien oasdiff.com,
+          # à l'exception de NOTRE commentaire de rapport (identifié par son marqueur).
+          IDS=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq ".[]
+                  | select(.user.login == \"github-actions[bot]\")
+                  | select(.body | contains(\"oasdiff.com\"))
+                  | select(.body | contains(\"${MARKER}\") | not)
+                  | .id")
+
+          if [[ -z "$IDS" ]]; then
+            echo "Aucun ancien commentaire de revue à supprimer."
+            exit 0
+          fi
+
+          while read -r CID; do
+            [[ -z "$CID" ]] && continue
+            gh api -X DELETE "repos/${REPO}/issues/comments/${CID}" > /dev/null
+            echo "Ancien commentaire de revue #${CID} supprimé."
+          done <<< "$IDS"
+
+      - name: Publier le lien de revue interactive oasdiff.com
+        id: review
+        if: |
+          steps.analyse.outputs.change != 'none'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        uses: oasdiff/oasdiff-action/breaking@v0
+        with:
+          base: 'origin/${{ github.base_ref }}:application/api-contract/openapi.yaml'
+          revision: 'application/api-contract/openapi.yaml'
+          fail-on: ''
+          review: 'true'
+          github-token: ${{ github.token }}
+
+      # Rend visible un échec silencieux (continue-on-error masque les erreurs) :
+      # si le contrat a changé mais qu'aucun commentaire de revue n'existe,
+      # on le signale par un avertissement (sans faire échouer le job).
+      - name: Vérifier la présence du lien de revue
+        if: |
+          steps.analyse.outputs.change != 'none'
+          && github.event.pull_request.head.repo.full_name == github.repository
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REVIEW_OUTCOME: ${{ steps.review.outcome }}
+        run: |
+          set -euo pipefail
+          MARKER='<!-- api-contract-report -->'
+          COUNT=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
+            --jq "[.[]
+                   | select(.user.login == \"github-actions[bot]\")
+                   | select(.body | contains(\"oasdiff.com\"))
+                   | select(.body | contains(\"${MARKER}\") | not)] | length" \
+            | awk '{s+=$1} END {print s+0}')
+          if [[ "${COUNT:-0}" -eq 0 ]]; then
+            echo "::warning::Aucun commentaire de revue oasdiff.com sur la PR (étape de revue : ${REVIEW_OUTCOME}). Consultez le résumé du job ou les logs de l'étape de revue."
+          else
+            echo "✅ Lien de revue présent (${COUNT} commentaire)."
+          fi
+
+      # ============================================================
+      # 9. APPLICATION DE LA POLITIQUE DE VERSION
+      #    Dernière étape : les rapports sont déjà publiés.
+      # ============================================================
+      - name: Appliquer la politique de version
+        if: steps.version.outputs.status == 'ko'
+        env:
+          MESSAGE: ${{ steps.version.outputs.message }}
+          EXPECTED: ${{ steps.version.outputs.expected }}
+        run: |
+          echo "❌ Version du contrat incohérente avec les changements détectés."
+          echo "   $MESSAGE"
+          if [[ -n "$EXPECTED" ]]; then
+            echo ""
+            echo "   Pour corriger :"
+            echo "     1. Mettez '$EXPECTED' dans $VERSION_FILE"
+            echo "     2. mvn verify -pl application -am -DskipTests"
+            echo "     3. git add $VERSION_FILE $SPEC_PATH && git commit"
+          fi
+          exit 1
