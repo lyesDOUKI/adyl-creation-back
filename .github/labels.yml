@@ -1,0 +1,3 @@
+- name: "breaking-api-acknowledged"
+  color: "D93F0B" # Rouge/Orange pour signaler un changement important
+  description: "Acquitte un breaking change intentionnel sur le contrat d'API"

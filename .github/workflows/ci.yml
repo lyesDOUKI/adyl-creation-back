@@ -1,23 +1,28 @@
 name: CI - Java Maven
 
+# Workflow "lourd" : build, tests, drift check.
+# Il ne se relance PAS quand on ajoute/retire un label ou qu'on édite le titre
+# de la PR (voir api-contract.yml pour ces événements).
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    types: [ opened, synchronize, reopened ]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      pull-requests: write
 
     steps:
       - name: Checkout du code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Configuration de Java 25
         uses: actions/setup-java@v4
@@ -26,29 +31,20 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Compilation et Tests (et génération de l'openapi.yaml)
+      - name: Compilation, tests et régénération de openapi.yaml
         run: mvn clean verify
 
-      # Étape de vérification de l'existence du fichier dans la branche de base
-      - name: Vérifier si la spec existe déjà dans la branche de base
-        id: check_base_spec
-        if: github.event_name == 'pull_request'
+      # Le contrat committé doit correspondre au code.
+      - name: Vérifier que le contrat OpenAPI est à jour (drift check)
         run: |
-          # Vérifie si le fichier existe dans la branche cible de la PR
-          if git cat-file -e "origin/${{ github.base_ref }}:application/openapi.yaml" 2>/dev/null; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "✅ La spécification existe déjà dans la branche de base."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "ℹ️ La spécification est nouvelle. L'analyse des breaking changes sera ignorée."
+          if [[ -n "$(git status --porcelain application/openapi.yaml)" ]]; then
+            echo "❌ Le fichier application/openapi.yaml est obsolète."
+            echo "   Le code a été modifié sans régénérer et committer le contrat d'API."
+            echo ""
+            echo "   Pour corriger : mvn clean verify"
+            echo "   puis : git add application/openapi.yaml"
+            echo ""
+            git --no-pager diff application/openapi.yaml
+            exit 1
           fi
-
-      # Étape oasdiff, exécutée UNIQUEMENT si le fichier de base existe
-      - name: Détection des changements cassants dans l'API
-        if: github.event_name == 'pull_request' && steps.check_base_spec.outputs.exists == 'true'
-        uses: oasdiff/oasdiff-action/breaking@v0
-        with:
-          base: 'origin/${{ github.base_ref }}:application/openapi.yaml'
-          revision: 'HEAD:application/openapi.yaml'
-          fail-on: ERR
-          github-token: ${{ github.token }}
+          echo "✅ application/openapi.yaml est à jour."
