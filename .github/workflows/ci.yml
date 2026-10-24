@@ -1,23 +1,28 @@
 name: CI - Java Maven
 
+# Build + tests uniquement.
+# Tout ce qui concerne le contrat d'API est dans api-contract.yml.
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+    types: [ opened, synchronize, reopened ]
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
-      pull-requests: write
 
     steps:
       - name: Checkout du code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Configuration de Java 25
         uses: actions/setup-java@v4
@@ -26,29 +31,5 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      - name: Compilation et Tests (et génération de l'openapi.yaml)
-        run: mvn clean verify
-
-      # Étape de vérification de l'existence du fichier dans la branche de base
-      - name: Vérifier si la spec existe déjà dans la branche de base
-        id: check_base_spec
-        if: github.event_name == 'pull_request'
-        run: |
-          # Vérifie si le fichier existe dans la branche cible de la PR
-          if git cat-file -e "origin/${{ github.base_ref }}:application/openapi.yaml" 2>/dev/null; then
-            echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "✅ La spécification existe déjà dans la branche de base."
-          else
-            echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "ℹ️ La spécification est nouvelle. L'analyse des breaking changes sera ignorée."
-          fi
-
-      # Étape oasdiff, exécutée UNIQUEMENT si le fichier de base existe
-      - name: Détection des changements cassants dans l'API
-        if: github.event_name == 'pull_request' && steps.check_base_spec.outputs.exists == 'true'
-        uses: oasdiff/oasdiff-action/breaking@v0
-        with:
-          base: 'origin/${{ github.base_ref }}:application/openapi.yaml'
-          revision: 'HEAD:application/openapi.yaml'
-          fail-on: ERR
-          github-token: ${{ github.token }}
+      - name: Compilation et tests
+        run: mvn -B -ntp clean verify
