@@ -1,10 +1,14 @@
 package ld.application.api;
 
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springdoc.core.customizers.OpenApiCustomizer;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
+
+import java.util.List;
 
 @Configuration
 public class OpenApiConfig {
@@ -18,5 +22,16 @@ public class OpenApiConfig {
                         API de gestion des commandes, produits et rendez-vous d'Adyl Creation.
                         Les erreurs sont retournées en `application/problem+json` (RFC 9457) :
                         Le champ `code` est l'identifiant unique d'une erreur."""));
+    }
+
+
+    @Bean
+    @Profile("openapi")
+    OpenApiCustomizer relativeServerCustomizer() {
+        return openApi -> openApi.servers(List.of(
+                new Server()
+                        .url("/")
+                        .description("Résolu dynamiquement selon l'hôte de déploiement")
+        ));
     }
 }

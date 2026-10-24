@@ -1,0 +1,44 @@
+# Profil dédié à la génération du contrat OpenAPI.
+# Objectif : démarrer l'app le plus vite possible, sans dépendances externes,
+# pour que springdoc expose /v3/api-docs.yaml.
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:openapi;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  flyway:
+    enabled: false
+
+  # Hibernate crée un schéma jetable à partir des entités JPA
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+
+  mail:
+    host: localhost
+    port: 25
+    username: dummy
+    password: dummy
+
+  config:
+    import: "optional:classpath:email.yaml"
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+app:
+  base-url: http://localhost:8080
+  photos:
+    storage-path: /tmp/adyl-openapi-photos
+
+oidc:
+  authorization-url: http://localhost:9999/dummy/authorize
+  token-url: http://localhost:9999/dummy/token
