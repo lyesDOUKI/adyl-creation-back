@@ -6,6 +6,21 @@
       "package-name": "adyl-creation-api",
       "include-component-in-tag": false,
       "skip-snapshot": true
+    },
+    "application/api-contract": {
+      "release-type": "simple",
+      "component": "api",
+      "package-name": "adyl-creation-api",
+      "include-component-in-tag": true,
+      "version-file": "version.txt",
+      "extra-files": [
+        {
+          "type": "yaml",
+          "path": "openapi.yaml",
+          "jsonpath": "$.info.version"
+        }
+      ],
+      "changelog-path": "CHANGELOG.md"
     }
   }
 }

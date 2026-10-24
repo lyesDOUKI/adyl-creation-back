@@ -1,17 +1,21 @@
+
+
+
 name: API Contract
 
-# Contrôle complet du contrat d'API (application/openapi.yaml), sur les PR uniquement :
-#
-#   1. Régénère le contrat à partir du code de la PR.
-#   2. Drift check   : le contrat committé doit être identique au contrat régénéré.
-#   3. Compare avec la branche de base (oasdiff) et classe le changement :
-#        - aucun        : rien à faire
-#        - cosmétique   : seuls description / summary / title / examples changent -> OK
-#        - fonctionnel  : tout le reste -> il faut un `feat` (voir BUMP_POLICY)
-#   4. Si fonctionnel, publie le rapport oasdiff en commentaire de PR (mis à jour à chaque run).
-#   4.bis Si fonctionnel, publie aussi un lien de revue interactive hébergé sur oasdiff.com.
-#   5. Si fonctionnel, vérifie la cohérence avec release-please (titre de PR ou commits),
-#      selon BUMP_POLICY (flexible | minor | major).
+# Contrôle du contrat OpenAPI Code First :
+# 1. Régénère la spec depuis le code Java.
+# 2. Vérifie que la spec committée correspond à la spec générée.
+# 3. Compare le contrat avec main, en ignorant info.version pour classifier les changements.
+# 4. Vérifie que version.txt respecte la politique SemVer :
+#      aucun changement -> version inchangée
+#      cosmétique       -> patch
+#      fonctionnel      -> minor
+#      breaking         -> major
+# 5. Publie un rapport de comparaison sur la PR.
+# La version API est pilotée manuellement par application/api-contract/version.txt,
+# indépendamment de Release Please et des conventions de commit.
+
 on:
   pull_request:
     branches: [ "main" ]
@@ -22,7 +26,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SPEC_PATH: application/openapi.yaml
+  SPEC_PATH: application/api-contract/openapi.yaml
+  VERSION_FILE: application/api-contract/version.txt
   OASDIFF_VERSION: "1.33.0"
 
 jobs:
@@ -46,36 +51,15 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
-      # ============================================================
       # 1. RÉGÉNÉRATION DU CONTRAT À PARTIR DU CODE
-      # ============================================================
       - name: Régénérer le contrat OpenAPI
         run: mvn -B -ntp verify -pl application -am -DskipTests
 
-      # ============================================================
-      # 2. DRIFT CHECK : contrat committé == contrat régénéré
-      # ============================================================
-      - name: Vérifier que le contrat committé est à jour (drift check)
-        run: |
-          if [[ -n "$(git status --porcelain -- "$SPEC_PATH")" ]]; then
-            echo "❌ $SPEC_PATH est obsolète : le code a été modifié sans committer le contrat régénéré."
-            echo ""
-            echo "   Pour corriger :"
-            echo "     mvn verify -pl application -am -DskipTests"
-            echo "     git add $SPEC_PATH"
-            echo "     git commit -m \"chore: régénère openapi.yaml\""
-            echo ""
-            git --no-pager diff -- "$SPEC_PATH" || true
-            exit 1
-          fi
-          echo "✅ $SPEC_PATH est à jour."
-
-      # ============================================================
-      # 3. INSTALLATION D'OASDIFF (version épinglée + checksum vérifié)
-      # ============================================================
-      - name: Installer oasdiff
+      # 2. INSTALLATION DES OUTILS ÉPINGLÉS ET VÉRIFICATION DES CHECKSUMS
+      - name: Installer oasdiff et yq
         run: |
           set -euo pipefail
+
           ARCHIVE="oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
           BASE_URL="https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}"
           mkdir -p "$RUNNER_TEMP/oasdiff"
@@ -87,436 +71,29 @@ jobs:
           echo "$PWD" >> "$GITHUB_PATH"
           ./oasdiff --version
 
-      # ============================================================
-      # 4. COMPARAISON AVEC LA BRANCHE DE BASE
-      #    Produit : change   = none | cosmetic | functional
-      #              breaking = true | false
-      #              n_err / n_warn / n_info
-      #              + fichiers diff.txt, diff.html, breaking.txt,
-      #                changelog.txt, breaking-bullets.md
-      # ============================================================
-      - name: Comparer le contrat avec la branche de base
-        id: analyse
-        env:
-          BASE_REF: ${{ github.base_ref }}
-          BREAKING_LEVEL: ERR
-          COSMETIC_ELEMENTS: description,examples,summary,title
+          YQ_VERSION="v4.45.1"
+          YQ_SHA256="654d2943ca1d3be2024089eb4f270f4070f491a0610481d128509b2834870049"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
+            -o "$RUNNER_TEMP/yq"
+          echo "${YQ_SHA256}  $RUNNER_TEMP/yq" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/yq"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/yq" --version
+
+      # 3. VERSION ACTUELLE + DRIFT CHECK
+      - name: Vérifier version.txt, info.version et le drift
         run: |
           set -euo pipefail
-          BASE_FILE="$RUNNER_TEMP/base-openapi.yaml"
-          OUT="$RUNNER_TEMP"
 
-          emit() { echo "change=$1" >> "$GITHUB_OUTPUT"; echo "breaking=$2" >> "$GITHUB_OUTPUT"; }
-
-          # Fichiers toujours présents pour que l'étape de publication
-          # puisse les lire sans erreur, quel que soit le chemin pris.
-          : > "$OUT/diff.txt"
-          : > "$OUT/changelog.txt"
-          : > "$OUT/breaking.txt"
-          : > "$OUT/breaking-bullets.md"
-          echo "n_err=0"  >> "$GITHUB_OUTPUT"
-          echo "n_warn=0" >> "$GITHUB_OUTPUT"
-          echo "n_info=0" >> "$GITHUB_OUTPUT"
-
-          # --- Première introduction du contrat : rien à comparer
-          if ! git cat-file -e "origin/${BASE_REF}:${SPEC_PATH}" 2>/dev/null; then
-            echo "ℹ️ $SPEC_PATH n'existe pas encore dans '${BASE_REF}' (première introduction). Comparaison ignorée."
-            emit none false
-            exit 0
+          if [[ ! -f "$VERSION_FILE" ]]; then
+            echo "❌ Fichier de version absent : $VERSION_FILE"
+            exit 1
           fi
-          git show "origin/${BASE_REF}:${SPEC_PATH}" > "$BASE_FILE"
-
-          # --- Contrat strictement identique
-          if cmp -s "$BASE_FILE" "$SPEC_PATH"; then
-            echo "✅ Le contrat est identique à celui de '${BASE_REF}'."
-            emit none false
-            exit 0
-          fi
-
-          # --- Différence fonctionnelle ? (diff en ignorant les éléments cosmétiques)
-          code=0
-          oasdiff diff "$BASE_FILE" "$SPEC_PATH" \
-            --exclude-elements "$COSMETIC_ELEMENTS" --format text --fail-on-diff \
-            > "$OUT/diff.txt" 2>&1 || code=$?
-
-          # --- Génération du rapport HTML interactif oasdiff
-          oasdiff diff "$BASE_FILE" "$SPEC_PATH" \
-            --exclude-elements "$COSMETIC_ELEMENTS" --format html \
-            > "$OUT/diff.html" 2>&1 || true
-
-          if [[ $code -eq 0 ]]; then
-            echo "✅ Le contrat a changé, mais uniquement sur des éléments cosmétiques ($COSMETIC_ELEMENTS)."
-            echo "::notice::Changement cosmétique du contrat d'API : aucun 'feat' requis."
-            {
-              echo "### Contrat OpenAPI : changement cosmétique uniquement"
-              echo "Seuls ${COSMETIC_ELEMENTS//,/, } ont changé. Aucun \`feat\` requis."
-            } >> "$GITHUB_STEP_SUMMARY"
-            emit cosmetic false
-            exit 0
-          elif [[ $code -ne 1 ]]; then
-            echo "❌ oasdiff a échoué (code $code) :"
-            cat "$OUT/diff.txt"
+          if [[ ! -f "$SPEC_PATH" ]]; then
+            echo "❌ Spécification OpenAPI absente : $SPEC_PATH"
             exit 1
           fi
 
-          # --- Changement fonctionnel : y a-t-il un breaking change ?
-          bcode=0
-          oasdiff breaking "$BASE_FILE" "$SPEC_PATH" \
-            --fail-on "$BREAKING_LEVEL" --format text \
-            > "$OUT/breaking.txt" 2>&1 || bcode=$?
+          API_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+          SPEC_VERSION="$(yq -r '.info.version // ""' "$SPEC_PATH")"
 
-          if [[ $bcode -eq 0 ]]; then
-            BREAKING=false
-          elif [[ $bcode -eq 1 ]]; then
-            BREAKING=true
-          else
-            echo "❌ oasdiff breaking a échoué (code $bcode) :"
-            cat "$OUT/breaking.txt"
-            exit 1
-          fi
-
-          oasdiff changelog "$BASE_FILE" "$SPEC_PATH" --format text > "$OUT/changelog.txt" 2>&1 || true
-
-          # --- Préparation des bullets de breaking changes.
-          #     Le format de `oasdiff changelog --format text` est :
-          #       error\t[check-id] at path
-          #       warning\t...
-          #       info\t...
-          #     On matche donc minuscule + tab/espace, pas `^Error:`.
-          awk '
-            /^error[[:space:]]/   { line=$0; sub(/^error[[:space:]]+/,"",line);   print "- ❌ **ERR** — " line }
-            /^warning[[:space:]]/ { line=$0; sub(/^warning[[:space:]]+/,"",line); print "- ⚠️ **WARN** — " line }
-            /^info[[:space:]]/    { line=$0; sub(/^info[[:space:]]+/,"",line);    print "- ℹ️ **INFO** — " line }
-          ' "$OUT/changelog.txt" > "$OUT/breaking-bullets.md" || true
-
-          # --- Compteurs (parsing de changelog.txt, format tab-séparé minuscule)
-          N_ERR=$(awk  '/^error[[:space:]]/   {c++} END {print c+0}' "$OUT/changelog.txt")
-          N_WARN=$(awk '/^warning[[:space:]]/ {c++} END {print c+0}' "$OUT/changelog.txt")
-          N_INFO=$(awk '/^info[[:space:]]/    {c++} END {print c+0}' "$OUT/changelog.txt")
-          echo "n_err=$N_ERR"   >> "$GITHUB_OUTPUT"
-          echo "n_warn=$N_WARN" >> "$GITHUB_OUTPUT"
-          echo "n_info=$N_INFO" >> "$GITHUB_OUTPUT"
-
-          {
-            echo "### Contrat OpenAPI : changement fonctionnel détecté"
-            if [[ "$BREAKING" == "true" ]]; then
-              echo "⚠️ **Breaking change** (niveau ${BREAKING_LEVEL})"
-            else
-              echo "Changement **non cassant**."
-            fi
-            echo ""
-            echo "#### Changelog oasdiff"
-            echo '```'
-            cat "$OUT/changelog.txt"
-            echo '```'
-            echo "<details><summary>Diff structurel (hors éléments cosmétiques)</summary>"
-            echo ""
-            echo '```'
-            cat "$OUT/diff.txt"
-            echo '```'
-            echo "</details>"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          cat "$OUT/changelog.txt"
-          if [[ "$BREAKING" == "true" ]]; then
-            echo ""
-            echo "Breaking change(s) :"
-            cat "$OUT/breaking.txt"
-          fi
-
-          emit functional "$BREAKING"
-
-      # ============================================================
-      # 4.bis SAUVEGARDE DU RAPPORT HTML (ARTÉFACT 7 JOURS)
-      # ============================================================
-      - name: Sauvegarder le rapport HTML oasdiff
-        if: steps.analyse.outputs.change != 'none'
-        uses: actions/upload-artifact@v4
-        with:
-          name: oasdiff-report
-          path: ${{ runner.temp }}/diff.html
-          retention-days: 7
-
-      # ============================================================
-      # 5. COMMENTAIRE DE PR : rapport oasdiff (redesigné)
-      # ============================================================
-      - name: Publier le rapport sur la PR
-        if: github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          BASE_REF: ${{ github.base_ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-          CHANGE: ${{ steps.analyse.outputs.change }}
-          BREAKING: ${{ steps.analyse.outputs.breaking }}
-          N_ERR: ${{ steps.analyse.outputs.n_err }}
-          N_WARN: ${{ steps.analyse.outputs.n_warn }}
-          N_INFO: ${{ steps.analyse.outputs.n_info }}
-        run: |
-          set -euo pipefail
-          MARKER='<!-- api-contract-report -->'
-          FILE="$RUNNER_TEMP/pr-comment.md"
-
-          IDS=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" --paginate \
-            --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id")
-          ID=$(printf '%s\n' "$IDS" | head -n1)
-
-          # --- Détection des conventions de commit pour la section "Action requise"
-          FEAT_RE='^feat(\([^)]+\))?!?:'
-          BANG_RE='^[a-zA-Z]+(\([^)]+\))?!:'
-          FOOTER_RE='^BREAKING[ -]CHANGE:'
-          SUBJECTS=$(git log "origin/${BASE_REF}..${HEAD_SHA}" --format='%s' || true)
-          BODIES=$(git log "origin/${BASE_REF}..${HEAD_SHA}" --format='%B' || true)
-          ALL_SUBJECTS=$(printf '%s\n%s\n' "$PR_TITLE" "$SUBJECTS")
-          HAS_FEAT=false; grep -Eq "$FEAT_RE" <<< "$ALL_SUBJECTS" && HAS_FEAT=true
-          HAS_BANG=false
-          grep -Eq "$BANG_RE" <<< "$ALL_SUBJECTS" && HAS_BANG=true
-          grep -Eq "$FOOTER_RE" <<< "$BODIES" && HAS_BANG=true
-
-          # ------------------------------------------------------
-          # Cas 1 : AUCUN changement → commentaire court
-          # ------------------------------------------------------
-          if [[ "$CHANGE" == "none" ]]; then
-            if [[ -z "$ID" ]]; then
-              echo "Aucun changement et aucun commentaire à créer."
-              exit 0
-            fi
-            {
-              echo "$MARKER"
-              echo "## 🔎 Contrat OpenAPI — ✅ Aucun changement"
-              echo ""
-              echo "Le contrat est identique à celui de \`${BASE_REF}\`."
-              echo ""
-              echo "<sub>Vérifié par oasdiff le $(date -u '+%Y-%m-%d %H:%M UTC')</sub>"
-            } > "$FILE"
-
-          # ------------------------------------------------------
-          # Cas 2 : changement COSMÉTIQUE → commentaire informatif
-          # ------------------------------------------------------
-          elif [[ "$CHANGE" == "cosmetic" ]]; then
-            {
-              echo "$MARKER"
-              echo "## 🔎 Contrat OpenAPI — ✅ Changement cosmétique"
-              echo ""
-              echo "| | |"
-              echo "|---|---|"
-              echo "| **Statut** | ✅ Cosmétique uniquement |"
-              echo "| **Base** | \`${BASE_REF}\` |"
-              echo ""
-              echo "Seuls \`description\`, \`examples\`, \`summary\` et \`title\` ont changé."
-              echo ""
-              echo "> ℹ️ **Aucun impact** pour les consommateurs. **Aucun \`feat\` requis.**"
-              echo ""
-              echo "<details><summary>Voir le diff</summary>"
-              echo ""
-              echo '```diff'
-              head -c 20000 "$RUNNER_TEMP/diff.txt" || true
-              echo '```'
-              echo "</details>"
-              echo ""
-              echo "<sub>Vérifié par oasdiff le $(date -u '+%Y-%m-%d %H:%M UTC')</sub>"
-            } > "$FILE"
-
-          # ------------------------------------------------------
-          # Cas 3 : changement FONCTIONNEL → rapport complet
-          # ------------------------------------------------------
-          else
-            if [[ "$BREAKING" == "true" ]]; then
-              STATUT_ICON="⚠️"
-              STATUT_TITRE="Breaking change détecté"
-            else
-              STATUT_ICON="✅"
-              STATUT_TITRE="Changement non cassant"
-            fi
-
-            {
-              echo "$MARKER"
-              echo "## 🔎 Contrat OpenAPI — ${STATUT_ICON} ${STATUT_TITRE}"
-              echo ""
-
-              # ---- Tableau récapitulatif
-              echo "| | |"
-              echo "|---|---|"
-              echo "| **Statut** | ${STATUT_ICON} ${STATUT_TITRE} |"
-              echo "| **Base de comparaison** | \`${BASE_REF}\` |"
-              echo "| **Classification** | \`functional\` / \`breaking=${BREAKING}\` |"
-              echo "| **Erreurs (ERR)** | ${N_ERR:-0} |"
-              echo "| **Warnings (WARN)** | ${N_WARN:-0} |"
-              echo "| **Infos (INFO)** | ${N_INFO:-0} |"
-              echo ""
-
-              # ---- Breaking changes (si présents)
-              if [[ -s "$RUNNER_TEMP/breaking-bullets.md" ]]; then
-                echo "### 🛑 Changements cassants"
-                echo ""
-                cat "$RUNNER_TEMP/breaking-bullets.md"
-                echo ""
-              fi
-
-              # ---- Action requise (contextualisée)
-              echo "### ⚡ Action requise"
-              echo ""
-
-              if [[ "$BREAKING" == "true" && "$HAS_FEAT" == "true" && "$HAS_BANG" == "true" ]]; then
-                echo "- ✅ **Prêt à merger.** Le breaking change est assumé (\`feat!:\` / \`BREAKING CHANGE:\` détecté)."
-                echo "- 📦 Release-please proposera un **bump majeur**."
-
-              elif [[ "$BREAKING" == "true" && "$HAS_FEAT" == "true" && "$HAS_BANG" == "false" ]]; then
-                echo "- ⚠️ **Bump mineur** détecté (\`feat:\` sans \`!\`)."
-                echo "- Si la rupture est **assumée**, renommer en \`feat!:\` (ou ajouter un footer \`BREAKING CHANGE:\`) pour un bump **majeur**."
-
-              elif [[ "$BREAKING" == "true" && "$HAS_FEAT" == "false" ]]; then
-                echo "- ❌ **Commit non conforme** : le contrat a changé fonctionnellement (breaking), il faut un \`feat\`."
-                echo "- 🔧 Renommer le commit en \`feat!: ...\` (ou ajouter un footer \`BREAKING CHANGE:\`)."
-                echo "- 📦 Effet : bump **majeur** via release-please."
-
-              elif [[ "$BREAKING" == "false" && "$HAS_FEAT" == "true" ]]; then
-                echo "- ✅ **Prêt à merger.** \`feat\` détecté, changement non cassant."
-                echo "- 📦 Release-please proposera un **bump mineur**."
-
-              else
-                echo "- ❌ **Commit non conforme** : le contrat a changé fonctionnellement, il faut un \`feat\`."
-                echo "- 🔧 Renommer le commit en \`feat: ...\`."
-                echo "- 📦 Effet : bump **mineur** via release-please."
-              fi
-              echo ""
-
-              # ---- Changelog
-              echo "### 📋 Changelog"
-              echo ""
-              echo "<details><summary>Voir le changelog complet</summary>"
-              echo ""
-              echo '```'
-              head -c 30000 "$RUNNER_TEMP/changelog.txt" || true
-              echo '```'
-              echo "</details>"
-              echo ""
-
-              # ---- Diff structurel
-              echo "### 🔧 Diff structurel"
-              echo ""
-              echo "<details><summary>Voir le diff (hors éléments cosmétiques)</summary>"
-              echo ""
-              echo '```diff'
-              head -c 20000 "$RUNNER_TEMP/diff.txt" || true
-              echo '```'
-              echo "</details>"
-              echo ""
-
-              # ---- Rapports et liens
-              echo "### 📎 Rapports et liens"
-              echo ""
-              echo "- 🖥️ **Rapport HTML interactif** : téléchargeable en artefact \`oasdiff-report\` depuis l'onglet *Summary* de ce run (7 jours)."
-              echo "- 🔗 **Revue côte-à-côte oasdiff.com** : publiée dans un commentaire séparé (lien hébergé)."
-              echo ""
-
-              # ---- Rappel versionnement
-              echo "### 🚀 Versionnement (release-please)"
-              echo ""
-              echo "| Commit | Effet release-please |"
-              echo "|---|---|"
-              echo "| \`feat:\` | Bump **mineur** |"
-              echo "| \`feat!:\` ou \`BREAKING CHANGE:\` | Bump **majeur** |"
-              echo "| \`fix:\` / \`chore:\` | Pas de bump |"
-              echo ""
-              echo "<sub>Ce commentaire est mis à jour à chaque push sur la PR · Vérifié le $(date -u '+%Y-%m-%d %H:%M UTC')</sub>"
-            } > "$FILE"
-          fi
-
-          if [[ -n "$ID" ]]; then
-            gh api -X PATCH "repos/${REPO}/issues/comments/${ID}" -F body=@"$FILE" > /dev/null
-            echo "Commentaire #${ID} mis à jour."
-          else
-            gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" -F body=@"$FILE" > /dev/null
-            echo "Commentaire créé."
-          fi
-
-      # ============================================================
-      # 5.bis LIEN DE REVUE INTERACTIVE (oasdiff.com)
-      # ============================================================
-      - name: Publier le lien de revue interactive oasdiff.com
-        if: |
-          steps.analyse.outputs.change == 'functional'
-          && github.event.pull_request.head.repo.full_name == github.repository
-        continue-on-error: true
-        uses: oasdiff/oasdiff-action/breaking@v0
-        with:
-          base: 'origin/${{ github.base_ref }}:application/openapi.yaml'
-          revision: 'application/openapi.yaml'
-          fail-on: ''
-          review: 'true'
-          github-token: ${{ github.token }}
-
-      # ============================================================
-      # 6. COHÉRENCE AVEC release-please
-      # ============================================================
-      - name: Vérifier la cohérence avec release-please
-        if: steps.analyse.outputs.change == 'functional'
-        env:
-          BUMP_POLICY: flexible   # flexible | minor | major
-          BREAKING: ${{ steps.analyse.outputs.breaking }}
-          BASE_REF: ${{ github.base_ref }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: |
-          set -euo pipefail
-          FEAT_RE='^feat(\([^)]+\))?!?:'
-          BANG_RE='^[a-zA-Z]+(\([^)]+\))?!:'
-          FOOTER_RE='^BREAKING[ -]CHANGE:'
-
-          SUBJECTS=$(git log "origin/${BASE_REF}..${HEAD_SHA}" --format='%s')
-          BODIES=$(git log "origin/${BASE_REF}..${HEAD_SHA}" --format='%B')
-          ALL_SUBJECTS=$(printf '%s\n%s\n' "$PR_TITLE" "$SUBJECTS")
-
-          HAS_FEAT=false
-          grep -Eq "$FEAT_RE" <<< "$ALL_SUBJECTS" && HAS_FEAT=true
-
-          HAS_BANG=false
-          grep -Eq "$BANG_RE" <<< "$ALL_SUBJECTS" && HAS_BANG=true
-          grep -Eq "$FOOTER_RE" <<< "$BODIES" && HAS_BANG=true
-
-          echo "Politique : ${BUMP_POLICY} | breaking : ${BREAKING} | feat : ${HAS_FEAT} | marqueur breaking (!) : ${HAS_BANG}"
-
-          if [[ "$HAS_FEAT" != "true" ]]; then
-            echo "❌ Le contrat d'API a changé fonctionnellement : un 'feat' est requis."
-            echo "   Utilisez 'feat: ...' (bump mineur) ou 'feat!: ...' (bump majeur) dans le titre de la PR (squash merge)"
-            echo "   ou dans au moins un commit (merge commit / rebase)."
-            echo "   (Un simple changement de description/summary/title/exemple n'exige pas de feat.)"
-            exit 1
-          fi
-
-          if [[ "$BUMP_POLICY" == "flexible" ]]; then
-            if [[ "$HAS_BANG" == "true" ]]; then
-              echo "::notice::Cette PR provoquera un bump MAJEUR (marqueur '!' ou 'BREAKING CHANGE' détecté)."
-              echo "✅ Politique 'flexible' : 'feat' + marqueur breaking, release-please proposera une version majeure."
-              exit 0
-            fi
-            if [[ "$BREAKING" == "true" ]]; then
-              echo "::warning::Breaking change d'API détecté, mais publié en version MINEURE (pas de '!'). Si c'est une rupture assumée, utilisez 'feat!: ...' pour un bump majeur."
-            fi
-            echo "✅ Politique 'flexible' : 'feat' présent, release-please proposera un bump mineur."
-            exit 0
-          fi
-
-          if [[ "$BUMP_POLICY" == "minor" ]]; then
-            if [[ "$HAS_BANG" == "true" ]]; then
-              echo "❌ Politique 'minor' : '!' ou 'BREAKING CHANGE' provoquerait un bump MAJEUR (6.0.0)."
-              echo "   Retirez-les pour obtenir un bump mineur (5.x -> 5.(x+1).0), avec un simple 'feat: ...'."
-              exit 1
-            fi
-            if [[ "$BREAKING" == "true" ]]; then
-              echo "::warning::Breaking change d'API détecté, publié en version MINEURE (politique 'minor'). Vérifiez que c'est voulu (voir le résumé du job)."
-            fi
-            echo "✅ 'feat' présent sans marqueur breaking : release-please proposera un bump mineur."
-            exit 0
-          fi
-
-          # Politique 'major'
-          if [[ "$BREAKING" == "true" && "$HAS_BANG" != "true" ]]; then
-            echo "❌ Politique 'major' : breaking change détecté, il faut 'feat!: ...' (ou un footer 'BREAKING CHANGE:')."
-            exit 1
-          fi
-          echo "✅ Cohérent avec release-please (politique 'major')."
