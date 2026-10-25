@@ -36,7 +36,7 @@ public record GetOrderResponse(
         @Schema(description = "Montant total, en euros", example = "42.50", requiredMode = REQUIRED)
         BigDecimal total,
 
-        @Schema(description = "Statut de la commande (valeurs de OrderState : PENDING, ACCEPTED, REJECTED, DELIVERED)",
+        @Schema(description = "Statut de la commande",
                 requiredMode = REQUIRED)
         OrderStateResponse status,
 

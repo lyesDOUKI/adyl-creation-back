@@ -1,13 +1,35 @@
 name: Release Please
 
 # 1. Release Please : crée / met à jour la PR de release (inchangé).
-# 2. API release report : compare le contrat d'API de main (= ce qui sera releasé)
-#    avec le contrat de la DERNIÈRE release GitHub, puis :
-#      - publie / met à jour un commentaire sur la PR de release (avec le lien de revue
+# 2. API release : DÉCIDE la version de l'API à releaser, de façon automatique.
+#
+#    La version n'est plus choisie dans les PR. À chaque push sur main, on compare le
+#    contrat d'API de main avec celui de la DERNIÈRE release GitHub (oasdiff), et on en
+#    déduit la version (logique dans .github/scripts/api-vs-last-release.sh) :
+#
+#      Situation par rapport à la dernière release          | Version de l'API
+#      -----------------------------------------------------|----------------------
+#      Aucune release, ou contrat absent de cette release   | 1.0.0
+#      Aucun changement (hors info.version)                 | inchangée
+#      Cosmétique seul                                      | patch  : 2.3.0 -> 2.3.1
+#      Fonctionnel non cassant                              | mineur : 2.3.0 -> 2.4.0
+#      Fonctionnel cassant (breaking)                       | majeur : 2.3.0 -> 3.0.0
+#
+#    Cette version est :
+#      - écrite dans version.txt de la PR de release, et openapi.yaml y est régénéré
+#        (Maven), dans un commit du robot : version.txt n'est modifié QUE par ce robot ;
+#      - affichée dans un commentaire de la PR de release (avec le lien de revue
 #        interactive oasdiff.com et le rapport HTML en artefact) ;
-#      - (optionnel) ajoute un bloc « API Contract » dans le CHANGELOG de la PR de release.
-#    Aucune release précédente (ou contrat absent à cette release) =
-#    « première version de l'API ». Ce job ne fait JAMAIS échouer le workflow.
+#      - (optionnel) ajoutée dans le CHANGELOG de la PR de release.
+#
+#    Le calcul repart toujours de la dernière release publiée : plusieurs PR entre deux
+#    releases se cumulent en UN seul incrément, sans version « sautée ».
+#    Le workflow api-contract.yml vérifie sur la PR de release que la version écrite est
+#    bien la version attendue : une PR de release périmée ne peut pas être mergée.
+#
+#    Ce job ne fait JAMAIS échouer le workflow (continue-on-error), mais en cas de
+#    problème la PR de release reste rouge côté api-contract.yml : on ne livre pas une
+#    version non vérifiée.
 
 on:
   push:
@@ -25,6 +47,7 @@ concurrency:
 
 env:
   SPEC_PATH: application/api-contract/openapi.yaml
+  VERSION_FILE: application/api-contract/version.txt
   OASDIFF_VERSION: "1.33.0"
   # Ajout d'un bloc « API Contract » dans le CHANGELOG de la PR de release (voir étape dédiée).
   UPDATE_CHANGELOG: "true"
@@ -49,7 +72,7 @@ jobs:
           manifest-file: .release-please-manifest.json
 
   # ============================================================
-  # 2. RAPPORT D'API : contrat de la dernière release -> contrat de main
+  # 2. VERSION DE L'API : contrat de la dernière release -> contrat de main
   # ============================================================
   api-release-report:
     name: API release report
@@ -57,8 +80,9 @@ jobs:
     # Inutile quand la PR de release vient d'être mergée (la release est créée).
     if: needs.release-please.outputs.releases_created != 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     # Filet de sécurité : un incident ici ne rend jamais le workflow rouge.
+    # (La PR de release, elle, restera bloquée par api-contract.yml si sa version est fausse.)
     continue-on-error: true
     permissions:
       contents: read
@@ -86,7 +110,7 @@ jobs:
             --jq '.[] | select(.headRefName | startswith("release-please--")) | "\(.number) \(.headRefName)"')"
 
           if [[ -z "$LINES" ]]; then
-            echo "ℹ️ Aucune PR de release ouverte : rien à commenter."
+            echo "ℹ️ Aucune PR de release ouverte : rien à faire."
             echo "found=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
@@ -126,11 +150,13 @@ jobs:
           "$RUNNER_TEMP/yq" --version
 
       # ------------------------------------------------------------
-      # Comparaison : contrat de la dernière release  ->  contrat de main
+      # Comparaison : contrat de la dernière release  ->  contrat de main,
+      # et calcul de la version d'API (script partagé avec api-contract.yml).
       #   state = no_spec | first | unknown | compare
-      #   (info.version est neutralisé pour la classification, comme dans api-contract.yml)
+      #   bump  = first | none | patch | minor | major
+      #   next_version = version à publier ("" si state = no_spec | unknown)
       # ------------------------------------------------------------
-      - name: Comparer avec le contrat de la dernière release
+      - name: Comparer avec la dernière release et calculer la version d'API
         id: analyse
         if: steps.pr.outputs.found == 'true'
         env:
@@ -138,160 +164,7 @@ jobs:
           REPO: ${{ github.repository }}
           BREAKING_LEVEL: ERR
           COSMETIC_ELEMENTS: description,examples,summary,title
-        run: |
-          set -euo pipefail
-          OUT="$RUNNER_TEMP"
-          OLD_FILE="$OUT/last-release-openapi.yaml"
-          NORM_OLD="$OUT/last-release-openapi-normalized.yaml"
-          NORM_NEW="$OUT/head-openapi-normalized.yaml"
-
-          STATE="compare"; FIRST_REASON=""; CHANGE="none"; BREAKING="false"
-          N_ERR=0; N_WARN=0; N_INFO=0
-          LAST_TAG=""; OLD_VERSION=""; NEW_VERSION=""
-
-          # Les sorties sont toujours publiées, même en cas de sortie anticipée.
-          emit_all() {
-            {
-              echo "state=$STATE"
-              echo "first_reason=$FIRST_REASON"
-              echo "change=$CHANGE"
-              echo "breaking=$BREAKING"
-              echo "n_err=$N_ERR"
-              echo "n_warn=$N_WARN"
-              echo "n_info=$N_INFO"
-              echo "last_tag=$LAST_TAG"
-              echo "old_version=$OLD_VERSION"
-              echo "new_version=$NEW_VERSION"
-            } >> "$GITHUB_OUTPUT"
-          }
-          trap emit_all EXIT
-
-          : > "$OUT/diff.txt"
-          : > "$OUT/changelog.txt"
-          : > "$OUT/breaking.txt"
-          : > "$OUT/breaking-bullets.md"
-
-          # --- Contrat de main (= ce qui sera releasé)
-          if [[ ! -f "$SPEC_PATH" ]]; then
-            echo "::notice::$SPEC_PATH est absent de main : rien à comparer."
-            STATE="no_spec"
-            exit 0
-          fi
-          NEW_VERSION="$(yq -r '.info.version // ""' "$SPEC_PATH")"
-          yq '.info.version = "__API_CONTRACT_VERSION__"' "$SPEC_PATH" > "$NORM_NEW"
-
-          # --- Dernière release GitHub (non brouillon, non pré-release)
-          LAST_TAG="$(gh api "repos/${REPO}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
-          if [[ -z "$LAST_TAG" ]]; then
-            echo "ℹ️ Aucune release précédente : ce sera la première version de l'API."
-            STATE="first"; FIRST_REASON="norelease"
-            exit 0
-          fi
-
-          if ! git rev-parse -q --verify "refs/tags/${LAST_TAG}^{commit}" > /dev/null; then
-            git fetch --no-tags origin "refs/tags/${LAST_TAG}:refs/tags/${LAST_TAG}" 2>/dev/null || true
-          fi
-          if ! git rev-parse -q --verify "refs/tags/${LAST_TAG}^{commit}" > /dev/null; then
-            echo "::warning::Tag '${LAST_TAG}' introuvable : comparaison impossible."
-            STATE="unknown"
-            exit 0
-          fi
-
-          if ! git cat-file -e "refs/tags/${LAST_TAG}:${SPEC_PATH}" 2>/dev/null; then
-            echo "ℹ️ Le contrat n'existait pas dans la release ${LAST_TAG} : première version de l'API."
-            STATE="first"; FIRST_REASON="nocontract"
-            exit 0
-          fi
-
-          git show "refs/tags/${LAST_TAG}:${SPEC_PATH}" > "$OLD_FILE"
-          OLD_VERSION="$(yq -r '.info.version // ""' "$OLD_FILE")"
-          yq '.info.version = "__API_CONTRACT_VERSION__"' "$OLD_FILE" > "$NORM_OLD"
-
-          # --- Aucun changement (info.version exclu)
-          if cmp -s "$NORM_OLD" "$NORM_NEW"; then
-            echo "✅ Aucun changement d'API depuis ${LAST_TAG}."
-            CHANGE="none"
-            exit 0
-          fi
-
-          # --- Cosmétique ou fonctionnel ?
-          code=0
-          oasdiff diff "$NORM_OLD" "$NORM_NEW" \
-            --exclude-elements "$COSMETIC_ELEMENTS" --format text --fail-on-diff \
-            > "$OUT/diff.txt" 2>&1 || code=$?
-
-          oasdiff diff "$NORM_OLD" "$NORM_NEW" \
-            --exclude-elements "$COSMETIC_ELEMENTS" --format html \
-            > "$OUT/diff.html" 2>&1 || true
-
-          if [[ $code -eq 0 ]]; then
-            echo "✅ Seuls des éléments cosmétiques ($COSMETIC_ELEMENTS) ont changé depuis ${LAST_TAG}."
-            CHANGE="cosmetic"
-            exit 0
-          elif [[ $code -ne 1 ]]; then
-            echo "::warning::oasdiff diff a échoué (code $code) : rapport d'API indisponible."
-            cat "$OUT/diff.txt" || true
-            STATE="unknown"
-            exit 0
-          fi
-
-          CHANGE="functional"
-
-          # --- Breaking change ?
-          bcode=0
-          oasdiff breaking "$NORM_OLD" "$NORM_NEW" \
-            --fail-on "$BREAKING_LEVEL" --format text \
-            > "$OUT/breaking.txt" 2>&1 || bcode=$?
-          if [[ $bcode -eq 0 ]]; then
-            BREAKING="false"
-          elif [[ $bcode -eq 1 ]]; then
-            BREAKING="true"
-          else
-            echo "::warning::oasdiff breaking a échoué (code $bcode) : classification cassant/non cassant indisponible."
-            BREAKING="false"
-          fi
-
-          oasdiff changelog "$NORM_OLD" "$NORM_NEW" \
-            --format text > "$OUT/changelog.txt" 2>&1 || true
-
-          # Une entrée oasdiff = une ligne « error|warning|info <id> at <fichier> » suivie de
-          # lignes indentées (« in API GET /pets », puis le message). On regroupe chaque entrée
-          # sur UNE puce lisible, classée ERR puis WARN puis INFO.
-          awk '
-            function flush() {
-              if (cur == "") return
-              if (lvl == "error")        ea[++ne] = "- ❌ **ERR** — "  cur
-              else if (lvl == "warning") wa[++nw] = "- ⚠️ **WARN** — " cur
-              else                       ia[++ni] = "- ℹ️ **INFO** — " cur
-              cur = ""
-            }
-            /^(error|warning|info)[[:space:]]/ {
-              flush()
-              lvl = $1
-              line = $0
-              sub(/^(error|warning|info)[[:space:]]+/, "", line)
-              cur = line
-              next
-            }
-            /^[[:space:]]+[^[:space:]]/ && cur != "" {
-              line = $0
-              gsub(/^[[:space:]]+/, "", line)
-              cur = cur " — " line
-              next
-            }
-            END {
-              flush()
-              for (k = 1; k <= ne; k++) print ea[k]
-              for (k = 1; k <= nw; k++) print wa[k]
-              for (k = 1; k <= ni; k++) print ia[k]
-            }
-          ' "$OUT/changelog.txt" > "$OUT/breaking-bullets.md" || true
-
-          N_ERR=$(awk  '/^error[[:space:]]/   {c++} END {print c+0}' "$OUT/changelog.txt")
-          N_WARN=$(awk '/^warning[[:space:]]/ {c++} END {print c+0}' "$OUT/changelog.txt")
-          N_INFO=$(awk '/^info[[:space:]]/    {c++} END {print c+0}' "$OUT/changelog.txt")
-
-          cat "$OUT/changelog.txt"
+        run: bash .github/scripts/api-vs-last-release.sh
 
       # ------------------------------------------------------------
       # Lien de revue interactive oasdiff.com (comme dans api-contract.yml)
@@ -344,12 +217,13 @@ jobs:
           FIRST_REASON: ${{ steps.analyse.outputs.first_reason }}
           CHANGE: ${{ steps.analyse.outputs.change }}
           BREAKING: ${{ steps.analyse.outputs.breaking }}
+          BUMP: ${{ steps.analyse.outputs.bump }}
           N_ERR: ${{ steps.analyse.outputs.n_err }}
           N_WARN: ${{ steps.analyse.outputs.n_warn }}
           N_INFO: ${{ steps.analyse.outputs.n_info }}
           LAST_TAG: ${{ steps.analyse.outputs.last_tag }}
           OLD_VERSION: ${{ steps.analyse.outputs.old_version }}
-          NEW_VERSION: ${{ steps.analyse.outputs.new_version }}
+          NEXT_VERSION: ${{ steps.analyse.outputs.next_version }}
           REPO: ${{ github.repository }}
           SHA: ${{ github.sha }}
           SERVER_URL: ${{ github.server_url }}
@@ -368,43 +242,14 @@ jobs:
           SHORT_SHA="${SHA::7}"
           TAG_URL="${SERVER_URL}/${REPO}/releases/tag/${LAST_TAG}"
           NOW="$(date -u '+%Y-%m-%d %H:%M UTC')"
-          STABLE_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
 
-          # --- Cohérence de version (information, jamais bloquante) :
-          #     l'incrément entre la dernière release et la version à releaser doit être
-          #     au moins celui exigé par les changements cumulés.
-          rank() { case "$1" in none) echo 0 ;; patch) echo 1 ;; minor) echo 2 ;; major) echo 3 ;; *) echo -1 ;; esac; }
-
-          REQUIRED="none"
-          case "${CHANGE}:${BREAKING}" in
-            cosmetic:*)       REQUIRED="patch" ;;
-            functional:false) REQUIRED="minor" ;;
-            functional:true)  REQUIRED="major" ;;
+          case "$BUMP" in
+            first) BUMP_LABEL="première version" ;;
+            patch) BUMP_LABEL="incrément de **patch**" ;;
+            minor) BUMP_LABEL="incrément **mineur**" ;;
+            major) BUMP_LABEL="incrément **majeur**" ;;
+            *)     BUMP_LABEL="version **inchangée**" ;;
           esac
-
-          ACTUAL="n/a"
-          if [[ "$OLD_VERSION" =~ $STABLE_RE && "$NEW_VERSION" =~ $STABLE_RE ]]; then
-            IFS=. read -r OMAJ OMIN OPAT <<< "$OLD_VERSION"
-            IFS=. read -r NMAJ NMIN NPAT <<< "$NEW_VERSION"
-            if   (( NMAJ > OMAJ )); then ACTUAL="major"
-            elif (( NMAJ < OMAJ )); then ACTUAL="regression"
-            elif (( NMIN > OMIN )); then ACTUAL="minor"
-            elif (( NMIN < OMIN )); then ACTUAL="regression"
-            elif (( NPAT > OPAT )); then ACTUAL="patch"
-            elif (( NPAT < OPAT )); then ACTUAL="regression"
-            else ACTUAL="none"
-            fi
-          fi
-
-          if [[ "$ACTUAL" == "n/a" ]]; then
-            VERSION_VERDICT="ℹ️ Non évaluée (version non conforme X.Y.Z)"
-          elif [[ "$ACTUAL" == "regression" ]]; then
-            VERSION_VERDICT="⚠️ La version à releaser est inférieure à celle de la dernière release"
-          elif (( $(rank "$ACTUAL") >= $(rank "$REQUIRED") )); then
-            VERSION_VERDICT="✅ Cohérente (incrément : ${ACTUAL}, minimum requis : ${REQUIRED})"
-          else
-            VERSION_VERDICT="⚠️ Incrément insuffisant : ${ACTUAL} (minimum attendu : ${REQUIRED})"
-          fi
 
           # Liens vers les rapports (HTML en artefact + revue interactive oasdiff.com)
           REVIEW_URL="$(cat "$OUT/review-url.txt" 2>/dev/null || true)"
@@ -421,7 +266,12 @@ jobs:
             echo "| | |"
             echo "|---|---|"
             echo "| **Dernière release** | [\`${LAST_TAG}\`](${TAG_URL}) · API \`${OLD_VERSION:-—}\` |"
-            echo "| **À releaser** (\`main\` @ \`${SHORT_SHA}\`) | API \`${NEW_VERSION:-—}\` |"
+            echo "| **Version d'API à releaser** (\`main\` @ \`${SHORT_SHA}\`) | \`${NEXT_VERSION:-—}\` (${BUMP_LABEL}) |"
+          }
+
+          applied_note() {
+            echo "> 🤖 Cette version est calculée automatiquement (oasdiff, vs la dernière release publiée) et écrite par le robot"
+            echo "> dans \`version.txt\` et \`openapi.yaml\` de cette PR de release. Ne la modifiez pas à la main."
           }
 
           case "$STATE" in
@@ -441,10 +291,12 @@ jobs:
                 echo ""
                 echo "| | |"
                 echo "|---|---|"
-                echo "| **Version de l'API** | \`${NEW_VERSION:-—}\` |"
+                echo "| **Version de l'API** | \`${NEXT_VERSION:-—}\` |"
                 echo "| **Contrat** | \`main\` @ \`${SHORT_SHA}\` |"
                 echo ""
                 echo "Aucune comparaison de compatibilité n'est possible : il n'y a pas encore d'API en production."
+                echo ""
+                applied_note
                 echo ""
                 echo "<sub>Mis à jour à chaque push sur main · ${NOW}</sub>"
               } > "$COMMENT"
@@ -453,7 +305,7 @@ jobs:
                 echo "$API_START"
                 echo "### API Contract"
                 echo ""
-                echo "🆕 Première version de l'API publiée : \`${NEW_VERSION:-—}\`."
+                echo "🆕 Première version de l'API publiée : \`${NEXT_VERSION:-—}\`."
                 echo "$API_END"
               } > "$BLOCK"
               ;;
@@ -462,10 +314,12 @@ jobs:
             unknown)
               {
                 echo "$MARKER"
-                echo "## 🚀 API à releaser — comparaison indisponible"
+                echo "## 🚀 API à releaser — version non calculée"
                 echo ""
-                echo "⚠️ Impossible de comparer le contrat avec la dernière release (\`${LAST_TAG:-?}\`) : tag introuvable ou erreur oasdiff."
-                echo "Consultez les logs du [run](${RUN_URL})."
+                echo "⚠️ Impossible de déterminer la version de l'API : lecture de la dernière release (\`${LAST_TAG:-?}\`), tag introuvable, version de base non conforme ou erreur oasdiff."
+                echo ""
+                echo "**La version de l'API de cette PR de release n'a pas été modifiée** et le check \`API Contract\` restera en échec"
+                echo "tant que le calcul n'aura pas abouti. Consultez les logs du [run](${RUN_URL}) puis relancez le job."
                 echo ""
                 echo "<sub>Mis à jour à chaque push sur main · ${NOW}</sub>"
               } > "$COMMENT"
@@ -481,7 +335,9 @@ jobs:
                     echo ""
                     versions_table
                     echo ""
-                    echo "Le contrat d'API est identique à celui de la dernière release (hors \`info.version\`)."
+                    echo "Le contrat d'API est identique à celui de la dernière release (hors \`info.version\`) : la version reste \`${NEXT_VERSION:-—}\`."
+                    echo ""
+                    applied_note
                     echo ""
                     echo "<sub>Mis à jour à chaque push sur main · ${NOW}</sub>"
                   } > "$COMMENT"
@@ -495,9 +351,10 @@ jobs:
                     echo ""
                     versions_table
                     echo "| **Classification** | \`cosmetic\` |"
-                    echo "| **Cohérence de version** | ${VERSION_VERDICT} |"
                     echo ""
                     echo "Seuls \`description\`, \`examples\`, \`summary\` et \`title\` ont changé depuis la dernière release."
+                    echo ""
+                    applied_note
                     echo ""
                     echo "<details><summary>Voir le diff</summary>"
                     echo ""
@@ -515,7 +372,7 @@ jobs:
                     echo "$API_START"
                     echo "### API Contract"
                     echo ""
-                    echo "API \`${OLD_VERSION:-—}\` → \`${NEW_VERSION:-—}\` : modifications cosmétiques uniquement (description, summary, title, examples)."
+                    echo "API \`${OLD_VERSION:-—}\` → \`${NEXT_VERSION:-—}\` : modifications cosmétiques uniquement (description, summary, title, examples)."
                     echo "$API_END"
                   } > "$BLOCK"
                   ;;
@@ -538,7 +395,8 @@ jobs:
                     echo "| **Erreurs (ERR)** | ${N_ERR:-0} |"
                     echo "| **Warnings (WARN)** | ${N_WARN:-0} |"
                     echo "| **Infos (INFO)** | ${N_INFO:-0} |"
-                    echo "| **Cohérence de version** | ${VERSION_VERDICT} |"
+                    echo ""
+                    applied_note
                     echo ""
 
                     if [[ -s "$OUT/breaking-bullets.md" ]]; then
@@ -577,7 +435,7 @@ jobs:
                     echo "$API_START"
                     echo "### API Contract"
                     echo ""
-                    echo "API \`${OLD_VERSION:-—}\` → \`${NEW_VERSION:-—}\` : ${SHORT}."
+                    echo "API \`${OLD_VERSION:-—}\` → \`${NEXT_VERSION:-—}\` : ${SHORT}."
                     if [[ -s "$OUT/breaking-bullets.md" ]]; then
                       TOTAL="$(wc -l < "$OUT/breaking-bullets.md")"
                       echo ""
@@ -652,23 +510,24 @@ jobs:
           path: ${{ runner.temp }}/diff.html
           retention-days: 14
 
-      # ------------------------------------------------------------
-      # (Optionnel) Bloc « API Contract » dans le CHANGELOG de la PR de release
+      # ============================================================
+      # 3. ÉCRITURE DANS LA PR DE RELEASE : version d'API + CHANGELOG
       #
-      # ⚠️ Release Please régénère la branche de sa PR quand elle la met à jour
-      #    (la mise à jour du ref écrase les commits ajoutés à la main). Ce commit
-      #    est donc recréé à chaque run, APRÈS Release Please, et l'opération est
-      #    idempotente : le bloc (entre marqueurs HTML) n'est remplacé que dans la
-      #    section de la nouvelle release, jamais dans les anciennes.
-      #    Désactivable avec UPDATE_CHANGELOG: "false".
-      # ------------------------------------------------------------
+      # ⚠️ Release Please régénère la branche de sa PR quand il la met à jour
+      #    (la mise à jour du ref écrase les commits ajoutés à la main). Le commit
+      #    du robot est donc recréé à chaque run, APRÈS Release Please, et toutes les
+      #    opérations sont idempotentes :
+      #      - version.txt / openapi.yaml : réécrits seulement si la version diffère ;
+      #      - CHANGELOG : le bloc (entre marqueurs HTML) n'est remplacé que dans la
+      #        section de la nouvelle release, jamais dans les anciennes.
+      #    Le push avec RELEASE_PAT déclenche api-contract.yml sur la PR de release.
+      # ============================================================
       - name: Checkout de la branche de la PR de release
         if: |
-          env.UPDATE_CHANGELOG == 'true'
-          && steps.pr.outputs.found == 'true'
+          steps.pr.outputs.found == 'true'
           && (steps.analyse.outputs.state == 'first' || steps.analyse.outputs.state == 'compare')
+          && steps.analyse.outputs.next_version != ''
         id: checkout-release
-        continue-on-error: true
         uses: actions/checkout@v4
         with:
           ref: ${{ steps.pr.outputs.branch }}
@@ -676,8 +535,55 @@ jobs:
           path: release-branch
           fetch-depth: 1
 
-      - name: Mettre à jour le CHANGELOG de la PR de release
+      - name: Configuration de Java 25
         if: steps.checkout-release.outcome == 'success'
+        uses: actions/setup-java@v4
+        with:
+          java-version: '25'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      # Écrit la version dans version.txt puis régénère openapi.yaml avec Maven :
+      # openapi.yaml reste ainsi EXACTEMENT ce que produirait le build (le drift check de
+      # api-contract.yml passe), sans bricoler le YAML à la main.
+      - name: Aligner la version de l'API sur la PR de release
+        id: align
+        if: steps.checkout-release.outcome == 'success'
+        working-directory: release-branch
+        env:
+          NEXT_VERSION: ${{ steps.analyse.outputs.next_version }}
+        run: |
+          set -euo pipefail
+
+          CURRENT_TXT="$(tr -d '[:space:]' < "$VERSION_FILE" 2>/dev/null || true)"
+          CURRENT_SPEC="$(yq -r '.info.version // ""' "$SPEC_PATH" 2>/dev/null || true)"
+
+          if [[ "$CURRENT_TXT" == "$NEXT_VERSION" && "$CURRENT_SPEC" == "$NEXT_VERSION" ]]; then
+            echo "✅ La PR de release porte déjà la version d'API ${NEXT_VERSION}."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          # En cas d'échec, on ne laisse jamais un état à moitié écrit (version.txt
+          # modifié mais openapi.yaml ancien) : le commit suivant ne doit rien embarquer.
+          trap 'git checkout -- "$VERSION_FILE" "$SPEC_PATH" 2>/dev/null || true' ERR
+
+          echo "ℹ️ Version d'API de la PR de release : '${CURRENT_TXT:-—}' → '${NEXT_VERSION}'."
+          printf '%s\n' "$NEXT_VERSION" > "$VERSION_FILE"
+          mvn -B -ntp verify -pl application -am -DskipTests
+
+          RESULT="$(yq -r '.info.version // ""' "$SPEC_PATH")"
+          if [[ "$RESULT" != "$NEXT_VERSION" ]]; then
+            echo "❌ Après régénération, ${SPEC_PATH} indique '${RESULT}' au lieu de '${NEXT_VERSION}'."
+            echo "   Vérifiez OpenApiConfig et la copie de version.txt vers META-INF/version.txt."
+            exit 1
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "✅ Version d'API ${NEXT_VERSION} écrite dans ${VERSION_FILE} et ${SPEC_PATH}."
+
+      - name: Mettre à jour le CHANGELOG de la PR de release
+        if: ${{ !cancelled() && env.UPDATE_CHANGELOG == 'true' && steps.checkout-release.outcome == 'success' }}
         continue-on-error: true
         env:
           BRANCH: ${{ steps.pr.outputs.branch }}
@@ -729,14 +635,35 @@ jobs:
               print("CHANGELOG déjà à jour.")
           PY
 
-          cd release-branch
+      # Un seul commit pour la version d'API et le CHANGELOG.
+      - name: Committer et pousser sur la PR de release
+        if: ${{ !cancelled() && steps.checkout-release.outcome == 'success' }}
+        working-directory: release-branch
+        env:
+          BRANCH: ${{ steps.pr.outputs.branch }}
+          NEXT_VERSION: ${{ steps.analyse.outputs.next_version }}
+          ALIGN_CHANGED: ${{ steps.align.outputs.changed }}
+        run: |
+          set -euo pipefail
+
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- "$CHANGELOG_PATH"
+
+          # Uniquement les fichiers gérés ici (Maven peut produire d'autres fichiers locaux).
+          for f in "$VERSION_FILE" "$SPEC_PATH" "$CHANGELOG_PATH"; do
+            [[ -e "$f" ]] && git add -- "$f"
+          done
+
           if git diff --cached --quiet; then
             echo "Aucun changement à committer."
             exit 0
           fi
-          git commit -m "chore(release): ajoute les changements d'API au changelog"
+
+          if [[ "$ALIGN_CHANGED" == "true" ]]; then
+            MSG="chore(release): aligne la version de l'API (${NEXT_VERSION}) et le changelog"
+          else
+            MSG="chore(release): met à jour le changelog"
+          fi
+          git commit -m "$MSG"
           git push origin "HEAD:refs/heads/${BRANCH}"
-          echo "✅ CHANGELOG poussé sur ${BRANCH}."
+          echo "✅ Commit poussé sur ${BRANCH}."

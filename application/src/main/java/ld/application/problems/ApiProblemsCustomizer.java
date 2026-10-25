@@ -70,7 +70,6 @@ public class ApiProblemsCustomizer implements OperationCustomizer, OpenApiCustom
                         .addApiResponse(String.valueOf(status.value()), response(status, codes)));
 
         var declared = method.getMethodAnnotation(ApiProblems.class);
-        if (declared != null) Arrays.stream(declared.value()).forEach(this::registerEnum);
         return operation;
     }
 
@@ -214,16 +213,6 @@ public class ApiProblemsCustomizer implements OperationCustomizer, OpenApiCustom
 
         components.putIfAbsent(name, schema);
         return name;
-    }
-
-    private void registerEnum(Class<? extends ApiErrorCode> type) {
-        var constants = constantsOf(type);
-        var schema = new StringSchema();
-        Arrays.stream(constants).forEach(c -> schema.addEnumItem(c.name()));
-        schema.setDescription(Arrays.stream(constants)
-                .map(this::formatCodeDescription)
-                .collect(Collectors.joining("\n")));
-        components.putIfAbsent(type.getSimpleName(), schema);
     }
 
     private static ApiErrorCode[] constantsOf(Class<? extends ApiErrorCode> type) {

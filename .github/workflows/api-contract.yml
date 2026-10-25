@@ -1,29 +1,40 @@
 name: API Contract
 
-# Contrôle complet du contrat d'API (application/api-contract/openapi.yaml), sur les PR uniquement :
+# Contrôle du contrat d'API (application/api-contract/openapi.yaml), sur les PR uniquement.
 #
+# PRINCIPE DE VERSIONNEMENT : la version de l'API n'est JAMAIS choisie dans une PR.
+# Elle est calculée automatiquement à la release (workflow Release Please) en comparant
+# le contrat de main avec celui de la DERNIÈRE release publiée (oasdiff) :
+#
+#   Changement depuis la dernière release | Version de l'API
+#   --------------------------------------|----------------------------
+#   Aucune API publiée jusque-là          | 1.0.0
+#   Aucun (hors info.version)             | inchangée
+#   Cosmétique uniquement                 | patch  : 2.3.0 -> 2.3.1
+#   Fonctionnel non cassant               | mineur : 2.3.0 -> 2.4.0
+#   Fonctionnel cassant (breaking)        | majeur : 2.3.0 -> 3.0.0
+#
+# Plusieurs PR entre deux releases se cumulent : une PR « breaking » puis dix PR
+# « mineures » donnent UN SEUL saut majeur (2.3.0 -> 3.0.0), sans version intermédiaire
+# fantôme. version.txt n'est modifié que par le robot de release.
+#
+# Ce workflow :
 #   1. Régénère le contrat à partir du code de la PR.
-#   2. Drift check   : le contrat committé doit être identique au contrat régénéré.
-#   3. Compare avec la branche de base (oasdiff) et classe le changement :
+#   2. Drift check : le contrat committé doit être identique au contrat régénéré,
+#      et version.txt doit être cohérent avec info.version.
+#   3. Garde-fou : version.txt ne doit pas être modifié hors PR de release.
+#   4. Compare avec la branche de base (oasdiff) et classe le changement de la PR :
 #        - aucun        : seul info.version (ou rien) change
 #        - cosmétique   : seuls description / summary / title / examples changent
 #        - fonctionnel  : tout le reste (cassant ou non cassant)
-#   4. Publie le rapport oasdiff en commentaire de PR (mis à jour à chaque run)
+#      C'est INFORMATIF : cela indique l'impact de la PR sur la prochaine release.
+#   5. Sur la PR de release uniquement (branche release-please--*) : vérifie que
+#      version.txt contient bien la version calculée vs la dernière release publiée.
+#      Filet de sécurité : une PR de release périmée ne peut pas être mergée.
+#   6. Publie le rapport oasdiff en commentaire de PR (mis à jour à chaque run)
 #      + le rapport HTML en artefact + le lien de revue interactive oasdiff.com.
-#   5. Vérifie la cohérence entre la version de base, les changements détectés
-#      et la version déclarée dans version.txt (politique SemVer stricte) :
 #
-#        Changement du contrat                | Version attendue
-#        -------------------------------------|----------------------------
-#        Aucun (hors info.version)            | inchangée
-#        Cosmétique uniquement                | patch  : 1.4.0 -> 1.4.1
-#        Fonctionnel non cassant              | mineur : 1.4.0 -> 1.5.0
-#        Fonctionnel cassant (breaking)       | majeur : 1.4.0 -> 2.0.0
-#
-#   La version est décidée dans version.txt, indépendamment de Release Please
-#   et des conventions de commit. Le numéro reste le choix du développeur ;
-#   la CI vérifie uniquement qu'il est cohérent avec les changements réels.
-#   L'échec de la politique de version intervient en DERNIER, pour que les
+#   L'échec de la vérification de version intervient en DERNIER, pour que les
 #   rapports (commentaire, artefact, revue interactive) soient toujours publiés.
 
 on:
@@ -87,7 +98,6 @@ jobs:
           ./oasdiff --version
 
           # yq : neutraliser uniquement info.version pour la comparaison fonctionnelle.
-          # La version publiée reste contrôlée par version.txt et le drift check.
           YQ_VERSION="v4.45.1"
           YQ_SHA256="654d2943ca1d3be2024089eb4f270f4070f491a0610481d128509b2834870049"
           curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
@@ -98,9 +108,12 @@ jobs:
           "$RUNNER_TEMP/yq" --version
 
       # ============================================================
-      # 3. COHÉRENCE version.txt / openapi.yaml ET DRIFT CHECK
+      # 3. COHÉRENCE version.txt / openapi.yaml, DRIFT CHECK, GARDE-FOU
       # ============================================================
       - name: Vérifier la version du contrat et le drift
+        env:
+          BASE_REF: ${{ github.base_ref }}
+          IS_RELEASE_PR: ${{ startsWith(github.head_ref, 'release-please--') && github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           set -euo pipefail
 
@@ -141,11 +154,29 @@ jobs:
             exit 1
           fi
 
+          # Garde-fou : la version est décidée à la release, jamais dans une PR.
+          # (Comparaison de la PR fusionnée avec la base : seules les modifications de la PR ressortent.)
+          if [[ "$IS_RELEASE_PR" != "true" ]] \
+             && git cat-file -e "origin/${BASE_REF}:${VERSION_FILE}" 2>/dev/null \
+             && ! git diff --quiet "origin/${BASE_REF}" HEAD -- "$VERSION_FILE"; then
+            echo "❌ $VERSION_FILE ne doit pas être modifié dans une PR."
+            echo "   La version de l'API est calculée automatiquement à la release (oasdiff) :"
+            echo "   elle dépend de tout ce qui a changé depuis la dernière release publiée,"
+            echo "   pas d'une seule PR."
+            echo ""
+            echo "   Pour corriger : restaurez le fichier puis régénérez le contrat."
+            echo "     git checkout origin/${BASE_REF} -- $VERSION_FILE"
+            echo "     mvn verify -pl application -am -DskipTests"
+            echo "     git add $VERSION_FILE $SPEC_PATH && git commit"
+            exit 1
+          fi
+
           echo "✅ Version du contrat cohérente : $API_VERSION."
           echo "✅ $SPEC_PATH est à jour."
 
       # ============================================================
       # 4. COMPARAISON AVEC LA BRANCHE DE BASE (hors info.version)
+      #    Informatif : impact de CETTE PR sur la prochaine release.
       #    Produit : change       = none | cosmetic | functional
       #              breaking     = true | false
       #              base_version = version du contrat sur la base (vide si absent)
@@ -182,7 +213,6 @@ jobs:
           echo "n_warn=0" >> "$GITHUB_OUTPUT"
           echo "n_info=0" >> "$GITHUB_OUTPUT"
 
-          # La version du contrat est pilotée séparément par version.txt.
           # On neutralise uniquement info.version pour évaluer les changements fonctionnels.
           SPEC_VERSION="$(yq -r '.info.version // ""' "$SPEC_PATH")"
           if [[ -z "$SPEC_VERSION" ]]; then
@@ -235,10 +265,10 @@ jobs:
 
           if [[ $code -eq 0 ]]; then
             echo "✅ Le contrat a changé, mais uniquement sur des éléments cosmétiques ($COSMETIC_ELEMENTS)."
-            echo "::notice::Changement cosmétique du contrat d'API : incrément de patch attendu."
+            echo "::notice::Changement cosmétique du contrat d'API : impact patch sur la prochaine release."
             {
               echo "### Contrat OpenAPI : changement cosmétique uniquement"
-              echo "Seuls ${COSMETIC_ELEMENTS//,/, } ont changé. Incrément de **patch** attendu."
+              echo "Seuls ${COSMETIC_ELEMENTS//,/, } ont changé. Impact sur la prochaine release d'API : **patch**."
             } >> "$GITHUB_STEP_SUMMARY"
             emit cosmetic false
             exit 0
@@ -290,9 +320,9 @@ jobs:
           {
             echo "### Contrat OpenAPI : changement fonctionnel détecté"
             if [[ "$BREAKING" == "true" ]]; then
-              echo "⚠️ **Breaking change** (niveau ${BREAKING_LEVEL}) : incrément **majeur** attendu."
+              echo "⚠️ **Breaking change** (niveau ${BREAKING_LEVEL}) : impact **majeur** sur la prochaine release d'API."
             else
-              echo "Changement **non cassant** : incrément **mineur** attendu."
+              echo "Changement **non cassant** : impact **mineur** sur la prochaine release d'API."
             fi
             echo ""
             echo "#### Changelog oasdiff"
@@ -317,24 +347,27 @@ jobs:
           emit functional "$BREAKING"
 
       # ============================================================
-      # 5. POLITIQUE DE VERSION : calcul de la version attendue
+      # 5. VERSION DE LA RELEASE D'API (PR de release uniquement)
+      #    PR « classique » : rien à vérifier (la version n'y est pas choisie).
+      #    PR de release    : version.txt doit être égal à la version calculée
+      #                       vs la DERNIÈRE release publiée (script partagé avec
+      #                       release-please.yml, qui écrit cette version).
       #    (ne fait JAMAIS échouer le job ici : le verdict est appliqué
       #     en dernière étape, après publication des rapports)
       #    Produit : status   = ok | ko | skip
-      #              expected = version attendue
-      #              bump     = none | patch | minor | major
+      #              expected = version attendue (PR de release)
+      #              bump     = first | none | patch | minor | major
       #              message  = explication (une seule ligne)
       # ============================================================
-      - name: Évaluer la cohérence de version
+      - name: Vérifier la version de la release d'API
         id: version
         env:
-          CHANGE: ${{ steps.analyse.outputs.change }}
-          BREAKING: ${{ steps.analyse.outputs.breaking }}
-          BASE_VERSION: ${{ steps.analyse.outputs.base_version }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          IS_RELEASE_PR: ${{ startsWith(github.head_ref, 'release-please--') && github.event.pull_request.head.repo.full_name == github.repository }}
           DECLARED_VERSION: ${{ steps.analyse.outputs.spec_version }}
         run: |
           set -euo pipefail
-          STABLE_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
 
           result() {
             # $1 status, $2 expected, $3 bump, $4 message
@@ -345,53 +378,52 @@ jobs:
               echo "message=$4"
             } >> "$GITHUB_OUTPUT"
             {
-              echo "### Version du contrat"
-              echo "- Base : \`${BASE_VERSION:-—}\` · Déclarée : \`${DECLARED_VERSION}\` · Attendue : \`${2:-—}\`"
+              echo "### Version de l'API"
+              echo "- Déclarée : \`${DECLARED_VERSION}\` · Attendue : \`${2:-—}\`"
               echo "- $4"
             } >> "$GITHUB_STEP_SUMMARY"
             echo "$4"
           }
 
-          # --- Première introduction du contrat : aucune version de base
-          if [[ -z "$BASE_VERSION" ]]; then
-            result skip "" none "Première introduction du contrat (version ${DECLARED_VERSION}) : aucune version de base à comparer."
+          if [[ "$IS_RELEASE_PR" != "true" ]]; then
+            result skip "" none "PR classique : la version de l'API n'est pas modifiée ici, elle est calculée à la release."
             exit 0
           fi
 
-          if [[ ! "$BASE_VERSION" =~ $STABLE_RE ]]; then
-            result ko "" none "Version de base '${BASE_VERSION}' non conforme (format stable X.Y.Z requis pour appliquer la politique de version)."
+          # --- PR de release : même calcul que le robot (script partagé)
+          RESULT_FILE="$RUNNER_TEMP/last-release.env"
+          : > "$RESULT_FILE"
+          if ! OUT="$RUNNER_TEMP/last-release" OUTPUT_FILE="$RESULT_FILE" SPEC_PATH="$SPEC_PATH" \
+               bash .github/scripts/api-vs-last-release.sh; then
+            result ko "" none "Le calcul de la version attendue a échoué : consultez les logs de cette étape."
             exit 0
           fi
 
-          IFS=. read -r MAJ MIN PAT <<< "$BASE_VERSION"
+          get() { sed -n "s/^$1=//p" "$RESULT_FILE" | head -n1; }
+          STATE="$(get state)"
+          EXPECTED="$(get next_version)"
+          BUMP="$(get bump)"
+          LAST_TAG="$(get last_tag)"
+          OLD_VERSION="$(get old_version)"
 
-          case "${CHANGE}:${BREAKING}" in
-            none:*)
-              BUMP=none;  EXPECTED="${BASE_VERSION}"
-              RULE="Aucun changement contractuel (hors info.version) : la version doit rester inchangée" ;;
-            cosmetic:*)
-              BUMP=patch; EXPECTED="${MAJ}.${MIN}.$((PAT + 1))"
-              RULE="Changement cosmétique uniquement : incrément de patch requis" ;;
-            functional:false)
-              BUMP=minor; EXPECTED="${MAJ}.$((MIN + 1)).0"
-              RULE="Changement fonctionnel non cassant : incrément mineur requis" ;;
-            functional:true)
-              BUMP=major; EXPECTED="$((MAJ + 1)).0.0"
-              RULE="Breaking change : incrément majeur requis" ;;
-            *)
-              echo "❌ Classification inattendue : change='${CHANGE}' breaking='${BREAKING}'."
-              exit 1 ;;
+          if [[ "$STATE" != "first" && "$STATE" != "compare" || -z "$EXPECTED" ]]; then
+            result ko "" none "Version attendue non calculable (état : ${STATE:-inconnu}) : relancez le job « API release report » du workflow Release Please."
+            exit 0
+          fi
+
+          case "$BUMP" in
+            first) RULE="Première version de l'API publiée : ${EXPECTED}" ;;
+            none)  RULE="Aucun changement d'API depuis ${LAST_TAG} : la version reste ${OLD_VERSION}" ;;
+            patch) RULE="Changement cosmétique depuis ${LAST_TAG} : ${OLD_VERSION} → ${EXPECTED} (patch)" ;;
+            minor) RULE="Changement non cassant depuis ${LAST_TAG} : ${OLD_VERSION} → ${EXPECTED} (mineur)" ;;
+            major) RULE="Breaking change depuis ${LAST_TAG} : ${OLD_VERSION} → ${EXPECTED} (majeur)" ;;
+            *)     RULE="Version attendue : ${EXPECTED}" ;;
           esac
 
-          if [[ ! "$DECLARED_VERSION" =~ $STABLE_RE ]]; then
-            result ko "$EXPECTED" "$BUMP" "Version déclarée '${DECLARED_VERSION}' non conforme (format stable X.Y.Z requis). ${RULE} : ${BASE_VERSION} → ${EXPECTED}."
-            exit 0
-          fi
-
           if [[ "$DECLARED_VERSION" == "$EXPECTED" ]]; then
-            result ok "$EXPECTED" "$BUMP" "${RULE} : ${BASE_VERSION} → ${EXPECTED} ✅"
+            result ok "$EXPECTED" "$BUMP" "${RULE} ✅"
           else
-            result ko "$EXPECTED" "$BUMP" "${RULE} : ${BASE_VERSION} → ${EXPECTED}, mais ${DECLARED_VERSION} est déclarée."
+            result ko "$EXPECTED" "$BUMP" "${RULE}, mais la PR de release déclare ${DECLARED_VERSION}."
           fi
 
       # ============================================================
@@ -406,7 +438,7 @@ jobs:
           retention-days: 7
 
       # ============================================================
-      # 7. COMMENTAIRE DE PR : rapport oasdiff + verdict de version
+      # 7. COMMENTAIRE DE PR : rapport oasdiff + impact sur la version
       # ============================================================
       - name: Publier le rapport sur la PR
         if: github.event.pull_request.head.repo.full_name == github.repository
@@ -421,7 +453,6 @@ jobs:
           N_ERR: ${{ steps.analyse.outputs.n_err }}
           N_WARN: ${{ steps.analyse.outputs.n_warn }}
           N_INFO: ${{ steps.analyse.outputs.n_info }}
-          BASE_VERSION: ${{ steps.analyse.outputs.base_version }}
           DECLARED_VERSION: ${{ steps.analyse.outputs.spec_version }}
           VERSION_STATUS: ${{ steps.version.outputs.status }}
           EXPECTED_VERSION: ${{ steps.version.outputs.expected }}
@@ -436,56 +467,61 @@ jobs:
             --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id")
           ID=$(printf '%s\n' "$IDS" | head -n1)
 
-          # --- Libellés de la politique de version
-          case "$VERSION_BUMP" in
-            major) BUMP_LABEL="incrément **majeur**" ;;
-            minor) BUMP_LABEL="incrément **mineur**" ;;
-            patch) BUMP_LABEL="incrément de **patch**" ;;
-            *)     BUMP_LABEL="version **inchangée**" ;;
+          # --- Impact de CETTE PR sur la prochaine release d'API
+          case "${CHANGE}:${BREAKING}" in
+            none:*)           IMPACT="aucun (la version ne bouge pas)" ;;
+            cosmetic:*)       IMPACT="au moins un incrément de **patch**" ;;
+            functional:false) IMPACT="au moins un incrément **mineur**" ;;
+            functional:true)  IMPACT="un incrément **majeur** (breaking change)" ;;
+            *)                IMPACT="non déterminé" ;;
           esac
 
-          case "$VERSION_STATUS" in
-            ok)   VERDICT="✅ Cohérente" ;;
-            skip) VERDICT="ℹ️ Première introduction du contrat" ;;
-            *)    VERDICT="❌ Incohérente" ;;
-          esac
-
-          # --- Bloc "Version du contrat" commun aux trois cas
+          # --- Bloc "Version de l'API" commun aux trois cas
           version_block() {
-            echo "### 🏷️ Version du contrat"
+            echo "### 🏷️ Version de l'API"
             echo ""
-            echo "| | |"
+            case "$VERSION_STATUS" in
+              skip)
+                echo "> ℹ️ La version de l'API **n'est pas à modifier dans la PR** : elle est calculée"
+                echo "> automatiquement à la release, en comparant le contrat avec la **dernière release publiée**."
+                echo ">"
+                echo "> **Impact de cette PR** sur la prochaine release d'API : ${IMPACT}."
+                echo "> _(Le calcul final cumule toutes les PR mergées depuis la dernière release.)_"
+                echo ">"
+                echo "> ⚠️ Ne touchez pas à \`version.txt\` : cette PR échouerait."
+                ;;
+              ok)
+                echo "| | |"
+                echo "|---|---|"
+                echo "| **Version déclarée** (\`version.txt\`) | \`${DECLARED_VERSION}\` |"
+                echo "| **Version attendue** | \`${EXPECTED_VERSION}\` |"
+                echo "| **Verdict** | ✅ Cohérente |"
+                echo ""
+                echo "> ${VERSION_MESSAGE}"
+                ;;
+              *)
+                echo "| | |"
+                echo "|---|---|"
+                echo "| **Version déclarée** (\`version.txt\`) | \`${DECLARED_VERSION}\` |"
+                echo "| **Version attendue** | \`${EXPECTED_VERSION:-—}\` |"
+                echo "| **Verdict** | ❌ Incohérente |"
+                echo ""
+                echo "> ❌ ${VERSION_MESSAGE}"
+                echo ">"
+                echo "> 🔧 **Pour corriger** : ne modifiez rien à la main. Le job « API release report » du workflow"
+                echo "> *Release Please* réaligne automatiquement cette PR à chaque push sur \`main\` (relancez-le si besoin)."
+                ;;
+            esac
+            echo ""
+            echo "<details><summary>Politique de version (SemVer strict, calculée à la release)</summary>"
+            echo ""
+            echo "| Changement depuis la dernière release publiée | Version de l'API |"
             echo "|---|---|"
-            echo "| **Version de base** (\`${BASE_REF}\`) | \`${BASE_VERSION:-—}\` |"
-            echo "| **Version déclarée** (\`version.txt\`) | \`${DECLARED_VERSION}\` |"
-            if [[ -n "$EXPECTED_VERSION" ]]; then
-              echo "| **Version attendue** | \`${EXPECTED_VERSION}\` (${BUMP_LABEL}) |"
-            else
-              echo "| **Version attendue** | — |"
-            fi
-            echo "| **Verdict** | ${VERDICT} |"
-            echo ""
-            if [[ "$VERSION_STATUS" == "ko" ]]; then
-              echo "> ❌ ${VERSION_MESSAGE}"
-              echo ">"
-              if [[ -n "$EXPECTED_VERSION" ]]; then
-                echo "> 🔧 **Pour corriger** : mettez \`${EXPECTED_VERSION}\` dans \`version.txt\`, puis"
-                echo "> \`mvn verify -pl application -am -DskipTests\` et committez \`openapi.yaml\` régénéré."
-              else
-                echo "> 🔧 Corrigez \`version.txt\` (format stable \`X.Y.Z\`), puis régénérez le contrat avec Maven."
-              fi
-            else
-              echo "> ${VERSION_MESSAGE}"
-            fi
-            echo ""
-            echo "<details><summary>Politique de version (SemVer strict)</summary>"
-            echo ""
-            echo "| Changement du contrat | Version attendue |"
-            echo "|---|---|"
+            echo "| Aucune API publiée jusque-là | \`1.0.0\` |"
             echo "| Aucun (hors \`info.version\`) | Inchangée |"
-            echo "| Cosmétique uniquement | Patch : \`1.4.0\` → \`1.4.1\` |"
-            echo "| Fonctionnel non cassant | Mineur : \`1.4.0\` → \`1.5.0\` |"
-            echo "| Breaking change | Majeur : \`1.4.0\` → \`2.0.0\` |"
+            echo "| Cosmétique uniquement | Patch : \`2.3.0\` → \`2.3.1\` |"
+            echo "| Fonctionnel non cassant | Mineur : \`2.3.0\` → \`2.4.0\` |"
+            echo "| Breaking change | Majeur : \`2.3.0\` → \`3.0.0\` |"
             echo ""
             echo "</details>"
             echo ""
@@ -520,11 +556,7 @@ jobs:
           elif [[ "$CHANGE" == "cosmetic" ]]; then
             {
               echo "$MARKER"
-              if [[ "$VERSION_STATUS" == "ko" ]]; then
-                echo "## 🔎 Contrat OpenAPI — ❌ Version incohérente (changement cosmétique)"
-              else
-                echo "## 🔎 Contrat OpenAPI — ✅ Changement cosmétique"
-              fi
+              echo "## 🔎 Contrat OpenAPI — ✅ Changement cosmétique"
               echo ""
               echo "| | |"
               echo "|---|---|"
@@ -533,7 +565,7 @@ jobs:
               echo ""
               echo "Seuls \`description\`, \`examples\`, \`summary\` et \`title\` ont changé."
               echo ""
-              echo "> ℹ️ **Aucun impact** pour les consommateurs. Incrément de **patch** attendu."
+              echo "> ℹ️ **Aucun impact** pour les consommateurs."
               echo ">"
               echo "> 🔗 La revue côte-à-côte oasdiff.com (si générée) est publiée dans un commentaire séparé, recréé à chaque run."
               echo ""
@@ -587,7 +619,7 @@ jobs:
                 echo ""
               fi
 
-              # ---- Version du contrat (remplace l'ancienne section "Action requise")
+              # ---- Version de l'API
               version_block
 
               # ---- Changelog
@@ -718,20 +750,24 @@ jobs:
           fi
 
       # ============================================================
-      # 9. APPLICATION DE LA POLITIQUE DE VERSION
+      # 9. APPLICATION DE LA VÉRIFICATION DE VERSION (PR de release)
       #    Dernière étape : les rapports sont déjà publiés.
       # ============================================================
-      - name: Appliquer la politique de version
+      - name: Appliquer la vérification de version
         if: steps.version.outputs.status == 'ko'
         env:
           MESSAGE: ${{ steps.version.outputs.message }}
           EXPECTED: ${{ steps.version.outputs.expected }}
         run: |
-          echo "❌ Version du contrat incohérente avec les changements détectés."
+          echo "❌ La version de l'API de la PR de release est incohérente avec les changements depuis la dernière release."
           echo "   $MESSAGE"
+          echo ""
+          echo "   Ne corrigez pas à la main : le job « API release report » (workflow Release Please)"
+          echo "   réécrit ${VERSION_FILE} et ${SPEC_PATH} dans cette PR à chaque push sur main."
+          echo "   Si la PR est restée périmée, relancez ce job ; ce check repassera au vert tout seul."
           if [[ -n "$EXPECTED" ]]; then
             echo ""
-            echo "   Pour corriger :"
+            echo "   Dépannage manuel (dernier recours) :"
             echo "     1. Mettez '$EXPECTED' dans $VERSION_FILE"
             echo "     2. mvn verify -pl application -am -DskipTests"
             echo "     3. git add $VERSION_FILE $SPEC_PATH && git commit"
