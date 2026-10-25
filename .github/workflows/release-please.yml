@@ -1,5 +1,14 @@
 name: Release Please
 
+# 1. Release Please : crée / met à jour la PR de release (inchangé).
+# 2. API release report : compare le contrat d'API de main (= ce qui sera releasé)
+#    avec le contrat de la DERNIÈRE release GitHub, puis :
+#      - publie / met à jour un commentaire sur la PR de release (avec le lien de revue
+#        interactive oasdiff.com et le rapport HTML en artefact) ;
+#      - (optionnel) ajoute un bloc « API Contract » dans le CHANGELOG de la PR de release.
+#    Aucune release précédente (ou contrat absent à cette release) =
+#    « première version de l'API ». Ce job ne fait JAMAIS échouer le workflow.
+
 on:
   push:
     branches: [main]
@@ -9,9 +18,27 @@ permissions:
   issues: write
   pull-requests: write
 
+# Évite que deux runs modifient la PR de release en même temps.
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+env:
+  SPEC_PATH: application/api-contract/openapi.yaml
+  OASDIFF_VERSION: "1.33.0"
+  # Ajout d'un bloc « API Contract » dans le CHANGELOG de la PR de release (voir étape dédiée).
+  UPDATE_CHANGELOG: "true"
+  CHANGELOG_PATH: CHANGELOG.md
+
 jobs:
+  # ============================================================
+  # 1. RELEASE PLEASE (inchangé)
+  # ============================================================
   release-please:
     runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      prs_created: ${{ steps.release.outputs.prs_created }}
     steps:
       - name: Create or update release PRs
         uses: googleapis/release-please-action@v4
@@ -20,3 +47,696 @@ jobs:
           token: ${{ secrets.RELEASE_PAT }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # ============================================================
+  # 2. RAPPORT D'API : contrat de la dernière release -> contrat de main
+  # ============================================================
+  api-release-report:
+    name: API release report
+    needs: release-please
+    # Inutile quand la PR de release vient d'être mergée (la release est créée).
+    if: needs.release-please.outputs.releases_created != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Filet de sécurité : un incident ici ne rend jamais le workflow rouge.
+    continue-on-error: true
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout de main (historique et tags complets)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # ------------------------------------------------------------
+      # Retrouver la PR de release ouverte (branche release-please--…)
+      # ------------------------------------------------------------
+      - name: Trouver la PR de release
+        id: pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BASE: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          LINES="$(gh pr list --state open --base "$BASE" --limit 50 \
+            --json number,headRefName \
+            --jq '.[] | select(.headRefName | startswith("release-please--")) | "\(.number) \(.headRefName)"')"
+
+          if [[ -z "$LINES" ]]; then
+            echo "ℹ️ Aucune PR de release ouverte : rien à commenter."
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          NUMBERS="$(awk '{print $1}' <<< "$LINES" | paste -sd' ' -)"
+          BRANCH="$(head -n1 <<< "$LINES" | awk '{print $2}')"
+          echo "PR de release : ${NUMBERS} (branche ${BRANCH})"
+          {
+            echo "found=true"
+            echo "numbers=${NUMBERS}"
+            echo "branch=${BRANCH}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Installer oasdiff et yq
+        if: steps.pr.outputs.found == 'true'
+        run: |
+          set -euo pipefail
+
+          ARCHIVE="oasdiff_${OASDIFF_VERSION}_linux_amd64.tar.gz"
+          BASE_URL="https://github.com/oasdiff/oasdiff/releases/download/v${OASDIFF_VERSION}"
+          mkdir -p "$RUNNER_TEMP/oasdiff"
+          cd "$RUNNER_TEMP/oasdiff"
+          curl -fsSLO "${BASE_URL}/${ARCHIVE}"
+          curl -fsSLO "${BASE_URL}/checksums.txt"
+          grep " ${ARCHIVE}\$" checksums.txt | sha256sum -c -
+          tar -xzf "$ARCHIVE" oasdiff
+          echo "$PWD" >> "$GITHUB_PATH"
+          ./oasdiff --version
+
+          YQ_VERSION="v4.45.1"
+          YQ_SHA256="654d2943ca1d3be2024089eb4f270f4070f491a0610481d128509b2834870049"
+          curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64" \
+            -o "$RUNNER_TEMP/yq"
+          echo "${YQ_SHA256}  $RUNNER_TEMP/yq" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/yq"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/yq" --version
+
+      # ------------------------------------------------------------
+      # Comparaison : contrat de la dernière release  ->  contrat de main
+      #   state = no_spec | first | unknown | compare
+      #   (info.version est neutralisé pour la classification, comme dans api-contract.yml)
+      # ------------------------------------------------------------
+      - name: Comparer avec le contrat de la dernière release
+        id: analyse
+        if: steps.pr.outputs.found == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BREAKING_LEVEL: ERR
+          COSMETIC_ELEMENTS: description,examples,summary,title
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP"
+          OLD_FILE="$OUT/last-release-openapi.yaml"
+          NORM_OLD="$OUT/last-release-openapi-normalized.yaml"
+          NORM_NEW="$OUT/head-openapi-normalized.yaml"
+
+          STATE="compare"; FIRST_REASON=""; CHANGE="none"; BREAKING="false"
+          N_ERR=0; N_WARN=0; N_INFO=0
+          LAST_TAG=""; OLD_VERSION=""; NEW_VERSION=""
+
+          # Les sorties sont toujours publiées, même en cas de sortie anticipée.
+          emit_all() {
+            {
+              echo "state=$STATE"
+              echo "first_reason=$FIRST_REASON"
+              echo "change=$CHANGE"
+              echo "breaking=$BREAKING"
+              echo "n_err=$N_ERR"
+              echo "n_warn=$N_WARN"
+              echo "n_info=$N_INFO"
+              echo "last_tag=$LAST_TAG"
+              echo "old_version=$OLD_VERSION"
+              echo "new_version=$NEW_VERSION"
+            } >> "$GITHUB_OUTPUT"
+          }
+          trap emit_all EXIT
+
+          : > "$OUT/diff.txt"
+          : > "$OUT/changelog.txt"
+          : > "$OUT/breaking.txt"
+          : > "$OUT/breaking-bullets.md"
+
+          # --- Contrat de main (= ce qui sera releasé)
+          if [[ ! -f "$SPEC_PATH" ]]; then
+            echo "::notice::$SPEC_PATH est absent de main : rien à comparer."
+            STATE="no_spec"
+            exit 0
+          fi
+          NEW_VERSION="$(yq -r '.info.version // ""' "$SPEC_PATH")"
+          yq '.info.version = "__API_CONTRACT_VERSION__"' "$SPEC_PATH" > "$NORM_NEW"
+
+          # --- Dernière release GitHub (non brouillon, non pré-release)
+          LAST_TAG="$(gh api "repos/${REPO}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
+          if [[ -z "$LAST_TAG" ]]; then
+            echo "ℹ️ Aucune release précédente : ce sera la première version de l'API."
+            STATE="first"; FIRST_REASON="norelease"
+            exit 0
+          fi
+
+          if ! git rev-parse -q --verify "refs/tags/${LAST_TAG}^{commit}" > /dev/null; then
+            git fetch --no-tags origin "refs/tags/${LAST_TAG}:refs/tags/${LAST_TAG}" 2>/dev/null || true
+          fi
+          if ! git rev-parse -q --verify "refs/tags/${LAST_TAG}^{commit}" > /dev/null; then
+            echo "::warning::Tag '${LAST_TAG}' introuvable : comparaison impossible."
+            STATE="unknown"
+            exit 0
+          fi
+
+          if ! git cat-file -e "refs/tags/${LAST_TAG}:${SPEC_PATH}" 2>/dev/null; then
+            echo "ℹ️ Le contrat n'existait pas dans la release ${LAST_TAG} : première version de l'API."
+            STATE="first"; FIRST_REASON="nocontract"
+            exit 0
+          fi
+
+          git show "refs/tags/${LAST_TAG}:${SPEC_PATH}" > "$OLD_FILE"
+          OLD_VERSION="$(yq -r '.info.version // ""' "$OLD_FILE")"
+          yq '.info.version = "__API_CONTRACT_VERSION__"' "$OLD_FILE" > "$NORM_OLD"
+
+          # --- Aucun changement (info.version exclu)
+          if cmp -s "$NORM_OLD" "$NORM_NEW"; then
+            echo "✅ Aucun changement d'API depuis ${LAST_TAG}."
+            CHANGE="none"
+            exit 0
+          fi
+
+          # --- Cosmétique ou fonctionnel ?
+          code=0
+          oasdiff diff "$NORM_OLD" "$NORM_NEW" \
+            --exclude-elements "$COSMETIC_ELEMENTS" --format text --fail-on-diff \
+            > "$OUT/diff.txt" 2>&1 || code=$?
+
+          oasdiff diff "$NORM_OLD" "$NORM_NEW" \
+            --exclude-elements "$COSMETIC_ELEMENTS" --format html \
+            > "$OUT/diff.html" 2>&1 || true
+
+          if [[ $code -eq 0 ]]; then
+            echo "✅ Seuls des éléments cosmétiques ($COSMETIC_ELEMENTS) ont changé depuis ${LAST_TAG}."
+            CHANGE="cosmetic"
+            exit 0
+          elif [[ $code -ne 1 ]]; then
+            echo "::warning::oasdiff diff a échoué (code $code) : rapport d'API indisponible."
+            cat "$OUT/diff.txt" || true
+            STATE="unknown"
+            exit 0
+          fi
+
+          CHANGE="functional"
+
+          # --- Breaking change ?
+          bcode=0
+          oasdiff breaking "$NORM_OLD" "$NORM_NEW" \
+            --fail-on "$BREAKING_LEVEL" --format text \
+            > "$OUT/breaking.txt" 2>&1 || bcode=$?
+          if [[ $bcode -eq 0 ]]; then
+            BREAKING="false"
+          elif [[ $bcode -eq 1 ]]; then
+            BREAKING="true"
+          else
+            echo "::warning::oasdiff breaking a échoué (code $bcode) : classification cassant/non cassant indisponible."
+            BREAKING="false"
+          fi
+
+          oasdiff changelog "$NORM_OLD" "$NORM_NEW" \
+            --format text > "$OUT/changelog.txt" 2>&1 || true
+
+          # Une entrée oasdiff = une ligne « error|warning|info <id> at <fichier> » suivie de
+          # lignes indentées (« in API GET /pets », puis le message). On regroupe chaque entrée
+          # sur UNE puce lisible, classée ERR puis WARN puis INFO.
+          awk '
+            function flush() {
+              if (cur == "") return
+              if (lvl == "error")        ea[++ne] = "- ❌ **ERR** — "  cur
+              else if (lvl == "warning") wa[++nw] = "- ⚠️ **WARN** — " cur
+              else                       ia[++ni] = "- ℹ️ **INFO** — " cur
+              cur = ""
+            }
+            /^(error|warning|info)[[:space:]]/ {
+              flush()
+              lvl = $1
+              line = $0
+              sub(/^(error|warning|info)[[:space:]]+/, "", line)
+              cur = line
+              next
+            }
+            /^[[:space:]]+[^[:space:]]/ && cur != "" {
+              line = $0
+              gsub(/^[[:space:]]+/, "", line)
+              cur = cur " — " line
+              next
+            }
+            END {
+              flush()
+              for (k = 1; k <= ne; k++) print ea[k]
+              for (k = 1; k <= nw; k++) print wa[k]
+              for (k = 1; k <= ni; k++) print ia[k]
+            }
+          ' "$OUT/changelog.txt" > "$OUT/breaking-bullets.md" || true
+
+          N_ERR=$(awk  '/^error[[:space:]]/   {c++} END {print c+0}' "$OUT/changelog.txt")
+          N_WARN=$(awk '/^warning[[:space:]]/ {c++} END {print c+0}' "$OUT/changelog.txt")
+          N_INFO=$(awk '/^info[[:space:]]/    {c++} END {print c+0}' "$OUT/changelog.txt")
+
+          cat "$OUT/changelog.txt"
+
+      # ------------------------------------------------------------
+      # Lien de revue interactive oasdiff.com (comme dans api-contract.yml)
+      #
+      # L'action oasdiff ne sait commenter que sur un événement `pull_request` : ici
+      # (événement `push`), elle ne peut pas poster sur la PR de release. On génère donc
+      # le lien avec le CLI (`changelog --open`, la même mécanique que l'action) et on le
+      # publie nous-mêmes dans le commentaire. Les specs sont chiffrées avant l'envoi ;
+      # la clé de déchiffrement est dans le lien (partie après #), valable 7 jours.
+      # Le lien n'est volontairement PAS écrit dans le CHANGELOG.md versionné.
+      # ------------------------------------------------------------
+      - name: Générer le lien de revue interactive oasdiff.com
+        id: review-link
+        if: |
+          steps.pr.outputs.found == 'true'
+          && steps.analyse.outputs.state == 'compare'
+          && steps.analyse.outputs.change != 'none'
+        continue-on-error: true
+        run: |
+          set -u
+          OUT="$RUNNER_TEMP"
+          URL_FILE="$OUT/review-url.txt"
+          LOG="$OUT/review-cli.log"
+          : > "$URL_FILE"
+
+          # Depuis oasdiff 1.19.1, la ligne « Opening <url> » est écrite sur stderr :
+          # on capture donc les deux flux.
+          timeout 120 oasdiff changelog "$OUT/last-release-openapi.yaml" "$SPEC_PATH" --open \
+            > "$LOG" 2>&1 || true
+
+          URL="$(grep -Eo 'https?://[^[:space:]]*oasdiff\.com/review/[^[:space:]]+' "$LOG" | head -n1 || true)"
+
+          if [[ -n "$URL" ]]; then
+            printf '%s' "$URL" > "$URL_FILE"
+            echo "found=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Lien de revue généré (non affiché dans les logs : il contient la clé de déchiffrement)."
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Aucun lien de revue oasdiff.com généré par le CLI (secours : action oasdiff, lien dans le résumé du job)."
+            tail -n 5 "$LOG" || true
+          fi
+
+      # ------------------------------------------------------------
+      # Construction du commentaire de PR et du bloc de CHANGELOG
+      # ------------------------------------------------------------
+      - name: Construire le commentaire et le bloc de changelog
+        if: steps.pr.outputs.found == 'true' && steps.analyse.outputs.state != 'no_spec'
+        env:
+          STATE: ${{ steps.analyse.outputs.state }}
+          FIRST_REASON: ${{ steps.analyse.outputs.first_reason }}
+          CHANGE: ${{ steps.analyse.outputs.change }}
+          BREAKING: ${{ steps.analyse.outputs.breaking }}
+          N_ERR: ${{ steps.analyse.outputs.n_err }}
+          N_WARN: ${{ steps.analyse.outputs.n_warn }}
+          N_INFO: ${{ steps.analyse.outputs.n_info }}
+          LAST_TAG: ${{ steps.analyse.outputs.last_tag }}
+          OLD_VERSION: ${{ steps.analyse.outputs.old_version }}
+          NEW_VERSION: ${{ steps.analyse.outputs.new_version }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          SERVER_URL: ${{ github.server_url }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          OUT="$RUNNER_TEMP"
+          COMMENT="$OUT/release-comment.md"
+          BLOCK="$OUT/api-changelog-block.md"
+          : > "$COMMENT"
+          : > "$BLOCK"
+
+          MARKER='<!-- api-release-report -->'
+          API_START='<!-- api-contract:start -->'
+          API_END='<!-- api-contract:end -->'
+          SHORT_SHA="${SHA::7}"
+          TAG_URL="${SERVER_URL}/${REPO}/releases/tag/${LAST_TAG}"
+          NOW="$(date -u '+%Y-%m-%d %H:%M UTC')"
+          STABLE_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
+
+          # --- Cohérence de version (information, jamais bloquante) :
+          #     l'incrément entre la dernière release et la version à releaser doit être
+          #     au moins celui exigé par les changements cumulés.
+          rank() { case "$1" in none) echo 0 ;; patch) echo 1 ;; minor) echo 2 ;; major) echo 3 ;; *) echo -1 ;; esac; }
+
+          REQUIRED="none"
+          case "${CHANGE}:${BREAKING}" in
+            cosmetic:*)       REQUIRED="patch" ;;
+            functional:false) REQUIRED="minor" ;;
+            functional:true)  REQUIRED="major" ;;
+          esac
+
+          ACTUAL="n/a"
+          if [[ "$OLD_VERSION" =~ $STABLE_RE && "$NEW_VERSION" =~ $STABLE_RE ]]; then
+            IFS=. read -r OMAJ OMIN OPAT <<< "$OLD_VERSION"
+            IFS=. read -r NMAJ NMIN NPAT <<< "$NEW_VERSION"
+            if   (( NMAJ > OMAJ )); then ACTUAL="major"
+            elif (( NMAJ < OMAJ )); then ACTUAL="regression"
+            elif (( NMIN > OMIN )); then ACTUAL="minor"
+            elif (( NMIN < OMIN )); then ACTUAL="regression"
+            elif (( NPAT > OPAT )); then ACTUAL="patch"
+            elif (( NPAT < OPAT )); then ACTUAL="regression"
+            else ACTUAL="none"
+            fi
+          fi
+
+          if [[ "$ACTUAL" == "n/a" ]]; then
+            VERSION_VERDICT="ℹ️ Non évaluée (version non conforme X.Y.Z)"
+          elif [[ "$ACTUAL" == "regression" ]]; then
+            VERSION_VERDICT="⚠️ La version à releaser est inférieure à celle de la dernière release"
+          elif (( $(rank "$ACTUAL") >= $(rank "$REQUIRED") )); then
+            VERSION_VERDICT="✅ Cohérente (incrément : ${ACTUAL}, minimum requis : ${REQUIRED})"
+          else
+            VERSION_VERDICT="⚠️ Incrément insuffisant : ${ACTUAL} (minimum attendu : ${REQUIRED})"
+          fi
+
+          # Liens vers les rapports (HTML en artefact + revue interactive oasdiff.com)
+          REVIEW_URL="$(cat "$OUT/review-url.txt" 2>/dev/null || true)"
+          links_block() {
+            echo "- 🖥️ **Rapport HTML interactif** : artefact \`oasdiff-release-report\` du [run](${RUN_URL})."
+            if [[ -n "$REVIEW_URL" ]]; then
+              echo "- 🔗 **Revue côte-à-côte oasdiff.com** : [ouvrir la revue](${REVIEW_URL}) _(lien valable 7 jours, recréé à chaque push sur main)_"
+            else
+              echo "- 🔗 **Revue côte-à-côte oasdiff.com** : lien dans le [résumé du run](${RUN_URL}) (si généré)."
+            fi
+          }
+
+          versions_table() {
+            echo "| | |"
+            echo "|---|---|"
+            echo "| **Dernière release** | [\`${LAST_TAG}\`](${TAG_URL}) · API \`${OLD_VERSION:-—}\` |"
+            echo "| **À releaser** (\`main\` @ \`${SHORT_SHA}\`) | API \`${NEW_VERSION:-—}\` |"
+          }
+
+          case "$STATE" in
+            # ----------------------------------------------------
+            first)
+              {
+                echo "$MARKER"
+                echo "## 🚀 API à releaser — première version"
+                echo ""
+                echo "🆕 **Ce sera la première version de l'API releasée et publiée en production.**"
+                echo ""
+                if [[ "$FIRST_REASON" == "nocontract" ]]; then
+                  echo "Le contrat d'API n'existait pas encore dans la dernière release (\`${LAST_TAG}\`)."
+                else
+                  echo "Aucune release précédente n'existe."
+                fi
+                echo ""
+                echo "| | |"
+                echo "|---|---|"
+                echo "| **Version de l'API** | \`${NEW_VERSION:-—}\` |"
+                echo "| **Contrat** | \`main\` @ \`${SHORT_SHA}\` |"
+                echo ""
+                echo "Aucune comparaison de compatibilité n'est possible : il n'y a pas encore d'API en production."
+                echo ""
+                echo "<sub>Mis à jour à chaque push sur main · ${NOW}</sub>"
+              } > "$COMMENT"
+
+              {
+                echo "$API_START"
+                echo "### API Contract"
+                echo ""
+                echo "🆕 Première version de l'API publiée : \`${NEW_VERSION:-—}\`."
+                echo "$API_END"
+              } > "$BLOCK"
+              ;;
+
+            # ----------------------------------------------------
+            unknown)
+              {
+                echo "$MARKER"
+                echo "## 🚀 API à releaser — comparaison indisponible"
+                echo ""
+                echo "⚠️ Impossible de comparer le contrat avec la dernière release (\`${LAST_TAG:-?}\`) : tag introuvable ou erreur oasdiff."
+                echo "Consultez les logs du [run](${RUN_URL})."
+                echo ""
+                echo "<sub>Mis à jour à chaque push sur main · ${NOW}</sub>"
+              } > "$COMMENT"
+              ;;
+
+            # ----------------------------------------------------
+            compare)
+              case "$CHANGE" in
+                none)
+                  {
+                    echo "$MARKER"
+                    echo "## 🚀 API à releaser — ✅ Aucun changement d'API"
+                    echo ""
+                    versions_table
+                    echo ""
+                    echo "Le contrat d'API est identique à celui de la dernière release (hors \`info.version\`)."
+                    echo ""
+                    echo "<sub>Mis à jour à chaque push sur main · ${NOW}</sub>"
+                  } > "$COMMENT"
+                  # Pas de bloc dans le changelog : rien à signaler.
+                  ;;
+
+                cosmetic)
+                  {
+                    echo "$MARKER"
+                    echo "## 🚀 API à releaser — ✅ Changement cosmétique"
+                    echo ""
+                    versions_table
+                    echo "| **Classification** | \`cosmetic\` |"
+                    echo "| **Cohérence de version** | ${VERSION_VERDICT} |"
+                    echo ""
+                    echo "Seuls \`description\`, \`examples\`, \`summary\` et \`title\` ont changé depuis la dernière release."
+                    echo ""
+                    echo "<details><summary>Voir le diff</summary>"
+                    echo ""
+                    echo '```diff'
+                    head -c 20000 "$OUT/diff.txt" || true
+                    echo '```'
+                    echo "</details>"
+                    echo ""
+                    links_block
+                    echo ""
+                    echo "<sub>Mis à jour à chaque push sur main · ${NOW}</sub>"
+                  } > "$COMMENT"
+
+                  {
+                    echo "$API_START"
+                    echo "### API Contract"
+                    echo ""
+                    echo "API \`${OLD_VERSION:-—}\` → \`${NEW_VERSION:-—}\` : modifications cosmétiques uniquement (description, summary, title, examples)."
+                    echo "$API_END"
+                  } > "$BLOCK"
+                  ;;
+
+                *)
+                  if [[ "$BREAKING" == "true" ]]; then
+                    ICON="⚠️"; TITLE="Breaking change détecté"
+                    SHORT="⚠️ **breaking change**"
+                  else
+                    ICON="✅"; TITLE="Changement non cassant"
+                    SHORT="changement fonctionnel non cassant"
+                  fi
+
+                  {
+                    echo "$MARKER"
+                    echo "## 🚀 API à releaser — ${ICON} ${TITLE}"
+                    echo ""
+                    versions_table
+                    echo "| **Classification** | \`functional\` / \`breaking=${BREAKING}\` |"
+                    echo "| **Erreurs (ERR)** | ${N_ERR:-0} |"
+                    echo "| **Warnings (WARN)** | ${N_WARN:-0} |"
+                    echo "| **Infos (INFO)** | ${N_INFO:-0} |"
+                    echo "| **Cohérence de version** | ${VERSION_VERDICT} |"
+                    echo ""
+
+                    if [[ -s "$OUT/breaking-bullets.md" ]]; then
+                      echo "### 🛑 Changements depuis la dernière release"
+                      echo ""
+                      cat "$OUT/breaking-bullets.md"
+                      echo ""
+                    fi
+
+                    echo "### 📋 Changelog oasdiff"
+                    echo ""
+                    echo "<details><summary>Voir le changelog complet</summary>"
+                    echo ""
+                    echo '```'
+                    head -c 30000 "$OUT/changelog.txt" || true
+                    echo '```'
+                    echo "</details>"
+                    echo ""
+                    echo "### 🔧 Diff structurel"
+                    echo ""
+                    echo "<details><summary>Voir le diff (hors éléments cosmétiques)</summary>"
+                    echo ""
+                    echo '```diff'
+                    head -c 20000 "$OUT/diff.txt" || true
+                    echo '```'
+                    echo "</details>"
+                    echo ""
+                    echo "### 📎 Rapports et liens"
+                    echo ""
+                    links_block
+                    echo ""
+                    echo "<sub>Mis à jour à chaque push sur main · ${NOW}</sub>"
+                  } > "$COMMENT"
+
+                  {
+                    echo "$API_START"
+                    echo "### API Contract"
+                    echo ""
+                    echo "API \`${OLD_VERSION:-—}\` → \`${NEW_VERSION:-—}\` : ${SHORT}."
+                    if [[ -s "$OUT/breaking-bullets.md" ]]; then
+                      TOTAL="$(wc -l < "$OUT/breaking-bullets.md")"
+                      echo ""
+                      head -n 50 "$OUT/breaking-bullets.md"
+                      if (( TOTAL > 50 )); then
+                        echo ""
+                        echo "… et $((TOTAL - 50)) autre(s) changement(s) : voir le commentaire de la PR de release."
+                      fi
+                    fi
+                    echo "$API_END"
+                  } > "$BLOCK"
+                  ;;
+              esac
+              ;;
+          esac
+
+          echo "Commentaire : $(wc -c < "$COMMENT") octets · bloc changelog : $(wc -c < "$BLOCK") octets"
+
+      # ------------------------------------------------------------
+      # Commentaire sur la PR de release (créé ou mis à jour)
+      # ------------------------------------------------------------
+      - name: Publier le rapport sur la PR de release
+        if: steps.pr.outputs.found == 'true' && steps.analyse.outputs.state != 'no_spec'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBERS: ${{ steps.pr.outputs.numbers }}
+        run: |
+          set -euo pipefail
+          MARKER='<!-- api-release-report -->'
+          FILE="$RUNNER_TEMP/release-comment.md"
+
+          for PR in $PR_NUMBERS; do
+            IDS=$(gh api "repos/${REPO}/issues/${PR}/comments" --paginate \
+              --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id")
+            ID=$(printf '%s\n' "$IDS" | head -n1)
+
+            if [[ -n "$ID" ]]; then
+              gh api -X PATCH "repos/${REPO}/issues/comments/${ID}" -F body=@"$FILE" > /dev/null
+              echo "PR #${PR} : commentaire #${ID} mis à jour."
+            else
+              gh api "repos/${REPO}/issues/${PR}/comments" -F body=@"$FILE" > /dev/null
+              echo "PR #${PR} : commentaire créé."
+            fi
+          done
+
+      # Secours : si le CLI n'a produit aucun lien, l'action oasdiff le publie dans le
+      # résumé du job (sans token, elle ne tente pas de commenter).
+      - name: Revue oasdiff.com (secours, lien dans le résumé du job)
+        if: |
+          steps.pr.outputs.found == 'true'
+          && steps.analyse.outputs.state == 'compare'
+          && steps.analyse.outputs.change != 'none'
+          && steps.review-link.outputs.found != 'true'
+        continue-on-error: true
+        uses: oasdiff/oasdiff-action/changelog@v0
+        with:
+          base: '${{ steps.analyse.outputs.last_tag }}:${{ env.SPEC_PATH }}'
+          revision: '${{ env.SPEC_PATH }}'
+          review: 'true'
+
+      - name: Sauvegarder le rapport HTML oasdiff
+        if: |
+          steps.pr.outputs.found == 'true'
+          && steps.analyse.outputs.state == 'compare'
+          && steps.analyse.outputs.change != 'none'
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: oasdiff-release-report
+          path: ${{ runner.temp }}/diff.html
+          retention-days: 14
+
+      # ------------------------------------------------------------
+      # (Optionnel) Bloc « API Contract » dans le CHANGELOG de la PR de release
+      #
+      # ⚠️ Release Please régénère la branche de sa PR quand elle la met à jour
+      #    (la mise à jour du ref écrase les commits ajoutés à la main). Ce commit
+      #    est donc recréé à chaque run, APRÈS Release Please, et l'opération est
+      #    idempotente : le bloc (entre marqueurs HTML) n'est remplacé que dans la
+      #    section de la nouvelle release, jamais dans les anciennes.
+      #    Désactivable avec UPDATE_CHANGELOG: "false".
+      # ------------------------------------------------------------
+      - name: Checkout de la branche de la PR de release
+        if: |
+          env.UPDATE_CHANGELOG == 'true'
+          && steps.pr.outputs.found == 'true'
+          && (steps.analyse.outputs.state == 'first' || steps.analyse.outputs.state == 'compare')
+        id: checkout-release
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.pr.outputs.branch }}
+          token: ${{ secrets.RELEASE_PAT }}
+          path: release-branch
+          fetch-depth: 1
+
+      - name: Mettre à jour le CHANGELOG de la PR de release
+        if: steps.checkout-release.outcome == 'success'
+        continue-on-error: true
+        env:
+          BRANCH: ${{ steps.pr.outputs.branch }}
+          CHANGELOG_FILE: release-branch/${{ env.CHANGELOG_PATH }}
+          BLOCK_FILE: ${{ runner.temp }}/api-changelog-block.md
+        run: |
+          set -euo pipefail
+
+          if [[ ! -f "$CHANGELOG_FILE" ]]; then
+            echo "::notice::${CHANGELOG_FILE} introuvable sur la branche ${BRANCH} : changelog non modifié."
+            exit 0
+          fi
+
+          python3 - <<'PY'
+          import os, re, pathlib
+
+          path = pathlib.Path(os.environ["CHANGELOG_FILE"])
+          block_path = pathlib.Path(os.environ["BLOCK_FILE"])
+          START = "<!-- api-contract:start -->"
+          END = "<!-- api-contract:end -->"
+
+          text = path.read_text(encoding="utf-8")
+          block = block_path.read_text(encoding="utf-8").strip("\n") if block_path.exists() else ""
+
+          # La première section « ## » est celle de la nouvelle release (Release Please
+          # insère toujours la plus récente en haut).
+          headings = list(re.finditer(r"(?m)^## ", text))
+          if not headings:
+              print("Aucune section de release trouvée : changelog inchangé.")
+              raise SystemExit(0)
+
+          start = headings[0].start()
+          end = headings[1].start() if len(headings) > 1 else len(text)
+          section = text[start:end]
+
+          # Idempotence : on retire l'ancien bloc de CETTE section uniquement.
+          section = re.sub(r"\n*" + re.escape(START) + r".*?" + re.escape(END) + r"\n*", "\n", section, flags=re.S)
+          section = section.rstrip("\n") + "\n"
+          if block:
+              section += "\n" + block + "\n"
+          if end < len(text):
+              section += "\n"
+
+          new_text = text[:start] + section + text[end:]
+          if new_text != text:
+              path.write_text(new_text, encoding="utf-8")
+              print("CHANGELOG mis à jour.")
+          else:
+              print("CHANGELOG déjà à jour.")
+          PY
+
+          cd release-branch
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- "$CHANGELOG_PATH"
+          if git diff --cached --quiet; then
+            echo "Aucun changement à committer."
+            exit 0
+          fi
+          git commit -m "chore(release): ajoute les changements d'API au changelog"
+          git push origin "HEAD:refs/heads/${BRANCH}"
+          echo "✅ CHANGELOG poussé sur ${BRANCH}."
