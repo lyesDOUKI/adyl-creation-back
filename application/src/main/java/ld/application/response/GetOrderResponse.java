@@ -5,7 +5,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import ld.spring.web.lib.ApiResponseBody;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -25,20 +25,20 @@ public record GetOrderResponse(
         @Schema(description = "Message laissé par le client, s'il y en a un", nullable = true)
         String customerMessage,
 
-        @Schema(description = "Date de création (heure locale, sans fuseau)", example = "2026-09-15T09:00:00",
+        @Schema(description = "Date de création (UTC)", example = "2026-09-15T07:00:00Z",
                 requiredMode = REQUIRED)
-        LocalDateTime createdAt,
+        Instant createdAt,
 
-        @Schema(description = "Date de dernière mise à jour (heure locale, sans fuseau)",
-                example = "2026-09-15T09:30:00", requiredMode = REQUIRED)
-        LocalDateTime updatedAt,
+        @Schema(description = "Date de dernière mise à jour (UTC)", example = "2026-09-15T07:30:00Z",
+                requiredMode = REQUIRED)
+        Instant updatedAt,
 
         @Schema(description = "Montant total, en euros", example = "42.50", requiredMode = REQUIRED)
         BigDecimal total,
 
         @Schema(description = "Statut de la commande (valeurs de OrderState : PENDING, ACCEPTED, REJECTED, DELIVERED)",
                 requiredMode = REQUIRED)
-        String status,
+        OrderStateResponse status,
 
         @Schema(description = "Lignes de la commande", requiredMode = REQUIRED)
         List<OrderLineResponse> lines,
@@ -47,5 +47,5 @@ public record GetOrderResponse(
         int lineCount,
 
         @Schema(description = "Quantité totale, tous produits confondus", requiredMode = REQUIRED)
-        BigDecimal totalQuantity
+        int totalQuantity
 ) implements ApiResponseBody {}

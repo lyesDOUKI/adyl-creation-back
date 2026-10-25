@@ -19,7 +19,7 @@ public record OrderLineResponse(
         ProductCategoryResponse productCategory,
 
         @Schema(description = "Quantité commandée", requiredMode = REQUIRED)
-        BigDecimal quantity,
+        int quantity,
 
         @Schema(description = "Prix unitaire, en euros", example = "24.90", requiredMode = REQUIRED)
         BigDecimal unitPrice,

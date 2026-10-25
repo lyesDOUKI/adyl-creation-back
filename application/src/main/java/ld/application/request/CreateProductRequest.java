@@ -18,7 +18,7 @@ public record CreateProductRequest(
 
         @NotNull
         @Schema(description = "Catégorie du produit", enumAsRef = true)
-        ProductCategoryRequest productCategoryRequest,
+        ProductCategoryRequest productCategory,
 
         @Schema(description = "Couleurs disponibles", example = "[\"rouge\", \"bleu\"]", nullable = true)
         List<String> colors,
@@ -29,7 +29,7 @@ public record CreateProductRequest(
         BigDecimal price
 ) {
     public CreateProductCommand to() {
-        return new CreateProductCommand(name, to(productCategoryRequest), price, colors);
+        return new CreateProductCommand(name, to(productCategory), price, colors);
     }
 
     private static ProductCategory to(ProductCategoryRequest productCategoryRequest) {

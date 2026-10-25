@@ -5,6 +5,7 @@ import ld.application.infra.db.jooq.OrderQuery;
 import ld.application.infra.db.read.GetOrderQueryRepository;
 import ld.application.response.GetOrderResponse;
 import ld.application.response.OrderLineResponse;
+import ld.application.response.OrderStateResponse;
 import ld.application.response.ProductCategoryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,9 +43,9 @@ public class GetOrderServiceImpl implements GetOrderService {
                 .map(this::toLineResponse)
                 .toList();
 
-        BigDecimal totalQuantity = lines.stream()
-                .map(OrderLineResponse::quantity)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        int totalQuantity = lines.stream()
+                .mapToInt(OrderLineResponse::quantity)
+                .sum();
 
         return new GetOrderResponse(
                 order.orderId(),
@@ -54,7 +55,7 @@ public class GetOrderServiceImpl implements GetOrderService {
                 order.createdAt(),
                 order.updatedAt(),
                 order.total(),
-                order.statusType(),
+                OrderStateResponse.valueOf(order.statusType()),
                 lines,
                 lines.size(),
                 totalQuantity
@@ -70,7 +71,7 @@ public class GetOrderServiceImpl implements GetOrderService {
                 line.productId(),
                 line.productName(),
                 ProductCategoryResponse.from(line.productCategory()),
-                line.quantity(),
+                line.quantity().intValue(),
                 line.unitPrice(),
                 line.chosenColor(),
                 subtotalBeforeDiscount,
