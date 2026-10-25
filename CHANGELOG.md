@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.1.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.0...v5.1.1) (2026-10-25)
+
+
+### Bug Fixes
+
+* change order still pending error http status ([7d6701c](https://github.com/lyesDOUKI/adyl-creation-back/commit/7d6701ca1017e3cfe31c9046d3dfcad0d46f6b5a))
+
 ## [5.1.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.0.0...v5.1.0) (2026-10-25)
 
 
