@@ -1,0 +1,204 @@
+name: Publish API documentation
+
+# Génère la documentation Redoc du contrat d'API et la publie sur GitHub Pages.
+#
+# Exécuté uniquement sur main. Le job `check` décide si une publication est utile :
+#
+#   - lancement manuel (workflow_dispatch)               -> publie
+#   - aucune publication GitHub Pages n'existe encore    -> publie (première fois)
+#   - version.txt a changé entre l'ancien et le nouveau main -> publie
+#   - sinon                                              -> rien à faire
+#
+# Grâce à la CI « API Contract » (politique SemVer stricte), toute modification
+# du contrat impose un changement de version.txt : « version modifiée » équivaut
+# donc à « contrat modifié ».
+#
+# La documentation n'est PAS commitée dans le dépôt : elle est générée à la volée
+# depuis openapi.yaml puis déployée en artefact Pages (pas de commit de bot sur
+# main, pas de fichier HTML généré qui dérive du contrat).
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'application/api-contract/version.txt'
+      - 'application/api-contract/openapi.yaml'
+      - '.github/workflows/publish-api-docs.yml'
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: api-documentation
+  cancel-in-progress: false
+
+env:
+  SPEC_PATH: application/api-contract/openapi.yaml
+  VERSION_FILE: application/api-contract/version.txt
+  # À épingler sur une version précise (ex. "2.x.y", voir `npm view @redocly/cli version`)
+  # pour des builds reproductibles.
+  REDOCLY_CLI_VERSION: "2.71.0"
+
+jobs:
+  # ============================================================
+  # 1. DÉCISION : faut-il (re)générer et publier la documentation ?
+  # ============================================================
+  check:
+    # Sécurité : jamais en dehors de main (y compris en lancement manuel).
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      deployments: read
+    outputs:
+      publish: ${{ steps.decide.outputs.publish }}
+      reason: ${{ steps.decide.outputs.reason }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # Historique complet : l'ancien commit de main doit être lisible
+          # (squash, merge commit ou rebase de plusieurs commits).
+          fetch-depth: 0
+
+      - name: Décider de la publication
+        id: decide
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+
+          decide() {
+            echo "publish=$1" >> "$GITHUB_OUTPUT"
+            echo "reason=$2"  >> "$GITHUB_OUTPUT"
+            echo "→ publish=$1 ($2)"
+            {
+              echo "### Publication de la documentation API"
+              if [[ "$1" == "true" ]]; then
+                echo "✅ Publication : $2"
+              else
+                echo "⏭️ Aucune publication : $2"
+              fi
+            } >> "$GITHUB_STEP_SUMMARY"
+          }
+
+          # --- 1. Lancement manuel : on publie toujours
+          if [[ "$EVENT_NAME" == "workflow_dispatch" ]]; then
+            decide true "lancement manuel"
+            exit 0
+          fi
+
+          if [[ ! -f "$VERSION_FILE" ]]; then
+            echo "❌ Fichier de version introuvable : $VERSION_FILE"
+            exit 1
+          fi
+          NEW_VERSION="$(tr -d '[:space:]' < "$VERSION_FILE")"
+
+          # --- 2. Aucune publication GitHub Pages existante : première génération
+          #     (en cas d'erreur de l'API, on publie par prudence)
+          COUNT="$(gh api "repos/${REPO}/deployments?environment=github-pages&per_page=1" \
+                     --jq 'length' 2>/dev/null || echo error)"
+          if [[ "$COUNT" == "error" ]]; then
+            decide true "impossible de vérifier les publications existantes, publication par prudence (version ${NEW_VERSION})"
+            exit 0
+          fi
+          if [[ "$COUNT" == "0" ]]; then
+            decide true "aucune documentation publiée pour l'instant (première publication, version ${NEW_VERSION})"
+            exit 0
+          fi
+
+          # --- 3. Comparaison de version.txt entre l'ancien et le nouveau main
+          if [[ -z "$BEFORE" || "$BEFORE" =~ ^0+$ ]] || ! git cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            decide true "commit précédent introuvable, publication par prudence (version ${NEW_VERSION})"
+            exit 0
+          fi
+
+          OLD_VERSION="$(git show "${BEFORE}:${VERSION_FILE}" 2>/dev/null | tr -d '[:space:]' || true)"
+
+          if [[ "$OLD_VERSION" != "$NEW_VERSION" ]]; then
+            decide true "version modifiée : ${OLD_VERSION:-<absente>} → ${NEW_VERSION}"
+          else
+            decide false "version inchangée (${NEW_VERSION}), documentation déjà à jour"
+          fi
+
+  # ============================================================
+  # 2. GÉNÉRATION DE LA DOCUMENTATION REDOC
+  # ============================================================
+  build:
+    needs: check
+    if: needs.check.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Read API version
+        id: api-version
+        run: |
+          set -euo pipefail
+          echo "version=$(tr -d '[:space:]' < "$VERSION_FILE")" >> "$GITHUB_OUTPUT"
+
+      - name: Generate Redoc documentation
+        env:
+          API_VERSION: ${{ steps.api-version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          npx --yes "@redocly/cli@${REDOCLY_CLI_VERSION}" build-docs \
+            "$SPEC_PATH" \
+            --output=dist/index.html \
+            --title="API Documentation - v${API_VERSION}"
+
+          test -s dist/index.html || { echo "❌ La documentation générée est vide."; exit 1; }
+          ls -lh dist/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: dist
+
+  # ============================================================
+  # 3. DÉPLOIEMENT SUR GITHUB PAGES
+  # ============================================================
+  deploy:
+    needs: [check, build]
+    if: needs.check.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    permissions:
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Résumé
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          {
+            echo "### 📖 Documentation publiée"
+            echo "${PAGE_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"
