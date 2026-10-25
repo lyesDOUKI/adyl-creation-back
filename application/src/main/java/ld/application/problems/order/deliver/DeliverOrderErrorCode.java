@@ -9,13 +9,12 @@ import org.springframework.http.HttpStatus;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
-import static org.springframework.http.HttpStatus.UNPROCESSABLE_CONTENT;
 
 public enum DeliverOrderErrorCode implements ApiErrorCode {
 
     ORDER_NOT_FOUND(NOT_FOUND, "Commande introuvable", NotFound.class),
     ORDER_ALREADY_REJECTED(CONFLICT, "Commande rejetée", Rejected.class),
-    ORDER_STILL_PENDING(UNPROCESSABLE_CONTENT, "Commande en attente", Pending.class);
+    ORDER_STILL_PENDING(CONFLICT, "Commande en attente", Pending.class);
 
     private final HttpStatus status;
     private final String title;

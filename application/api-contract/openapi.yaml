@@ -740,19 +740,6 @@ paths:
             Conflit avec l'état actuel de la ressource
 
             - `ORDER_ALREADY_REJECTED` : Commande rejetée
-          content:
-            application/problem+json:
-              schema:
-                discriminator:
-                  propertyName: code
-                  mapping:
-                    ORDER_ALREADY_REJECTED: "#/components/schemas/DeliverOrderOrderAlreadyRejected"
-                oneOf:
-                - $ref: "#/components/schemas/DeliverOrderOrderAlreadyRejected"
-        "422":
-          description: |-
-            Règle métier non respectée
-
             - `ORDER_STILL_PENDING` : Commande en attente
           content:
             application/problem+json:
@@ -760,8 +747,10 @@ paths:
                 discriminator:
                   propertyName: code
                   mapping:
+                    ORDER_ALREADY_REJECTED: "#/components/schemas/DeliverOrderOrderAlreadyRejected"
                     ORDER_STILL_PENDING: "#/components/schemas/DeliverOrderOrderStillPending"
                 oneOf:
+                - $ref: "#/components/schemas/DeliverOrderOrderAlreadyRejected"
                 - $ref: "#/components/schemas/DeliverOrderOrderStillPending"
         "500":
           description: |-
@@ -2197,7 +2186,7 @@ components:
         status:
           type: integer
           format: int32
-          const: 422
+          const: 409
           description: Statut HTTP
         detail:
           type: string
