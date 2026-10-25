@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.1.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.0.0...v5.1.0) (2026-10-25)
+
+
+### Features
+
+* uniformize naming for slots times + simplify naming for component in the openapi spec ([763a07d](https://github.com/lyesDOUKI/adyl-creation-back/commit/763a07d8285623350c6a3b4385b14339dee81c48))
+
 ## [5.0.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v4.0.0...v5.0.0) (2026-10-25)
 
 
