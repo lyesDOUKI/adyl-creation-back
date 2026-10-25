@@ -5,7 +5,7 @@ info:
     API de gestion des commandes, produits et rendez-vous d'Adyl Creation.
     Les erreurs sont retournées en `application/problem+json` (RFC 9457) :
     le champ `code` est l'identifiant unique d'une erreur.
-  version: 1.0.1
+  version: 2.0.0
 servers:
 - url: /
   description: Résolu dynamiquement selon l'hôte de déploiement
@@ -1451,7 +1451,7 @@ components:
           description: Nom du produit (unique)
           example: Bonnet en laine
           minLength: 1
-        productCategoryRequest:
+        productCategory:
           $ref: "#/components/schemas/ProductCategoryRequest"
           description: Catégorie du produit
         colors:
@@ -1471,7 +1471,7 @@ components:
       required:
       - name
       - price
-      - productCategoryRequest
+      - productCategory
     ProductCategoryRequest:
       type: string
       description: "Catégorie de produit : ACCESSORIES (accessoires) ou CLOTHING (vê\
@@ -1959,13 +1959,13 @@ components:
         createdAt:
           type: string
           format: date-time
-          description: "Date de création (heure locale, sans fuseau)"
-          example: 2026-09-15T09:00:00
+          description: Date de création (UTC)
+          example: 2026-09-15T07:00:00Z
         updatedAt:
           type: string
           format: date-time
-          description: "Date de dernière mise à jour (heure locale, sans fuseau)"
-          example: 2026-09-15T09:30:00
+          description: Date de dernière mise à jour (UTC)
+          example: 2026-09-15T07:30:00Z
         total:
           type: number
           description: "Montant total, en euros"
@@ -1974,6 +1974,11 @@ components:
           type: string
           description: "Statut de la commande (valeurs de OrderState : PENDING, ACCEPTED,\
             \ REJECTED, DELIVERED)"
+          enum:
+          - PENDING
+          - REJECTED
+          - DELIVERED
+          - ACCEPTED
         lines:
           type: array
           description: Lignes de la commande
@@ -1985,7 +1990,8 @@ components:
           description: Nombre de lignes
           minimum: 0
         totalQuantity:
-          type: number
+          type: integer
+          format: int32
           description: "Quantité totale, tous produits confondus"
       required:
       - createdAt
@@ -2013,7 +2019,8 @@ components:
           $ref: "#/components/schemas/ProductCategoryResponse"
           description: Catégorie du produit
         quantity:
-          type: number
+          type: integer
+          format: int32
           description: Quantité commandée
         unitPrice:
           type: number
@@ -2223,6 +2230,9 @@ components:
         message:
           type: string
           description: Explication lisible de l'erreur constatée pour ce champ
+      required:
+      - field
+      - message
     AcceptOrder_ORDER_NOT_FOUND:
       type: object
       properties:

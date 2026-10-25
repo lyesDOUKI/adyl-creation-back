@@ -13,10 +13,10 @@ import static ld.application.problems.request.RequestErrorCode.INVALID_PARAMETER
 public sealed interface RequestProblem extends ApiProblem {
 
     record FieldViolation(
-            @Schema(description = "Champ ou chemin du champ concerné dans le corps de la requête")
+            @Schema(description = "Champ ou chemin du champ concerné dans le corps de la requête", requiredMode = Schema.RequiredMode.REQUIRED)
             String field,
 
-            @Schema(description = "Explication lisible de l'erreur constatée pour ce champ")
+            @Schema(description = "Explication lisible de l'erreur constatée pour ce champ", requiredMode = Schema.RequiredMode.REQUIRED)
             String message
     ) {}
 

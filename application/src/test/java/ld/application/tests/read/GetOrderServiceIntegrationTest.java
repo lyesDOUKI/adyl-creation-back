@@ -6,6 +6,7 @@ import ld.application.infra.db.converter.OrderStatusConverter;
 import ld.application.read.GetOrderService;
 import ld.application.response.GetOrderResponse;
 import ld.application.response.OrderLineResponse;
+import ld.application.response.OrderStateResponse;
 import ld.application.response.ProductCategoryResponse;
 import ld.domain.features.order.model.OrderReference;
 import ld.domain.features.order.model.OrderStatus;
@@ -109,10 +110,10 @@ class GetOrderServiceIntegrationTest {
                 .isEqualTo("Livrer avant vendredi");
         assertThat(response.total())
                 .isEqualByComparingTo(BigDecimal.valueOf(35.82));
-        assertThat(response.status()).isEqualTo("PENDING");
+        assertThat(response.status()).isEqualTo(OrderStateResponse.PENDING);
         assertThat(response.lineCount()).isEqualTo(1);
         assertThat(response.totalQuantity())
-                .isEqualByComparingTo(BigDecimal.valueOf(2));
+                .isEqualByComparingTo(2);
 
         assertThat(response.lines()).hasSize(1);
 
@@ -123,7 +124,7 @@ class GetOrderServiceIntegrationTest {
         assertThat(line.productCategory())
                 .isEqualTo(ProductCategoryResponse.CLOTHING);
         assertThat(line.quantity())
-                .isEqualByComparingTo(BigDecimal.valueOf(2));
+                .isEqualByComparingTo(2);
         assertThat(line.unitPrice())
                 .isEqualByComparingTo(BigDecimal.valueOf(19.90));
         assertThat(line.chosenColor()).isEqualTo("Rouge");
@@ -194,7 +195,7 @@ class GetOrderServiceIntegrationTest {
 
         assertThat(response.lineCount()).isEqualTo(2);
         assertThat(response.totalQuantity())
-                .isEqualByComparingTo(BigDecimal.valueOf(2));
+                .isEqualByComparingTo(2);
 
         assertThat(response.lines())
                 .extracting(OrderLineResponse::productName)

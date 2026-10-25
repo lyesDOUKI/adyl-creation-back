@@ -13,6 +13,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Repository;
 
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -137,8 +138,8 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
                 record.getCustomerIdentitySubject(),
                 record.getOrderReference(),
                 record.getCustomerMessage(),
-                record.getCreatedAt(),
-                record.getUpdatedAt(),
+                record.getCreatedAt().toInstant(ZoneOffset.UTC),
+                record.getUpdatedAt().toInstant(ZoneOffset.UTC),
                 record.getTotal(),
                 record.getStatusType(),
                 lines

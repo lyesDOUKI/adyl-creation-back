@@ -640,6 +640,10 @@ jobs:
       #    (fonctionnel OU cosmétique). Si le contrat redevient identique à la
       #    base, plus rien n'est à relire : aucun lien n'est reposté.
       #    Le lien affiché est donc toujours celui du dernier push.
+      #
+      #    On utilise l'action `changelog` (et non `breaking`) : `breaking` ne
+      #    remonte que les ERR/WARN, donc la revue ne montrait presque rien.
+      #    `changelog` couvre aussi les changements non cassants (INFO).
       # ============================================================
       - name: Supprimer les anciens commentaires de revue oasdiff.com
         if: github.event.pull_request.head.repo.full_name == github.repository
@@ -678,11 +682,10 @@ jobs:
           steps.analyse.outputs.change != 'none'
           && github.event.pull_request.head.repo.full_name == github.repository
         continue-on-error: true
-        uses: oasdiff/oasdiff-action/breaking@v0
+        uses: oasdiff/oasdiff-action/changelog@v0
         with:
           base: 'origin/${{ github.base_ref }}:application/api-contract/openapi.yaml'
           revision: 'application/api-contract/openapi.yaml'
-          fail-on: ''
           review: 'true'
           github-token: ${{ github.token }}
 
