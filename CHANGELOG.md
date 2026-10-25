@@ -7,6 +7,65 @@
 
 * uniformize naming for slots times + simplify naming for component in the openapi spec ([763a07d](https://github.com/lyesDOUKI/adyl-creation-back/commit/763a07d8285623350c6a3b4385b14339dee81c48))
 
+<!-- api-contract:start -->
+### API Contract
+
+API `1.0.0` → `2.0.0` : ⚠️ **breaking change**.
+
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /appointments — added `#/components/schemas/SecurityForbidden` to the response body `oneOf` list for the response status `403`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /appointments — added `#/components/schemas/SecurityUnauthenticated` to the response body `oneOf` list for the response status `401`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /appointments — added `#/components/schemas/ServerInternalError` to the response body `oneOf` list for the response status `500`
+- ❌ **ERR** — [new-required-request-property] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — added the new required request property `endAt`
+- ❌ **ERR** — [new-required-request-property] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — added the new required request property `startAt`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — added `#/components/schemas/RequestValidationFailed, #/components/schemas/RequestInvalidRequestBody` to the response body `oneOf` list for the response status `400`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — added `#/components/schemas/SecurityForbidden` to the response body `oneOf` list for the response status `403`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — added `#/components/schemas/SecurityUnauthenticated` to the response body `oneOf` list for the response status `401`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — added `#/components/schemas/ServerInternalError` to the response body `oneOf` list for the response status `500`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — added `#/components/schemas/SubmitAppointmentSlotAlreadyBooked` to the response body `oneOf` list for the response status `409`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — added `#/components/schemas/SubmitAppointmentSlotOutsideOpeningHours` to the response body `oneOf` list for the response status `422`
+- ❌ **ERR** — [response-required-property-removed] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — removed the required property `end` from the response with the `201` status
+- ❌ **ERR** — [response-required-property-removed] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /appointments — removed the required property `start` from the response with the `201` status
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /appointments/available-slots — added `#/components/schemas/RequestInvalidParameter` to the response body `oneOf` list for the response status `400`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /appointments/available-slots — added `#/components/schemas/SecurityForbidden` to the response body `oneOf` list for the response status `403`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /appointments/available-slots — added `#/components/schemas/SecurityUnauthenticated` to the response body `oneOf` list for the response status `401`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /appointments/available-slots — added `#/components/schemas/ServerInternalError` to the response body `oneOf` list for the response status `500`
+- ❌ **ERR** — [response-required-property-removed] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /appointments/available-slots — removed the required property `availability/items/slots/items/end` from the response with the `200` status
+- ❌ **ERR** — [response-required-property-removed] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /appointments/available-slots — removed the required property `availability/items/slots/items/start` from the response with the `200` status
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /customer/me — added `#/components/schemas/RequestValidationFailed, #/components/schemas/RequestInvalidRequestBody` to the response body `oneOf` list for the response status `400`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /customer/me — added `#/components/schemas/SecurityForbidden` to the response body `oneOf` list for the response status `403`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /customer/me — added `#/components/schemas/SecurityUnauthenticated` to the response body `oneOf` list for the response status `401`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /customer/me — added `#/components/schemas/ServerInternalError` to the response body `oneOf` list for the response status `500`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders — added `#/components/schemas/RequestInvalidSortField` to the response body `oneOf` list for the response status `400`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders — added `#/components/schemas/SecurityForbidden` to the response body `oneOf` list for the response status `403`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders — added `#/components/schemas/SecurityUnauthenticated` to the response body `oneOf` list for the response status `401`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders — added `#/components/schemas/ServerInternalError` to the response body `oneOf` list for the response status `500`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders — added `#/components/schemas/CreateOrderProductNotAvailable` to the response body `oneOf` list for the response status `409`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders — added `#/components/schemas/CreateOrderProductsNotFound, #/components/schemas/CreateOrderProductColorNotAvailable` to the response body `oneOf` list for the response status `422`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders — added `#/components/schemas/RequestValidationFailed, #/components/schemas/RequestInvalidRequestBody` to the response body `oneOf` list for the response status `400`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders — added `#/components/schemas/SecurityForbidden` to the response body `oneOf` list for the response status `403`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders — added `#/components/schemas/SecurityUnauthenticated` to the response body `oneOf` list for the response status `401`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders — added `#/components/schemas/ServerInternalError` to the response body `oneOf` list for the response status `500`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders/{id} — added `#/components/schemas/GetOrderOrderNotFound` to the response body `oneOf` list for the response status `404`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders/{id} — added `#/components/schemas/RequestInvalidParameter` to the response body `oneOf` list for the response status `400`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders/{id} — added `#/components/schemas/SecurityForbidden` to the response body `oneOf` list for the response status `403`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders/{id} — added `#/components/schemas/SecurityUnauthenticated` to the response body `oneOf` list for the response status `401`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders/{id} — added `#/components/schemas/ServerInternalError` to the response body `oneOf` list for the response status `500`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — added `#/components/schemas/AcceptOrderOrderAlreadyRejected, #/components/schemas/AcceptOrderOrderAlreadyDelivered` to the response body `oneOf` list for the response status `409`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — added `#/components/schemas/AcceptOrderOrderNotFound` to the response body `oneOf` list for the response status `404`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — added `#/components/schemas/RequestInvalidParameter` to the response body `oneOf` list for the response status `400`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — added `#/components/schemas/SecurityForbidden` to the response body `oneOf` list for the response status `403`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — added `#/components/schemas/SecurityUnauthenticated` to the response body `oneOf` list for the response status `401`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — added `#/components/schemas/ServerInternalError` to the response body `oneOf` list for the response status `500`
+- ❌ **ERR** — [response-required-property-removed] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — removed the required property `orderState` from the response with the `200` status
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added `#/components/schemas/DeliverOrderOrderAlreadyRejected` to the response body `oneOf` list for the response status `409`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added `#/components/schemas/DeliverOrderOrderNotFound` to the response body `oneOf` list for the response status `404`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added `#/components/schemas/DeliverOrderOrderStillPending` to the response body `oneOf` list for the response status `422`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added `#/components/schemas/RequestValidationFailed, #/components/schemas/RequestInvalidRequestBody, #/components/schemas/RequestInvalidParameter` to the response body `oneOf` list for the response status `400`
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added `#/components/schemas/SecurityForbidden` to the response body `oneOf` list for the response status `403`
+
+… et 222 autre(s) changement(s) : voir le commentaire de la PR de release.
+<!-- api-contract:end -->
+
 ## [5.0.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v4.0.0...v5.0.0) (2026-10-25)
 
 
