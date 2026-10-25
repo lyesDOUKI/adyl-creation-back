@@ -18,6 +18,12 @@
 * modify Result error pattern ([59b134c](https://github.com/lyesDOUKI/adyl-creation-back/commit/59b134c2847514dad1766b5fa24cdb743edbf03d))
 * new design of the api documentation - API management as code ([888c2ec](https://github.com/lyesDOUKI/adyl-creation-back/commit/888c2ec5956a0e46d3443f46374408274729d1e0))
 
+<!-- api-contract:start -->
+### API Contract
+
+🆕 Première version de l'API publiée : `1.0.0`.
+<!-- api-contract:end -->
+
 ## [4.0.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v3.1.0...v4.0.0) (2026-10-13)
 
 
