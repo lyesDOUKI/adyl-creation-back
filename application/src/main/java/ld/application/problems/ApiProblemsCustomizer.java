@@ -35,6 +35,7 @@ import java.util.Arrays;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -57,6 +58,9 @@ public class ApiProblemsCustomizer implements OperationCustomizer, OpenApiCustom
 
     private final Map<String, Schema<?>> components = new ConcurrentHashMap<>();
 
+    /** Nom de schéma publié -> nom d'origine (`schemaName()`), pour détecter les collisions. */
+    private final Map<String, String> variantOrigins = new ConcurrentHashMap<>();
+
     @Override
     public Operation customize(Operation operation, HandlerMethod method) {
         if (operation.getResponses() == null) operation.setResponses(new ApiResponses());
@@ -69,7 +73,6 @@ public class ApiProblemsCustomizer implements OperationCustomizer, OpenApiCustom
                 .forEach((status, codes) -> operation.getResponses()
                         .addApiResponse(String.valueOf(status.value()), response(status, codes)));
 
-        var declared = method.getMethodAnnotation(ApiProblems.class);
         return operation;
     }
 
@@ -178,7 +181,15 @@ public class ApiProblemsCustomizer implements OperationCustomizer, OpenApiCustom
     }
 
     private String registerVariant(ApiErrorCode code) {
-        var name = code.schemaName();
+        var name = variantName(code);
+
+        // Deux codes différents ne doivent jamais aboutir au même nom de schéma (sinon l'un
+        // écraserait silencieusement l'autre dans le contrat) : on échoue au démarrage.
+        var previous = variantOrigins.putIfAbsent(name, code.schemaName());
+        if (previous != null && !previous.equals(code.schemaName())) {
+            throw new IllegalStateException("Collision de nom de schéma '%s' : '%s' et '%s'"
+                    .formatted(name, previous, code.schemaName()));
+        }
         if (components.containsKey(name)) return name;
 
         var resolved = ModelConverters.getInstance(true)   // true = OpenAPI 3.1
@@ -194,12 +205,14 @@ public class ApiProblemsCustomizer implements OperationCustomizer, OpenApiCustom
 
         if (schema.getTypes() == null || schema.getTypes().isEmpty()) schema.addType("object");
 
-        schema.addProperty(DISCRIMINATOR, new StringSchema()._enum(List.of(code.name()))
-                .description("Code stable de l'erreur (seul à utiliser pour la logique client)"));
+        // `code` et `status` sont des constantes par variante : en OpenAPI 3.1 on les exprime
+        // avec `const` (et non un enum à une seule valeur). Les générateurs produisent alors un
+        // type littéral directement (code: 'PRODUCTS_NOT_FOUND'), sans fichier ni enum annexe.
+        schema.addProperty(DISCRIMINATOR, constString(code.name()
+        ));
         schema.addProperty("title", new StringSchema()
                 .description("Titre court, destiné à un humain").example(code.title()));
-        schema.addProperty("status", new IntegerSchema()._enum(List.of(code.status().value()))
-                .description("Statut HTTP"));
+        schema.addProperty("status", constInteger(code.status().value()));
 
         Schema<?> detail = schema.getProperties().get("detail");
         if (detail != null) detail.setDescription("Explication lisible, destinée à un humain");
@@ -213,6 +226,40 @@ public class ApiProblemsCustomizer implements OperationCustomizer, OpenApiCustom
 
         components.putIfAbsent(name, schema);
         return name;
+    }
+
+    /**
+     * Nom publié du schéma d'une variante d'erreur, en PascalCase :
+     * `CreateOrder_PRODUCT_COLOR_NOT_AVAILABLE` devient `CreateOrderProductColorNotAvailable`.
+     * Le préfixe (avant le premier `_`) est déjà en PascalCase et reste tel quel ; seuls les mots
+     * du code d'erreur sont convertis. Les générateurs de clients reprennent ce nom tel quel.
+     */
+    private static String variantName(ApiErrorCode code) {
+        var parts = code.schemaName().split("_");
+        var name = new StringBuilder(parts[0]);
+        for (int i = 1; i < parts.length; i++) {
+            var word = parts[i];
+            if (word.isEmpty()) continue;
+            name.append(word.substring(0, 1).toUpperCase(Locale.ROOT))
+                    .append(word.substring(1).toLowerCase(Locale.ROOT));
+        }
+        return name.toString();
+    }
+
+    /** Chaîne constante (OpenAPI 3.1 : `type: string` + `const`). */
+    private static Schema<?> constString(String value) {
+        var schema = new StringSchema();
+        schema.setConst(value);
+        schema.setDescription("Code stable de l'erreur (seul à utiliser pour la logique client)");
+        return schema;
+    }
+
+    /** Entier constant (OpenAPI 3.1 : `type: integer` + `const`). */
+    private static Schema<?> constInteger(int value) {
+        var schema = new IntegerSchema();
+        schema.setConst(value);
+        schema.setDescription("Statut HTTP");
+        return schema;
     }
 
     private static ApiErrorCode[] constantsOf(Class<? extends ApiErrorCode> type) {

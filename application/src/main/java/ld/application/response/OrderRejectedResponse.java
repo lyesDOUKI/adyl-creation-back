@@ -24,7 +24,7 @@ public record OrderRejectedResponse(
         BigDecimal total,
 
         @Schema(description = "État de la commande (toujours REJECTED)", enumAsRef = true, requiredMode = REQUIRED)
-        OrderStateResponse orderState,
+        OrderStateResponse status,
 
         @Schema(description = "Horodatage du rejet", example = "2026-09-15T07:00:00Z", requiredMode = REQUIRED)
         Instant rejectedAt

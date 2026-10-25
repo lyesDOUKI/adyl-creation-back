@@ -615,8 +615,6 @@ jobs:
               if [[ -s "$RUNNER_TEMP/breaking-bullets.md" ]]; then
                 echo "### 🛑 Changements cassants"
                 echo ""
-                cat "$RUNNER_TEMP/breaking-bullets.md"
-                echo ""
               fi
 
               # ---- Version de l'API

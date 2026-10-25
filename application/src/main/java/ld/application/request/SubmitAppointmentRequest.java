@@ -11,16 +11,16 @@ import java.util.UUID;
 public record SubmitAppointmentRequest(
         @NotNull
         @Schema(description = "Début du créneau souhaité", example = "2026-09-15T09:00:00+02:00")
-        ZonedDateTime start,
+        ZonedDateTime startAt,
 
         @NotNull
         @Schema(description = "Fin du créneau souhaité", example = "2026-09-15T09:30:00+02:00")
-        ZonedDateTime end,
+        ZonedDateTime endAt,
 
         @Schema(description = "Notes libres pour le rendez-vous", example = "Première visite", nullable = true)
         String notes
 ) {
     public SubmitAppointmentCommand to(UUID identitySubject) {
-        return new SubmitAppointmentCommand(start, end, identitySubject, notes);
+        return new SubmitAppointmentCommand(startAt, endAt, identitySubject, notes);
     }
 }

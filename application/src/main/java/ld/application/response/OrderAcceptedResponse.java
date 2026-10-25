@@ -17,12 +17,16 @@ public record OrderAcceptedResponse(
         @Schema(description = "Identifiant de la commande", requiredMode = REQUIRED)
         UUID orderId,
 
-        @Schema(description = "Taux de remise de première commande appliqué (0 si aucune remise)",
-                requiredMode = REQUIRED)
+        @Schema(
+                description = "Taux de remise de première commande appliqué, entre 0 et 100 (ex: 15 %, 0 = aucune remise)",
+                requiredMode = REQUIRED,
+                minimum = "0",
+                maximum = "100"
+        )
         BigDecimal discountRate,
 
         @Schema(description = "État de la commande (toujours ACCEPTED)", enumAsRef = true, requiredMode = REQUIRED)
-        OrderStateResponse orderState,
+        OrderStateResponse status,
 
         @Schema(description = "Horodatage de l'acceptation", example = "2026-09-15T07:00:00Z", requiredMode = REQUIRED)
         Instant acceptedAt
