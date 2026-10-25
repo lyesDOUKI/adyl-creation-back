@@ -1972,8 +1972,7 @@ components:
           example: 42.5
         status:
           type: string
-          description: "Statut de la commande (valeurs de OrderState : PENDING, ACCEPTED,\
-            \ REJECTED, DELIVERED)"
+          description: Statut de la commande
           enum:
           - PENDING
           - REJECTED
@@ -2207,20 +2206,6 @@ components:
       - status
       - title
       title: Erreur interne du serveur
-    AddProductPhotosErrorCode:
-      type: string
-      description: |-
-        - `PRODUCT_NOT_FOUND` : Produit introuvable (champs additionnels : productId)
-        - `PHOTO_LIST_EMPTY` : Aucune image
-        - `PHOTO_SIZE_ZERO` : Image vide (champs additionnels : fileName)
-        - `PHOTO_MAX_SIZE_EXCEEDED` : Image trop volumineuse (champs additionnels : fileName, maxSizeBytes, sizeBytes)
-        - `PHOTO_EXTENSION_NOT_ALLOWED` : Extension incorrecte (champs additionnels : allowedExtensions, fileName)
-      enum:
-      - PRODUCT_NOT_FOUND
-      - PHOTO_LIST_EMPTY
-      - PHOTO_SIZE_ZERO
-      - PHOTO_MAX_SIZE_EXCEEDED
-      - PHOTO_EXTENSION_NOT_ALLOWED
     FieldViolation:
       type: object
       properties:
@@ -2578,14 +2563,6 @@ components:
       - status
       - title
       title: Commande livrée
-    SubmitAppointmentErrorCode:
-      type: string
-      description: |-
-        - `SLOT_OUTSIDE_OPENING_HOURS` : Créneau hors horaires (champs additionnels : requestedSlot)
-        - `SLOT_ALREADY_BOOKED` : Créneau déjà réservé (champs additionnels : requestedSlot)
-      enum:
-      - SLOT_OUTSIDE_OPENING_HOURS
-      - SLOT_ALREADY_BOOKED
     Request_INVALID_PARAMETER:
       type: object
       properties:
@@ -2621,16 +2598,6 @@ components:
       - status
       - title
       title: Paramètre invalide
-    CreateOrderErrorCode:
-      type: string
-      description: |-
-        - `PRODUCTS_NOT_FOUND` : Produits introuvables (champs additionnels : productIds)
-        - `PRODUCT_NOT_AVAILABLE` : Produits indisponibles (champs additionnels : productIds)
-        - `PRODUCT_COLOR_NOT_AVAILABLE` : Couleur demandée non disponible (champs additionnels : availableColors, productId, requestedColor)
-      enum:
-      - PRODUCTS_NOT_FOUND
-      - PRODUCT_NOT_AVAILABLE
-      - PRODUCT_COLOR_NOT_AVAILABLE
     CreateOrder_PRODUCT_NOT_AVAILABLE:
       type: object
       properties:
@@ -2693,22 +2660,6 @@ components:
       - status
       - title
       title: Commande en attente
-    GetProductErrorCode:
-      type: string
-      description: "- `PRODUCT_NOT_FOUND` : Produit introuvable (champs additionnels\
-        \ : productId)"
-      enum:
-      - PRODUCT_NOT_FOUND
-    DeliverOrderErrorCode:
-      type: string
-      description: |-
-        - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
-        - `ORDER_ALREADY_REJECTED` : Commande rejetée
-        - `ORDER_STILL_PENDING` : Commande en attente
-      enum:
-      - ORDER_NOT_FOUND
-      - ORDER_ALREADY_REJECTED
-      - ORDER_STILL_PENDING
     DeliverOrder_ORDER_NOT_FOUND:
       type: object
       properties:
@@ -2741,12 +2692,6 @@ components:
       - status
       - title
       title: Commande introuvable
-    CreateProductErrorCode:
-      type: string
-      description: "- `PRODUCT_ALREADY_EXISTS` : Produit déjà existant (champs additionnels\
-        \ : name)"
-      enum:
-      - PRODUCT_ALREADY_EXISTS
     AddProductPhotos_PRODUCT_NOT_FOUND:
       type: object
       properties:
@@ -3026,14 +2971,6 @@ components:
       - status
       - title
       title: Requête multipart invalide
-    RejectOrderErrorCode:
-      type: string
-      description: |-
-        - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
-        - `ORDER_ALREADY_DELIVERED` : Commande livrée
-      enum:
-      - ORDER_NOT_FOUND
-      - ORDER_ALREADY_DELIVERED
     SubmitAppointment_SLOT_ALREADY_BOOKED:
       type: object
       properties:
@@ -3108,22 +3045,6 @@ components:
       - status
       - title
       title: Couleur demandée non disponible
-    AcceptOrderErrorCode:
-      type: string
-      description: |-
-        - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
-        - `ORDER_ALREADY_REJECTED` : Commande rejetée
-        - `ORDER_ALREADY_DELIVERED` : Commande livrée
-      enum:
-      - ORDER_NOT_FOUND
-      - ORDER_ALREADY_REJECTED
-      - ORDER_ALREADY_DELIVERED
-    GetOrderErrorCode:
-      type: string
-      description: "- `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels\
-        \ : orderId)"
-      enum:
-      - ORDER_NOT_FOUND
     DeliverOrder_ORDER_ALREADY_REJECTED:
       type: object
       properties:
