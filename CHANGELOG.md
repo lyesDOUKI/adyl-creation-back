@@ -7,6 +7,16 @@
 
 * change order still pending error http status ([7d6701c](https://github.com/lyesDOUKI/adyl-creation-back/commit/7d6701ca1017e3cfe31c9046d3dfcad0d46f6b5a))
 
+<!-- api-contract:start -->
+### API Contract
+
+API `2.0.0` → `3.0.0` : ⚠️ **breaking change**.
+
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added `#/components/schemas/DeliverOrderOrderStillPending` to the response body `oneOf` list for the response status `409`
+- ℹ️ **INFO** — [response-body-discriminator-mapping-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added `ORDER_STILL_PENDING` mapping keys to the response discriminator for the response status `409`
+- ℹ️ **INFO** — [response-non-success-status-removed] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — removed the non-success response with the status `422`
+<!-- api-contract:end -->
+
 ## [5.1.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.0.0...v5.1.0) (2026-10-25)
 
 
