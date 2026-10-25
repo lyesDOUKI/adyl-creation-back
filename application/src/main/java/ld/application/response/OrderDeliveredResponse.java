@@ -23,7 +23,7 @@ public record OrderDeliveredResponse(
         DeliveryMethodResponse deliveryMethod,
 
         @Schema(description = "État de la commande (toujours DELIVERED)", enumAsRef = true, requiredMode = REQUIRED)
-        OrderStateResponse orderState,
+        OrderStateResponse status,
 
         @Schema(description = "Horodatage de la livraison", example = "2026-09-15T07:00:00Z", requiredMode = REQUIRED)
         Instant deliveredAt

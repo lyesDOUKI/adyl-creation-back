@@ -18,10 +18,10 @@ public record SubmitAppointmentResponse(
         UUID appointmentId,
 
         @Schema(description = "Début du créneau réservé", example = "2026-09-15T09:00:00+02:00", requiredMode = REQUIRED)
-        ZonedDateTime start,
+        ZonedDateTime startAt,
 
         @Schema(description = "Fin du créneau réservé", example = "2026-09-15T09:30:00+02:00", requiredMode = REQUIRED)
-        ZonedDateTime end,
+        ZonedDateTime endAt,
 
         @Schema(description = "Statut du rendez-vous (toujours SUBMITTED à la création)",
                 enumAsRef = true, requiredMode = REQUIRED)

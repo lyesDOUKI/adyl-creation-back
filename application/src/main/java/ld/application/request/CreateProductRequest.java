@@ -25,7 +25,12 @@ public record CreateProductRequest(
 
         @NotNull
         @Positive
-        @Schema(description = "Prix unitaire strictement positif, en euros", example = "24.90")
+        @Schema(
+                description = "Prix unitaire strictement positif, en euros",
+                example = "24.90",
+                minimum = "0",
+                exclusiveMinimum = true
+        )
         BigDecimal price
 ) {
     public CreateProductCommand to() {
