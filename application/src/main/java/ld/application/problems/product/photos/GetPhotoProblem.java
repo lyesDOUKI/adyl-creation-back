@@ -9,8 +9,9 @@ import static ld.application.problems.product.photos.GetPhotoErrorCode.PHOTO_NOT
 
 public sealed interface GetPhotoProblem extends ApiProblem {
     record PhotoNotFound(
-            @Schema(description = "La photo demandée est introuvable") UUID photoId
-    ) implements GetPhotoProblem {
+            @Schema(description = "La photo demandée est introuvable", example = "pull.jpg") String fileName,
+            @Schema(description = "Le produit demandé") UUID productId
+            ) implements GetPhotoProblem {
         @Override public GetPhotoErrorCode getCode() { return PHOTO_NOT_FOUND; }
         @Override public String getDetail() { return "La photo demandée est introuvable"; }
     }

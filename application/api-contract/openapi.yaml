@@ -1235,7 +1235,7 @@ paths:
           description: |-
             Ressource introuvable
 
-            - `PHOTO_NOT_FOUND` : Photo introuvable (champs additionnels : photoId)
+            - `PHOTO_NOT_FOUND` : Photo introuvable (champs additionnels : fileName, productId)
           content:
             application/problem+json:
               schema:
@@ -2524,14 +2524,19 @@ components:
         detail:
           type: string
           description: "Explication lisible, destinée à un humain"
-        photoId:
+        fileName:
+          type: string
+          description: La photo demandée est introuvable
+          example: pull.jpg
+        productId:
           type: string
           format: uuid
-          description: La photo demandée est introuvable
+          description: Le produit demandé
       required:
       - code
       - detail
-      - photoId
+      - fileName
+      - productId
       - status
       - title
       title: Photo introuvable
