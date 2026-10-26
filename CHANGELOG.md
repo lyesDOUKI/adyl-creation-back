@@ -7,6 +7,16 @@
 
 * **api:** enhance download photo entrypoint doc ([6d58241](https://github.com/lyesDOUKI/adyl-creation-back/commit/6d58241f5239c769b72aa8b04868f2028ff5a3ad))
 
+<!-- api-contract:start -->
+### API Contract
+
+API `3.1.0` → `4.0.0` : ⚠️ **breaking change**.
+
+- ❌ **ERR** — [response-required-property-removed] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /products/{id}/photos/{fileName} — removed the required property `oneOf[subschema #1: Photo introuvable]/photoId` from the response with the `404` status
+- ℹ️ **INFO** — [response-required-property-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /products/{id}/photos/{fileName} — added the required property `oneOf[subschema #1: Photo introuvable]/fileName` to the response with the `404` status
+- ℹ️ **INFO** — [response-required-property-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /products/{id}/photos/{fileName} — added the required property `oneOf[subschema #1: Photo introuvable]/productId` to the response with the `404` status
+<!-- api-contract:end -->
+
 ## [5.1.2](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.1...v5.1.2) (2026-10-26)
 
 
