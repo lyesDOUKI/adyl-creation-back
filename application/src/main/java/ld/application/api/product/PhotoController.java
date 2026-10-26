@@ -13,12 +13,14 @@ import ld.application.infra.security.AdminOnly;
 import ld.application.problems.product.photos.AddProductPhotosErrorCode;
 import ld.application.problems.product.photos.AddProductPhotosProblem;
 import ld.application.problems.product.photos.GetPhotoErrorCode;
+import ld.application.problems.product.photos.GetPhotoProblem;
 import ld.application.request.AddProductPhotosRequestMapper;
 import ld.application.response.AddProductPhotosResponse;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
 import ld.domain.features.product.photos.ProductPhotoUrlResolver;
 import ld.spring.web.lib.ApiProblems;
 import ld.spring.web.lib.ApiResponseBody;
+import ld.spring.web.lib.ProblemResponses;
 import ld.spring.web.lib.ResultToResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,7 +109,7 @@ public class PhotoController {
             responseCode = "200",
             description = "Photo trouvée et renvoyée",
             content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE))
-    public ResponseEntity<byte[]> downloadPhoto(
+    public ResponseEntity<?> downloadPhoto(
             @Parameter(description = "Identifiant du produit")
             @PathVariable("id") UUID productId,
             @Parameter(description = "Nom du fichier de la photo")
@@ -117,7 +119,7 @@ public class PhotoController {
 
         if (!filePath.startsWith(this.rootDirectory) || !Files.exists(filePath)) {
             LOGGER.warn("Photo not found: productId={}, fileName={}", productId, fileName);
-            return ResponseEntity.notFound().build();
+            return ProblemResponses.of(new GetPhotoProblem.PhotoNotFound(fileName, productId));
         }
 
         try {
