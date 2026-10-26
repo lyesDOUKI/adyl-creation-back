@@ -7,6 +7,14 @@
 
 * **api:** document the 404 response of the product photo download ([b549905](https://github.com/lyesDOUKI/adyl-creation-back/commit/b549905e9c44a28f8cc2729a2f6a0e9e7aa034ee))
 
+<!-- api-contract:start -->
+### API Contract
+
+API `3.0.0` → `3.1.0` : changement fonctionnel non cassant.
+
+- ℹ️ **INFO** — [response-media-type-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /products/{id}/photos/{fileName} — added the media type `application/problem+json` for the response with the status `404`
+<!-- api-contract:end -->
+
 ## [5.1.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.0...v5.1.1) (2026-10-25)
 
 
