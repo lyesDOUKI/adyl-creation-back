@@ -1217,8 +1217,6 @@ paths:
           description: Photo trouvée et renvoyée
           content:
             application/octet-stream: {}
-        "404":
-          description: Photo introuvable pour ce produit (réponse sans corps)
         "400":
           description: |-
             Requête invalide
@@ -1233,6 +1231,20 @@ paths:
                     INVALID_PARAMETER: "#/components/schemas/RequestInvalidParameter"
                 oneOf:
                 - $ref: "#/components/schemas/RequestInvalidParameter"
+        "404":
+          description: |-
+            Ressource introuvable
+
+            - `PHOTO_NOT_FOUND` : Photo introuvable (champs additionnels : photoId)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    PHOTO_NOT_FOUND: "#/components/schemas/GetPhotoPhotoNotFound"
+                oneOf:
+                - $ref: "#/components/schemas/GetPhotoPhotoNotFound"
         "500":
           description: |-
             Erreur interne du serveur
@@ -2493,6 +2505,36 @@ components:
       - status
       - title
       title: Commande introuvable
+    GetPhotoPhotoNotFound:
+      type: object
+      properties:
+        code:
+          type: string
+          const: PHOTO_NOT_FOUND
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Photo introuvable
+        status:
+          type: integer
+          format: int32
+          const: 404
+          description: Statut HTTP
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        photoId:
+          type: string
+          format: uuid
+          description: La photo demandée est introuvable
+      required:
+      - code
+      - detail
+      - photoId
+      - status
+      - title
+      title: Photo introuvable
     RequestValidationFailed:
       type: object
       properties:

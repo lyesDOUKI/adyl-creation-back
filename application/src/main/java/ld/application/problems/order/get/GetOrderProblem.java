@@ -1,11 +1,11 @@
-package ld.application.read.order.get;
+package ld.application.problems.order.get;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import ld.spring.web.lib.ApiProblem;
 
 import java.util.UUID;
 
-import static ld.application.read.order.get.GetOrderErrorCode.ORDER_NOT_FOUND;
+import static ld.application.problems.order.get.GetOrderErrorCode.ORDER_NOT_FOUND;
 
 
 public sealed interface GetOrderProblem extends ApiProblem {

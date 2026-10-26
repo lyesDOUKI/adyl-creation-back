@@ -12,6 +12,7 @@ import jakarta.validation.constraints.NotEmpty;
 import ld.application.infra.security.AdminOnly;
 import ld.application.problems.product.photos.AddProductPhotosErrorCode;
 import ld.application.problems.product.photos.AddProductPhotosProblem;
+import ld.application.problems.product.photos.GetPhotoErrorCode;
 import ld.application.request.AddProductPhotosRequestMapper;
 import ld.application.response.AddProductPhotosResponse;
 import ld.domain.features.product.photos.AddProductPhotosUseCase;
@@ -101,14 +102,11 @@ public class PhotoController {
             summary = "Récupération d'une photo produit",
             description = "Renvoie le fichier binaire d'une photo stockée pour un produit donné. Endpoint public."
     )
+    @ApiProblems(GetPhotoErrorCode.class)
     @ApiResponse(
             responseCode = "200",
             description = "Photo trouvée et renvoyée",
             content = @Content(mediaType = MediaType.APPLICATION_OCTET_STREAM_VALUE))
-    @ApiResponse(
-            responseCode = "404",
-            description = "Photo introuvable pour ce produit (réponse sans corps)",
-            content = @Content)
     public ResponseEntity<byte[]> downloadPhoto(
             @Parameter(description = "Identifiant du produit")
             @PathVariable("id") UUID productId,
