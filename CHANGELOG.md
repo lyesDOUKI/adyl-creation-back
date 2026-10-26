@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.1.3](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.2...v5.1.3) (2026-10-26)
+
+
+### Bug Fixes
+
+* **api:** enhance download photo entrypoint doc ([6d58241](https://github.com/lyesDOUKI/adyl-creation-back/commit/6d58241f5239c769b72aa8b04868f2028ff5a3ad))
+
 ## [5.1.2](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.1...v5.1.2) (2026-10-26)
 
 
