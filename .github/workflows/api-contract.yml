@@ -1,6 +1,6 @@
 name: API Contract
 
-# Contrôle du contrat d'API (application/api-contract/openapi.yaml), sur les PR uniquement.
+# Contrôle du contrat d'API (bootstrap/api-contract/openapi.yaml), sur les PR uniquement.
 #
 # PRINCIPE DE VERSIONNEMENT : la version de l'API n'est JAMAIS choisie dans une PR.
 # Elle est calculée automatiquement à la release (workflow Release Please) en comparant
@@ -47,8 +47,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  SPEC_PATH: application/api-contract/openapi.yaml
-  VERSION_FILE: application/api-contract/version.txt
+  SPEC_PATH: bootstrap/api-contract/openapi.yaml
+  VERSION_FILE: bootstrap/api-contract/version.txt
   OASDIFF_VERSION: "1.33.0"
 
 jobs:
@@ -76,7 +76,7 @@ jobs:
       # 1. RÉGÉNÉRATION DU CONTRAT À PARTIR DU CODE
       # ============================================================
       - name: Régénérer le contrat OpenAPI
-        run: mvn -B -ntp verify -pl application -am -DskipTests
+        run: mvn -B -ntp verify -pl bootstrap -am -DskipTests
 
       # ============================================================
       # 2. INSTALLATION DES OUTILS (versions épinglées + checksum vérifié)
@@ -146,7 +146,7 @@ jobs:
             echo "❌ $SPEC_PATH est obsolète : le contrat committé ne correspond pas au contrat régénéré."
             echo ""
             echo "   Pour corriger :"
-            echo "     mvn verify -pl application -am -DskipTests"
+            echo "     mvn verify -pl bootstrap -am -DskipTests"
             echo "     git add $SPEC_PATH"
             echo '     git commit -m "chore: régénère openapi.yaml"'
             echo ""
@@ -166,7 +166,7 @@ jobs:
             echo ""
             echo "   Pour corriger : restaurez le fichier puis régénérez le contrat."
             echo "     git checkout origin/${BASE_REF} -- $VERSION_FILE"
-            echo "     mvn verify -pl application -am -DskipTests"
+            echo "     mvn verify -pl bootstrap -am -DskipTests"
             echo "     git add $VERSION_FILE $SPEC_PATH && git commit"
             exit 1
           fi
@@ -714,8 +714,8 @@ jobs:
         continue-on-error: true
         uses: oasdiff/oasdiff-action/changelog@v0
         with:
-          base: 'origin/${{ github.base_ref }}:application/api-contract/openapi.yaml'
-          revision: 'application/api-contract/openapi.yaml'
+          base: 'origin/${{ github.base_ref }}:bootstrap/api-contract/openapi.yaml'
+          revision: 'bootstrap/api-contract/openapi.yaml'
           review: 'true'
           github-token: ${{ github.token }}
 
@@ -767,7 +767,7 @@ jobs:
             echo ""
             echo "   Dépannage manuel (dernier recours) :"
             echo "     1. Mettez '$EXPECTED' dans $VERSION_FILE"
-            echo "     2. mvn verify -pl application -am -DskipTests"
+            echo "     2. mvn verify -pl bootstrap -am -DskipTests"
             echo "     3. git add $VERSION_FILE $SPEC_PATH && git commit"
           fi
           exit 1

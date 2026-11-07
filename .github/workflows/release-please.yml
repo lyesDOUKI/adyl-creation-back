@@ -46,8 +46,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SPEC_PATH: application/api-contract/openapi.yaml
-  VERSION_FILE: application/api-contract/version.txt
+  SPEC_PATH: bootstrap/api-contract/openapi.yaml
+  VERSION_FILE: bootstrap/api-contract/version.txt
   OASDIFF_VERSION: "1.33.0"
   # Ajout d'un bloc « API Contract » dans le CHANGELOG de la PR de release (voir étape dédiée).
   UPDATE_CHANGELOG: "true"
@@ -570,7 +570,7 @@ jobs:
 
           echo "ℹ️ Version d'API de la PR de release : '${CURRENT_TXT:-—}' → '${NEXT_VERSION}'."
           printf '%s\n' "$NEXT_VERSION" > "$VERSION_FILE"
-          mvn -B -ntp verify -pl application -am -DskipTests
+          mvn -B -ntp verify -pl bootstrap -am -DskipTests
 
           RESULT="$(yq -r '.info.version // ""' "$SPEC_PATH")"
           if [[ "$RESULT" != "$NEXT_VERSION" ]]; then

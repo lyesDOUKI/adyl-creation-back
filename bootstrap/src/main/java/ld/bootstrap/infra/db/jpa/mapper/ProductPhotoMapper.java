@@ -1,0 +1,27 @@
+package ld.bootstrap.infra.db.jpa.mapper;
+
+import ld.bootstrap.infra.db.entity.ProductEntity;
+import ld.bootstrap.infra.db.entity.ProductPhotoEntity;
+import ld.domain.features.product.model.ProductPhoto;
+
+public final class ProductPhotoMapper {
+
+    private ProductPhotoMapper() {}
+
+    public static ProductPhoto toDomain(ProductPhotoEntity entity) {
+        return new ProductPhoto(
+                entity.getId(),
+                entity.getStorageKey(),
+                entity.getPosition()
+        );
+    }
+
+    public static ProductPhotoEntity toEntity(ProductPhoto photo, ProductEntity productEntityEntity) {
+        ProductPhotoEntity entity = new ProductPhotoEntity();
+        entity.setId(photo.id());
+        entity.setStorageKey(photo.storageKey());
+        entity.setPosition(photo.position());
+        entity.setProduct(productEntityEntity);
+        return entity;
+    }
+}

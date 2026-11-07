@@ -1,0 +1,18 @@
+package ld.bootstrap.problems.product.photos;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import ld.spring.web.lib.ApiProblem;
+
+import java.util.UUID;
+
+import static ld.bootstrap.problems.product.photos.GetPhotoErrorCode.PHOTO_NOT_FOUND;
+
+public sealed interface GetPhotoProblem extends ApiProblem {
+    record PhotoNotFound(
+            @Schema(description = "La photo demandée est introuvable", example = "pull.jpg") String fileName,
+            @Schema(description = "Le produit demandé") UUID productId
+            ) implements GetPhotoProblem {
+        @Override public GetPhotoErrorCode getCode() { return PHOTO_NOT_FOUND; }
+        @Override public String getDetail() { return "La photo demandée est introuvable"; }
+    }
+}

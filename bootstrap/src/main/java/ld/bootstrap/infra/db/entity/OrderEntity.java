@@ -1,0 +1,187 @@
+package ld.bootstrap.infra.db.entity;
+
+import jakarta.persistence.*;
+import ld.bootstrap.infra.db.converter.OrderStatusConverter;
+import ld.domain.features.order.model.OrderState;
+import ld.domain.features.order.model.OrderStatus;
+import org.hibernate.annotations.ColumnTransformer;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Entity
+@Table(name = "orders")
+public class OrderEntity {
+
+    @Id
+    private UUID id;
+
+    @Column(name = "customer_identity_subject", nullable = false, updatable = false)
+    private UUID customerIdentitySubject;
+
+    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "delivery_address_id", nullable = false)
+    private DeliveryAddressEntity deliveryAddressEntity;
+
+    @Column(length = 255)
+    private String customerMessage;
+
+    @Column(nullable = false, unique = true)
+    private String orderReference;
+
+    @Column(nullable = false, precision = 12, scale = 2)
+    private BigDecimal total = BigDecimal.ZERO;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status_type", nullable = false, length = 30)
+    private OrderState statusType;
+
+    @Convert(converter = OrderStatusConverter.class)
+    @ColumnTransformer(write = "?::jsonb")
+    @Column(name = "status_data", columnDefinition = "jsonb")
+    private OrderStatus statusData;
+
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
+    @OneToMany(
+            mappedBy = "orderEntity",
+            cascade = CascadeType.ALL,
+            orphanRemoval = true
+    )
+    private List<OrderDetailEntity> details = new ArrayList<>();
+
+    public OrderEntity() {}
+
+    public OrderEntity(
+            UUID orderId,
+            String orderReference,
+            UUID customerIdentitySubject,
+            DeliveryAddressEntity deliveryAddressEntity,
+            String message,
+            BigDecimal total,
+            OrderStatus orderStatus
+    ) {
+        this.id = orderId;
+        this.orderReference = orderReference;
+        this.customerIdentitySubject = customerIdentitySubject;
+        this.deliveryAddressEntity = deliveryAddressEntity;
+        this.customerMessage = message;
+        this.total = total;
+        this.statusData = orderStatus;
+    }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public UUID getCustomerIdentitySubject() {
+        return customerIdentitySubject;
+    }
+
+    public void setCustomerIdentitySubject(UUID customerIdentitySubject) {
+        this.customerIdentitySubject = customerIdentitySubject;
+    }
+
+    public DeliveryAddressEntity getDeliveryAddressEntity() {
+        return deliveryAddressEntity;
+    }
+
+    public void setDeliveryAddressEntity(DeliveryAddressEntity deliveryAddressEntity) {
+        this.deliveryAddressEntity = deliveryAddressEntity;
+    }
+
+    public String getCustomerMessage() {
+        return customerMessage;
+    }
+
+    public void setCustomerMessage(String customerMessage) {
+        this.customerMessage = customerMessage;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public List<OrderDetailEntity> getDetails() {
+        return details;
+    }
+
+    public void setDetails(List<OrderDetailEntity> details) {
+        this.details = details;
+    }
+
+    public void addDetail(OrderDetailEntity detail) {
+        details.add(detail);
+        detail.assignOrder(this);
+    }
+
+    public BigDecimal getTotal() {
+        return total;
+    }
+
+    public void setTotal(BigDecimal total) {
+        this.total = total;
+    }
+
+    public OrderState getStatusType() {
+        return statusType;
+    }
+
+    public void setStatusType(OrderState statusType) {
+        this.statusType = statusType;
+    }
+
+    public OrderStatus getStatusData() {
+        return statusData;
+    }
+
+    public void setStatusData(OrderStatus statusData) {
+        this.statusData = statusData;
+    }
+
+    public String getOrderReference() {
+        return orderReference;
+    }
+
+    public void setOrderReference(String orderReference) {
+        this.orderReference = orderReference;
+    }
+
+    @PrePersist
+    @PreUpdate
+    private void syncStatusType() {
+        if (this.statusData != null) {
+            OrderState state = this.statusData.type();
+            if (state != null) {
+                this.statusType = state;
+            }
+        }
+    }
+}
