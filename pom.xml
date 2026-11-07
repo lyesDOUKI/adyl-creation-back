@@ -10,7 +10,7 @@
     <modules>
         <module>libs</module>
         <module>domain</module>
-        <module>application</module>
+        <module>bootstrap</module>
     </modules>
 
     <properties>

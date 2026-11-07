@@ -22,8 +22,8 @@ on:
     branches:
       - main
     paths:
-      - 'application/api-contract/version.txt'
-      - 'application/api-contract/openapi.yaml'
+      - 'bootstrap/api-contract/version.txt'
+      - 'bootstrap/api-contract/openapi.yaml'
       - '.github/workflows/publish-api-docs.yml'
 
   workflow_dispatch:
@@ -36,8 +36,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SPEC_PATH: application/api-contract/openapi.yaml
-  VERSION_FILE: application/api-contract/version.txt
+  SPEC_PATH: bootstrap/api-contract/openapi.yaml
+  VERSION_FILE: bootstrap/api-contract/version.txt
   # À épingler sur une version précise (ex. "2.x.y", voir `npm view @redocly/cli version`)
   # pour des builds reproductibles.
   REDOCLY_CLI_VERSION: "2.71.0"
