@@ -1,5 +1,13 @@
 # Changelog
 
+## [5.1.4](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.3...v5.1.4) (2026-11-08)
+
+
+### Bug Fixes
+
+* rename module and packages to 'bootstrap' ([1b5544c](https://github.com/lyesDOUKI/adyl-creation-back/commit/1b5544c12150cf7b792444e4562e7a18fae899b4))
+* updates ci files ([73047d1](https://github.com/lyesDOUKI/adyl-creation-back/commit/73047d15331d2b3ff8dfd4abcb22acc4f36f1ac0))
+
 ## [5.1.3](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.2...v5.1.3) (2026-10-26)
 
 
