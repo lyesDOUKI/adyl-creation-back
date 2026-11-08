@@ -59,6 +59,8 @@ OUTPUT_FILE="${OUTPUT_FILE:-${GITHUB_OUTPUT:-/dev/stdout}}"
 BREAKING_LEVEL="${BREAKING_LEVEL:-ERR}"
 COSMETIC_ELEMENTS="${COSMETIC_ELEMENTS:-description,examples,summary,title}"
 FIRST_VERSION="${FIRST_VERSION:-1.0.0}"
+LEGACY_SPEC_PATH="${LEGACY_SPEC_PATH:-}"
+SPEC_IN_LAST=""
 STABLE_RE='^(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
 
 mkdir -p "$OUT"
@@ -86,6 +88,7 @@ emit_all() {
     echo "new_version=$NEW_VERSION"
     echo "bump=$BUMP"
     echo "next_version=$NEXT_VERSION"
+    echo "spec_path_in_last_release=$SPEC_IN_LAST"
   } >> "$OUTPUT_FILE"
 }
 trap emit_all EXIT
@@ -133,14 +136,23 @@ if ! git rev-parse -q --verify "refs/tags/${LAST_TAG}^{commit}" > /dev/null; the
 fi
 
 # --- Contrat de la dernière release -----------------------------------------
-if ! git cat-file -e "refs/tags/${LAST_TAG}:${SPEC_PATH}" 2>/dev/null; then
+# Chemin actuel d'abord, puis ancien chemin (avant renommage de module).
+for P in "$SPEC_PATH" "$LEGACY_SPEC_PATH"; do
+  [[ -z "$P" ]] && continue
+  if git cat-file -e "refs/tags/${LAST_TAG}:${P}" 2>/dev/null; then
+    SPEC_IN_LAST="$P"
+    break
+  fi
+done
+
+if [[ -z "$SPEC_IN_LAST" ]]; then
   echo "ℹ️ Le contrat n'existait pas dans la release ${LAST_TAG} : première version de l'API (${FIRST_VERSION})."
   STATE="first"; FIRST_REASON="nocontract"
   BUMP="first"; NEXT_VERSION="$FIRST_VERSION"
   exit 0
 fi
 
-git show "refs/tags/${LAST_TAG}:${SPEC_PATH}" > "$OLD_FILE"
+git show "refs/tags/${LAST_TAG}:${SPEC_IN_LAST}" > "$OLD_FILE"
 OLD_VERSION="$(yq -r '.info.version // ""' "$OLD_FILE")"
 if [[ ! "$OLD_VERSION" =~ $STABLE_RE ]]; then
   echo "::warning::Version du contrat de ${LAST_TAG} non conforme ('${OLD_VERSION}', format X.Y.Z requis) : version non calculée."

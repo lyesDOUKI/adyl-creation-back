@@ -47,6 +47,7 @@ concurrency:
 
 env:
   SPEC_PATH: bootstrap/api-contract/openapi.yaml
+  LEGACY_SPEC_PATH: application/api-contract/openapi.yaml
   VERSION_FILE: bootstrap/api-contract/version.txt
   OASDIFF_VERSION: "1.33.0"
   # Ajout d'un bloc « API Contract » dans le CHANGELOG de la PR de release (voir étape dédiée).
@@ -494,7 +495,7 @@ jobs:
         continue-on-error: true
         uses: oasdiff/oasdiff-action/changelog@v0
         with:
-          base: '${{ steps.analyse.outputs.last_tag }}:${{ env.SPEC_PATH }}'
+          base: '${{ steps.analyse.outputs.last_tag }}:${{ steps.analyse.outputs.spec_path_in_last_release }}'
           revision: '${{ env.SPEC_PATH }}'
           review: 'true'
 

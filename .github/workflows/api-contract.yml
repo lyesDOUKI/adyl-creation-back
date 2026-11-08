@@ -48,6 +48,7 @@ concurrency:
 
 env:
   SPEC_PATH: bootstrap/api-contract/openapi.yaml
+  LEGACY_SPEC_PATH: application/api-contract/openapi.yaml
   VERSION_FILE: bootstrap/api-contract/version.txt
   OASDIFF_VERSION: "1.33.0"
 
