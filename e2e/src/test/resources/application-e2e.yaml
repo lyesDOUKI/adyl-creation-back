@@ -1,0 +1,28 @@
+server:
+  port: 0
+
+management:
+  server:
+    port: 0
+
+app:
+  base-url: http://localhost
+
+oidc:
+  authorization-url: http://localhost/unused
+  token-url: http://localhost/unused
+
+spring:
+  mail:
+    username: e2e
+    password: e2e
+
+email:
+  enabled: false
+  from: no-reply@adyl-creation.test
+  admin:
+    address: admin@adyl-creation.test
+  templates:
+    order-created:
+      subject: "Nouvelle commande !"
+      template: "emails/order-created.ftl"
