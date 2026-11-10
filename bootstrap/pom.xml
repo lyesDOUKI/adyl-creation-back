@@ -155,6 +155,7 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
                 <configuration>
+                    <classifier>exec</classifier>
                     <!-- Active le profil openapi (charge application-openapi.yaml) -->
                     <profiles>
                         <profile>openapi</profile>
