@@ -24,11 +24,8 @@ public class ProductEntity {
     @Column(nullable = false)
     private ProductStatus status;
 
-    @ElementCollection
-    @CollectionTable(
-            name = "product_colors",
-            joinColumns = @JoinColumn(name = "product_id")
-    )
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(name = "product_colors", joinColumns = @JoinColumn(name = "product_id"))
     @Column(name = "color")
     private Set<String> colors = new HashSet<>();
 

@@ -25,9 +25,8 @@ public interface ProductJpaRepository extends JpaRepository<ProductEntity, UUID>
     @Query("""
     select p
     from ProductEntity p
-    left join fetch p.colors
     left join fetch p.photos
     where p.id = :id
     """)
-    Optional<ProductEntity> findByIdWithColorsAndPhotos(@Param("id") UUID id);
+    Optional<ProductEntity> findByIdWithPhotos(@Param("id") UUID id);
 }
