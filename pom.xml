@@ -11,6 +11,7 @@
         <module>libs</module>
         <module>domain</module>
         <module>bootstrap</module>
+        <module>e2e</module>
     </modules>
 
     <properties>

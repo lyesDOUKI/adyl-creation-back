@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ld</groupId>
+        <artifactId>adyl-creation-back</artifactId>
+        <version>5.1.4</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>e2e</artifactId>
+    <packaging>jar</packaging>
+    <name>e2e</name>
+    <description>Tests end-to-end de l'application (Postgres, OIDC et SMTP de test)</description>
+
+    <properties>
+        <!-- Module de tests : rien à publier -->
+        <maven.deploy.skip>true</maven.deploy.skip>
+
+        <!-- Hors BOM Spring Boot -->
+        <rest-assured.version>6.3.0</rest-assured.version>
+        <mock-oauth2-server.version>6.0.0</mock-oauth2-server.version>
+        <selfie.version>2.5.5</selfie.version>
+        <greenmail.version>2.1.13</greenmail.version>
+    </properties>
+
+    <dependencies>
+        <!-- Seule dépendance projet : l'application (domain arrive en transitif) -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>bootstrap</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!-- Socle de test -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Testcontainers (versions gérées par le BOM) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers-postgresql</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Appels HTTP -->
+        <dependency>
+            <groupId>io.rest-assured</groupId>
+            <artifactId>rest-assured</artifactId>
+            <version>${rest-assured.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Asynchrone -->
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Faux serveur OIDC -->
+        <dependency>
+            <groupId>no.nav.security</groupId>
+            <artifactId>mock-oauth2-server</artifactId>
+            <version>${mock-oauth2-server.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Snapshots JSON -->
+        <dependency>
+            <groupId>com.diffplug.selfie</groupId>
+            <artifactId>selfie-runner-junit5</artifactId>
+            <version>${selfie.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Serveur SMTP de test -->
+        <dependency>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail-junit5</artifactId>
+            <version>${greenmail.version}</version>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+            </plugin>
+            <!-- Pas de src/main : ne produit pas de jar vide -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <skipIfEmpty>true</skipIfEmpty>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
