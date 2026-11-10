@@ -24,8 +24,12 @@ public final class ProductFixtures {
         return UUID.fromString(id);
     }
 
-    public UUID bonnet() {
-        return create("Bonnet en laine", ProductCategoryRequest.CLOTHING,
+    public UUID named(String name) {
+        return create(name, ProductCategoryRequest.CLOTHING,
                 List.of("rouge", "bleu"), new BigDecimal("24.90"));
+    }
+
+    public UUID bonnet() {
+        return named("Bonnet en laine");
     }
 }
