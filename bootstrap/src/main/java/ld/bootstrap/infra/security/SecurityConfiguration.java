@@ -45,7 +45,6 @@ public class SecurityConfiguration {
                                 "/actuator/health",
                                 "/actuator/prometheus"
                         ).permitAll()
-                        .requestMatchers(HttpMethod.POST, "/orders").permitAll()
                         .requestMatchers(HttpMethod.GET, "/products/**").permitAll()
                         .anyRequest().authenticated()
                 )
