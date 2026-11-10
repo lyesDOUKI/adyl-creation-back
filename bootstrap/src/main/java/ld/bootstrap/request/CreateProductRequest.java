@@ -16,7 +16,7 @@ public record CreateProductRequest(
         @Schema(description = "Nom du produit (unique)", example = "Bonnet en laine")
         String name,
 
-        @NotNull
+        @NotNull(message = "La catégorie est obligatoire")
         @Schema(description = "Catégorie du produit", enumAsRef = true)
         ProductCategoryRequest productCategory,
 
@@ -24,7 +24,7 @@ public record CreateProductRequest(
         List<String> colors,
 
         @NotNull
-        @Positive
+        @Positive(message = "Le prix doit être positif")
         @Schema(
                 description = "Prix unitaire strictement positif, en euros",
                 example = "24.90",

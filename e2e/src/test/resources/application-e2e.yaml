@@ -1,5 +1,7 @@
 server:
   port: 0
+  tomcat:
+    max-swallow-size: -1
 
 management:
   server:
@@ -13,6 +15,10 @@ oidc:
   token-url: http://localhost/unused
 
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
   mail:
     username: e2e
     password: e2e

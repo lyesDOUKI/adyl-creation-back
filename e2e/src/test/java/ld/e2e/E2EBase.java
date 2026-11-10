@@ -3,10 +3,7 @@ package ld.e2e;
 import com.icegreen.greenmail.util.GreenMail;
 import com.icegreen.greenmail.util.ServerSetupTest;
 import ld.bootstrap.Launcher;
-import ld.e2e.support.Api;
-import ld.e2e.support.CustomerFixtures;
-import ld.e2e.support.OrderFixtures;
-import ld.e2e.support.ProductFixtures;
+import ld.e2e.support.*;
 import no.nav.security.mock.oauth2.MockOAuth2Server;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,6 +83,7 @@ public abstract class E2EBase {
     // --- Ce que les tests utilisent ---
     protected Api api;
     protected ProductFixtures products;
+    protected PhotoFixtures photos;
     protected CustomerFixtures customers;
     protected OrderFixtures orders;
     protected final Snapshots snapshots = new Snapshots();
@@ -108,6 +106,7 @@ public abstract class E2EBase {
 
         api = new Api(port, contextPath, jsonMapper, OIDC, ISSUER, AUDIENCE);
         products = new ProductFixtures(api);
+        photos = new PhotoFixtures(api);
         customers = new CustomerFixtures(api);
         orders = new OrderFixtures(api, products, customers);
     }

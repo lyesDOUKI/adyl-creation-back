@@ -136,7 +136,7 @@ class CreateProductE2ETest extends E2EBase {
     "errors": [
         {
             "field": "productCategory",
-            "message": "ne doit pas être nul"
+            "message": "La catégorie est obligatoire"
         }
     ]
 }""");
@@ -160,7 +160,7 @@ class CreateProductE2ETest extends E2EBase {
     "errors": [
         {
             "field": "price",
-            "message": "doit être supérieur à 0"
+            "message": "Le prix doit être positif"
         }
     ]
 }""");
