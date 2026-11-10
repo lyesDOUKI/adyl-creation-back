@@ -35,14 +35,14 @@ public class ProductJpaAdapter implements ProductCreator, ProductChecker, Produc
 
     @Override
     public Optional<ProductSnapshot> findById(UUID productId) {
-        return productJpaRepository.findByIdWithColorsAndPhotos(productId)
+        return productJpaRepository.findByIdWithPhotos(productId)
                 .map(ProductMapper::toSnapshot);
     }
 
     @Override
     public void save(ProductSnapshot snapshot) {
 
-        ProductEntity productEntityEntity = productJpaRepository.findById(snapshot.productId())
+        ProductEntity productEntity = productJpaRepository.findById(snapshot.productId())
                 .orElseThrow(() -> new IllegalStateException(
                         String.format(
                                 "Le produit %s doit exister pour persister sa mise à jour",
@@ -50,8 +50,8 @@ public class ProductJpaAdapter implements ProductCreator, ProductChecker, Produc
                         )
                 ));
 
-        ProductMapper.updateEntity(snapshot, productEntityEntity);
+        ProductMapper.updateEntity(snapshot, productEntity);
 
-        productJpaRepository.saveAndFlush(productEntityEntity);
+        productJpaRepository.saveAndFlush(productEntity);
     }
 }
