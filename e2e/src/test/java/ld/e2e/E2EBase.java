@@ -86,6 +86,7 @@ public abstract class E2EBase {
     protected PhotoFixtures photos;
     protected CustomerFixtures customers;
     protected OrderFixtures orders;
+    protected AppointmentFixtures appointments;
     protected final Snapshots snapshots = new Snapshots();
 
     @BeforeEach
@@ -108,6 +109,7 @@ public abstract class E2EBase {
         products = new ProductFixtures(api);
         photos = new PhotoFixtures(api);
         customers = new CustomerFixtures(api);
+        appointments = new AppointmentFixtures(api);
         orders = new OrderFixtures(api, products, customers);
     }
 }

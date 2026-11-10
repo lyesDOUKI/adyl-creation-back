@@ -23,14 +23,10 @@ import ld.domain.features.appointment.create.SubmitAppointmentUseCase;
 import ld.spring.web.lib.ApiProblems;
 import ld.spring.web.lib.ApiResponseBody;
 import ld.spring.web.lib.ResultToResponse;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -71,10 +67,10 @@ public class AppointmentController {
                     schema = @Schema(implementation = AvailableSlotsResponse.class)))
     public ResponseEntity<AvailableSlotsResponse> findAvailableSlots(
             @Parameter(description = "Date de début de la période recherchée (incluse)", example = "2026-09-15")
-            @RequestParam("from") LocalDate from,
+            @RequestParam("from") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
 
             @Parameter(description = "Date de fin de la période recherchée (incluse)", example = "2026-09-20")
-            @RequestParam("to") LocalDate to
+            @RequestParam("to") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to
     ) {
         return ResponseEntity.ok(findAvailableSlotsService.findAvailableSlots(from, to));
     }

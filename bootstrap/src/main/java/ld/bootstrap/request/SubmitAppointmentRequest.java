@@ -9,11 +9,11 @@ import java.util.UUID;
 
 @Schema(description = "Demande de création d'un rendez-vous")
 public record SubmitAppointmentRequest(
-        @NotNull
+        @NotNull(message = "La date de début est obligatoire")
         @Schema(description = "Début du créneau souhaité", example = "2026-09-15T09:00:00+02:00")
         ZonedDateTime startAt,
 
-        @NotNull
+        @NotNull(message = "La date de fin est obligatoire")
         @Schema(description = "Fin du créneau souhaité", example = "2026-09-15T09:30:00+02:00")
         ZonedDateTime endAt,
 

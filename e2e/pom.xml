@@ -108,6 +108,9 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <configuration>
+                    <argLine>-Duser.timezone=Europe/Paris</argLine>
+                </configuration>
             </plugin>
             <!-- Pas de src/main : ne produit pas de jar vide -->
             <plugin>

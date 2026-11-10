@@ -16,18 +16,35 @@ public final class Snapshots {
             "\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})");
     private static final Pattern REFERENCE = Pattern.compile(
             "(\"(?:[A-Za-z0-9_]*(?:Reference|_reference)|reference[A-Za-z0-9_]*)\"\\s*:\\s*)\"[^\"]*\"");
+    private static final Pattern PROCESSING_TIMESTAMP = Pattern.compile(
+            "(\"(?:submittedAt|cancelledAt|createdAt|updatedAt)\"\\s*:\\s*)\"[^\"]*\"");
 
     private final Map<String, String> uuids = new HashMap<>();
 
+    /** Masque tous les horodatages : pour les réponses dont les dates ne dépendent pas du test. */
     public String stable(String json) {
-        String result = UUID.matcher(json).replaceAll(m ->
-                uuids.computeIfAbsent(m.group().toLowerCase(), k -> "<uuid-" + (uuids.size() + 1) + ">"));
+        String result = maskUuids(json);
         result = DATE.matcher(result).replaceAll("<date>");
         return REFERENCE.matcher(result).replaceAll("$1\"<reference>\"");
     }
 
-    /** JSON de la réponse, indenté puis rendu stable (quel que soit le content-type). */
     public String of(Response response) {
-        return stable(JsonPath.from(response.asString()).prettify());
+        return stable(prettify(response));
+    }
+
+    /** Garde les horaires de créneaux (déterministes), ne masque que les horodatages de traitement. */
+    public String withSlotTimes(Response response) {
+        String result = maskUuids(prettify(response));
+        result = PROCESSING_TIMESTAMP.matcher(result).replaceAll("$1\"<date>\"");
+        return REFERENCE.matcher(result).replaceAll("$1\"<reference>\"");
+    }
+
+    private String maskUuids(String json) {
+        return UUID.matcher(json).replaceAll(m ->
+                uuids.computeIfAbsent(m.group().toLowerCase(), k -> "<uuid-" + (uuids.size() + 1) + ">"));
+    }
+
+    private static String prettify(Response response) {
+        return JsonPath.from(response.asString()).prettify();
     }
 }
