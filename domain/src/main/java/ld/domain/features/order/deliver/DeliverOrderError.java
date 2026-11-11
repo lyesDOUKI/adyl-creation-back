@@ -6,12 +6,11 @@ import java.util.UUID;
 
 public sealed interface DeliverOrderError extends DomainError {
 
-    record OrderStillPending() implements DeliverOrderError {
-    }
+    record OrderStillPending() implements DeliverOrderError {}
 
-    record OrderAlreadyRejected() implements DeliverOrderError {
-    }
+    record OrderAlreadyRejected() implements DeliverOrderError {}
 
-    record OrderNotFound(UUID orderId) implements DeliverOrderError {
-    }
+    record OrderAlreadyCancelled() implements DeliverOrderError {}
+
+    record OrderNotFound(UUID orderId) implements DeliverOrderError {}
 }

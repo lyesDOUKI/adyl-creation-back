@@ -12,6 +12,9 @@ public sealed interface AcceptOrderError extends DomainError {
     record OrderAlreadyDelivered() implements AcceptOrderError {
     }
 
+    record OrderAlreadyCancelled() implements AcceptOrderError {
+    }
+
     record OrderNotFound(UUID orderId) implements AcceptOrderError {
     }
 }
