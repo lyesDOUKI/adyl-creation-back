@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.2.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.2.0...v5.2.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **docker:** copy executable jar into runtime image ([e29e52f](https://github.com/lyesDOUKI/adyl-creation-back/commit/e29e52fca5c52400342604ed826c85e9c9a95990))
+
 ## [5.2.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.4...v5.2.0) (2026-11-11)
 
 
