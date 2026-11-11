@@ -7,6 +7,16 @@
 
 * **order:** expose if order can be canceled ([2f240ac](https://github.com/lyesDOUKI/adyl-creation-back/commit/2f240ac7242733e75df75b1558a65e539d30dbea))
 
+<!-- api-contract:start -->
+### API Contract
+
+API `5.0.1` → `5.1.0` : changement fonctionnel non cassant.
+
+- ℹ️ **INFO** — [api-schema-removed] — in components/schemas — removed the schema `ApiErrorCode`
+- ℹ️ **INFO** — [response-media-type-name-specialized] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders/{id} — media type `application/json` was changed to a more specific media type `application/hal+json` for the response status `200`
+- ℹ️ **INFO** — [response-optional-property-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders/{id} — added the optional property `_links` to the response with the `200` status
+<!-- api-contract:end -->
+
 ## [5.3.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.3.0...v5.3.1) (2026-11-11)
 
 
