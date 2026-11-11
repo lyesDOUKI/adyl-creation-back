@@ -13,43 +13,37 @@ import ld.bootstrap.infra.security.CurrentCustomerId;
 import ld.bootstrap.infra.security.CustomerOnly;
 import ld.bootstrap.problems.order.accept.AcceptOrderErrorCode;
 import ld.bootstrap.problems.order.accept.AcceptOrderProblem;
+import ld.bootstrap.problems.order.cancel.CancelOrderErrorCode;
+import ld.bootstrap.problems.order.cancel.CancelOrderProblem;
 import ld.bootstrap.problems.order.create.CreateOrderErrorCode;
 import ld.bootstrap.problems.order.create.CreateOrderProblem;
 import ld.bootstrap.problems.order.deliver.DeliverOrderErrorCode;
 import ld.bootstrap.problems.order.deliver.DeliverOrderProblem;
+import ld.bootstrap.problems.order.get.GetOrderErrorCode;
+import ld.bootstrap.problems.order.get.GetOrderProblem;
 import ld.bootstrap.problems.order.reject.RejectOrderErrorCode;
 import ld.bootstrap.problems.order.reject.RejectOrderProblem;
 import ld.bootstrap.read.GetOrderService;
-import ld.bootstrap.problems.order.get.GetOrderErrorCode;
-import ld.bootstrap.problems.order.get.GetOrderProblem;
 import ld.bootstrap.request.CreateOrderRequest;
 import ld.bootstrap.request.DeliverOrderRequest;
 import ld.bootstrap.request.RejectOrderRequest;
-import ld.bootstrap.response.CreateOrderResponse;
-import ld.bootstrap.response.GetOrderResponse;
-import ld.bootstrap.response.OrderAcceptedResponse;
-import ld.bootstrap.response.OrderDeliveredResponse;
-import ld.bootstrap.response.OrderRejectedResponse;
+import ld.bootstrap.response.*;
 import ld.domain.features.order.CreateOrderUseCase;
 import ld.domain.features.order.accept.AcceptOrderCommand;
 import ld.domain.features.order.accept.AcceptOrderUseCase;
+import ld.domain.features.order.cancel.CancelOrderCommand;
+import ld.domain.features.order.cancel.CancelOrderUseCase;
 import ld.domain.features.order.deliver.DeliverOrderUseCase;
 import ld.domain.features.order.reject.RejectOrderUseCase;
 import ld.spring.web.lib.ApiProblems;
 import ld.spring.web.lib.ApiResponseBody;
-import ld.bootstrap.response.PageResponse;
 import ld.spring.web.lib.ResultToResponse;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
 
@@ -62,17 +56,20 @@ public class OrderController {
     private final AcceptOrderUseCase acceptOrderUseCase;
     private final RejectOrderUseCase rejectOrderUseCase;
     private final DeliverOrderUseCase deliverOrderUseCase;
+    private final CancelOrderUseCase cancelOrderUseCase;
     private final GetOrderService getOrderService;
 
     public OrderController(CreateOrderUseCase createOrderUseCase,
                            AcceptOrderUseCase acceptOrderUseCase,
                            RejectOrderUseCase rejectOrderUseCase,
                            DeliverOrderUseCase deliverOrderUseCase,
+                           CancelOrderUseCase cancelOrderUseCase,
                            GetOrderService getOrderService) {
         this.createOrderUseCase = createOrderUseCase;
         this.acceptOrderUseCase = acceptOrderUseCase;
         this.rejectOrderUseCase = rejectOrderUseCase;
         this.deliverOrderUseCase = deliverOrderUseCase;
+        this.cancelOrderUseCase = cancelOrderUseCase;
         this.getOrderService = getOrderService;
     }
 
@@ -176,6 +173,32 @@ public class OrderController {
                 .map(OrderDeliveredResponse::from);
 
         return ResultToResponse.ok(result, DeliverOrderProblem::from);
+    }
+
+
+    @CustomerOnly
+    @PostMapping("{id}/cancel")
+    @Operation(
+            operationId = "cancelOrder",
+            summary = "Annumer une commande",
+            description = "Annule une commande qui n'est pas livrée ou acceptée"
+    )
+    @ApiProblems(CancelOrderErrorCode.class)
+    @ApiResponse(
+            responseCode = "200",
+            description = "Commande annulée avec succès",
+            content = @Content(
+                    mediaType = MediaType.APPLICATION_JSON_VALUE,
+                    schema = @Schema(implementation = OrderCancelledResponse.class)))
+    public ResponseEntity<ApiResponseBody> cancelOrder(
+            @Parameter(description = "Identifiant de la commande à annulée")
+            @PathVariable("id") UUID orderId
+    ) {
+        var result = this.cancelOrderUseCase
+                .execute(new CancelOrderCommand(orderId))
+                .map(OrderCancelledResponse::from);
+
+        return ResultToResponse.ok(result, CancelOrderProblem::from);
     }
 
     @CustomerOnly

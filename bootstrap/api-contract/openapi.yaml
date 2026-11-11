@@ -772,6 +772,118 @@ paths:
                     INTERNAL_ERROR: "#/components/schemas/ServerInternalError"
                 oneOf:
                 - $ref: "#/components/schemas/ServerInternalError"
+  /orders/{id}/cancel:
+    post:
+      tags:
+      - Commandes
+      summary: Annumer une commande
+      description: Annule une commande qui n'est pas livrée ou acceptée
+      operationId: cancelOrder
+      parameters:
+      - name: id
+        in: path
+        description: Identifiant de la commande à annulée
+        required: true
+        schema:
+          type: string
+          format: uuid
+      responses:
+        "200":
+          description: Commande annulée avec succès
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrderCancelledResponse"
+        "400":
+          description: |-
+            Requête invalide
+
+            - `INVALID_PARAMETER` : Paramètre invalide (champs additionnels : parameter, reason)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INVALID_PARAMETER: "#/components/schemas/RequestInvalidParameter"
+                oneOf:
+                - $ref: "#/components/schemas/RequestInvalidParameter"
+        "401":
+          description: |-
+            Authentification manquante ou invalide
+
+            - `UNAUTHENTICATED` : Non authentifié
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    UNAUTHENTICATED: "#/components/schemas/SecurityUnauthenticated"
+                oneOf:
+                - $ref: "#/components/schemas/SecurityUnauthenticated"
+        "403":
+          description: |-
+            Accès refusé
+
+            - `FORBIDDEN` : Accès refusé
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    FORBIDDEN: "#/components/schemas/SecurityForbidden"
+                oneOf:
+                - $ref: "#/components/schemas/SecurityForbidden"
+        "404":
+          description: |-
+            Ressource introuvable
+
+            - `ORDER_NOT_FOUND` : Commande introuvable (champs additionnels : orderId)
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    ORDER_NOT_FOUND: "#/components/schemas/CancelOrderOrderNotFound"
+                oneOf:
+                - $ref: "#/components/schemas/CancelOrderOrderNotFound"
+        "409":
+          description: |-
+            Conflit avec l'état actuel de la ressource
+
+            - `ACCEPTED` : Commande acceptée
+            - `DELIVERED` : Commande livrée
+            - `REJECTED` : Commande rejetée
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    DELIVERED: "#/components/schemas/CancelOrderDelivered"
+                    ACCEPTED: "#/components/schemas/CancelOrderAccepted"
+                    REJECTED: "#/components/schemas/CancelOrderRejected"
+                oneOf:
+                - $ref: "#/components/schemas/CancelOrderDelivered"
+                - $ref: "#/components/schemas/CancelOrderAccepted"
+                - $ref: "#/components/schemas/CancelOrderRejected"
+        "500":
+          description: |-
+            Erreur interne du serveur
+
+            - `INTERNAL_ERROR` : Erreur interne du serveur
+          content:
+            application/problem+json:
+              schema:
+                discriminator:
+                  propertyName: code
+                  mapping:
+                    INTERNAL_ERROR: "#/components/schemas/ServerInternalError"
+                oneOf:
+                - $ref: "#/components/schemas/ServerInternalError"
   /orders/{id}/accept:
     post:
       tags:
@@ -1724,6 +1836,31 @@ components:
       - deliveryMethod
       - orderId
       - status
+    OrderCancelledResponse:
+      type: object
+      description: Commande rejetée
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande
+        total:
+          type: number
+          description: "Montant total de la commande annulée, en euros"
+          example: 42.5
+        status:
+          $ref: "#/components/schemas/OrderStateResponse"
+          description: État de la commande (toujours CANCELLED)
+        cancelledAt:
+          type: string
+          format: date-time
+          description: Horodatage du rejet
+          example: 2026-09-15T07:00:00Z
+      required:
+      - cancelledAt
+      - orderId
+      - status
+      - total
     OrderAcceptedResponse:
       type: object
       description: Commande acceptée
@@ -2516,6 +2653,31 @@ components:
       - status
       - title
       title: Créneau hors horaires
+    CancelOrderDelivered:
+      type: object
+      properties:
+        code:
+          type: string
+          const: DELIVERED
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande livrée
+        status:
+          type: integer
+          format: int32
+          const: 409
+          description: Statut HTTP
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Commande livrée
     AcceptOrderOrderNotFound:
       type: object
       properties:
@@ -2830,6 +2992,36 @@ components:
       - status
       - title
       title: Commande introuvable
+    CancelOrderOrderNotFound:
+      type: object
+      properties:
+        code:
+          type: string
+          const: ORDER_NOT_FOUND
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande introuvable
+        status:
+          type: integer
+          format: int32
+          const: 404
+          description: Statut HTTP
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande introuvable
+      required:
+      - code
+      - detail
+      - orderId
+      - status
+      - title
+      title: Commande introuvable
     DeliverOrderOrderAlreadyCancelled:
       type: object
       properties:
@@ -3103,6 +3295,31 @@ components:
       - status
       - title
       title: Commande annulée
+    CancelOrderAccepted:
+      type: object
+      properties:
+        code:
+          type: string
+          const: ACCEPTED
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande acceptée
+        status:
+          type: integer
+          format: int32
+          const: 409
+          description: Statut HTTP
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Commande acceptée
     ServerInternalError:
       type: object
       properties:
@@ -3191,3 +3408,28 @@ components:
       - status
       - title
       title: Commande introuvable
+    CancelOrderRejected:
+      type: object
+      properties:
+        code:
+          type: string
+          const: REJECTED
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande rejetée
+        status:
+          type: integer
+          format: int32
+          const: 409
+          description: Statut HTTP
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+      required:
+      - code
+      - detail
+      - status
+      - title
+      title: Commande rejetée
