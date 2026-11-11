@@ -7,10 +7,10 @@ import java.time.Instant;
 public sealed interface OrderStatus {
 
     sealed interface Rejectable extends OrderStatus {}
-
+    sealed interface Cancellable extends OrderStatus {}
     OrderState type();
 
-    record Pending() implements Rejectable {
+    record Pending() implements Rejectable, Cancellable {
         @Override
         public OrderState type() {
             return OrderState.PENDING;
@@ -47,4 +47,8 @@ public sealed interface OrderStatus {
     }
 
     OrderStatus PENDING = new Pending();
+
+    default boolean canBeCancelled() {
+        return this instanceof Cancellable;
+    }
 }
