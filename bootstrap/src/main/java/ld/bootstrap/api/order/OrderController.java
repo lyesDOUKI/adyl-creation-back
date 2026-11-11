@@ -180,7 +180,7 @@ public class OrderController {
     @PostMapping("{id}/cancel")
     @Operation(
             operationId = "cancelOrder",
-            summary = "Annumer une commande",
+            summary = "Annuler une commande",
             description = "Annule une commande qui n'est pas livrée ou acceptée"
     )
     @ApiProblems(CancelOrderErrorCode.class)
