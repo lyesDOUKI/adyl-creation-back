@@ -1,5 +1,16 @@
 # Changelog
 
+## [5.3.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.2.1...v5.3.0) (2026-11-11)
+
+
+### Features
+
+* **order:** add cancel order use case ([b4e22f6](https://github.com/lyesDOUKI/adyl-creation-back/commit/b4e22f62de43dad980aab12e9dbe8ce9e893c004))
+* **order:** add E2E tests for cancel order use case ([61eda77](https://github.com/lyesDOUKI/adyl-creation-back/commit/61eda773bfbc112b880495366d8e113001861203))
+* **order:** add entrypoint for cancel order use case ([f944533](https://github.com/lyesDOUKI/adyl-creation-back/commit/f944533b165ded2e818cde786b5f12cd33be70e4))
+* **order:** add integration tests for cancel use case ([93ff35b](https://github.com/lyesDOUKI/adyl-creation-back/commit/93ff35b2b6b492167fa05a2f79158b8467f54e92))
+* **order:** handle new status in REST mapping ([2a24c3f](https://github.com/lyesDOUKI/adyl-creation-back/commit/2a24c3f135364c4883a3b0d3fe76956e63a5bb77))
+
 ## [5.2.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.2.0...v5.2.1) (2026-11-11)
 
 
