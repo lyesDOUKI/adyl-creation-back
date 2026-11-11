@@ -96,7 +96,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
 
             case OrderStatus.Rejected _ -> Result.failure(new AcceptOrderError.OrderAlreadyRejected());
             case OrderStatus.Delivered _ -> Result.failure(new AcceptOrderError.OrderAlreadyDelivered());
-            case OrderStatus.Cancelled _ -> Result.failure(new AcceptOrderError.OrderAlreadyCancelled());
+            case OrderStatus.Cancelled cancelled -> Result.failure(new AcceptOrderError.OrderAlreadyCancelled(cancelled.cancelledAt()));
         };
     }
 
@@ -111,7 +111,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
             case OrderStatus.Delivered _ -> Result.failure(new RejectOrderError.OrderAlreadyDelivered());
 
             case OrderStatus.Rejected _ -> Result.success(this);
-            case OrderStatus.Cancelled cancelled -> Result.failure(new RejectOrderError.OrderAlreadyCancelled());
+            case OrderStatus.Cancelled cancelled -> Result.failure(new RejectOrderError.OrderAlreadyCancelled(cancelled.cancelledAt()));
         };
     }
 
@@ -128,7 +128,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
 
             case OrderStatus.Pending _ -> Result.failure(new DeliverOrderError.OrderStillPending());
             case OrderStatus.Rejected _ -> Result.failure(new DeliverOrderError.OrderAlreadyRejected());
-            case OrderStatus.Cancelled _ -> Result.failure(new DeliverOrderError.OrderAlreadyCancelled());
+            case OrderStatus.Cancelled cancelled -> Result.failure(new DeliverOrderError.OrderAlreadyCancelled(cancelled.cancelledAt()));
         };
     }
 

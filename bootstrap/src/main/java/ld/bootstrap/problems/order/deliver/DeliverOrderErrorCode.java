@@ -7,6 +7,7 @@ import ld.spring.web.lib.ApiErrorCode;
 import ld.spring.web.lib.ApiProblem;
 import org.springframework.http.HttpStatus;
 
+import static ld.bootstrap.problems.order.deliver.DeliverOrderProblem.*;
 import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 
@@ -14,8 +15,8 @@ public enum DeliverOrderErrorCode implements ApiErrorCode {
 
     ORDER_NOT_FOUND(NOT_FOUND, "Commande introuvable", NotFound.class),
     ORDER_ALREADY_REJECTED(CONFLICT, "Commande rejetée", Rejected.class),
-    ORDER_STILL_PENDING(CONFLICT, "Commande en attente", Pending.class);
-
+    ORDER_STILL_PENDING(CONFLICT, "Commande en attente", Pending.class),
+    ORDER_ALREADY_CANCELLED(CONFLICT, "Commande annulée", AlreadyCancelled.class);
     private final HttpStatus status;
     private final String title;
     private final Class<? extends ApiProblem> payload;
