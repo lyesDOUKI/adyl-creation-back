@@ -8,6 +8,7 @@ on:
   pull_request:
     branches: [ "main" ]
     types: [ opened, synchronize, reopened ]
+  workflow_call:
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
