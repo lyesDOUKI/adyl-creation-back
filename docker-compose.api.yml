@@ -13,7 +13,6 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       DB_HOST: postgres
       DB_PORT: 5432
-      OIDC_ISSUER_URI: http://oidc-mock:8090/adyl-creation
     volumes:
       - photos_data:/data/photos
     depends_on:

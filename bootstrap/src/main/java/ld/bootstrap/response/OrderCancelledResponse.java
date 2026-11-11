@@ -20,7 +20,8 @@ public record OrderCancelledResponse(
                 requiredMode = REQUIRED)
         BigDecimal total,
 
-        @Schema(description = "État de la commande (toujours CANCELLED)", enumAsRef = true, requiredMode = REQUIRED)
+        @Schema(description = "État de la commande (toujours CANCELLED)", enumAsRef = true, requiredMode = REQUIRED,
+                example = "CANCELLED")
         OrderStateResponse status,
 
         @Schema(description = "Horodatage du rejet", example = "2026-09-15T07:00:00Z", requiredMode = REQUIRED)

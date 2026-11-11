@@ -776,7 +776,7 @@ paths:
     post:
       tags:
       - Commandes
-      summary: Annumer une commande
+      summary: Annuler une commande
       description: Annule une commande qui n'est pas livrée ou acceptée
       operationId: cancelOrder
       parameters:
@@ -1851,6 +1851,7 @@ components:
         status:
           $ref: "#/components/schemas/OrderStateResponse"
           description: État de la commande (toujours CANCELLED)
+          example: CANCELLED
         cancelledAt:
           type: string
           format: date-time
