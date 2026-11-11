@@ -25,7 +25,7 @@ FROM eclipse-temurin:25-jre
 WORKDIR /app
 
 # On copie le JAR avec son nom fixe (grâce au <finalName> dans le pom.xml)
-COPY --from=builder /build/bootstrap/target/application.jar app.jar
+COPY --from=builder /build/bootstrap/target/application-exec.jar app.jar
 
 EXPOSE 8082
 ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=docker"]
