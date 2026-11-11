@@ -75,4 +75,16 @@ public final class OrderFixtures {
                 .post("/orders/{id}/deliver", orderId)
                 .then().statusCode(200);
     }
+
+    public void cancel(UUID orderId) {
+        api.customer()
+                .post("/orders/{id}/cancel", orderId)
+                .then().statusCode(200);
+    }
+
+    public UUID cancelled() {
+        UUID orderId = pending();
+        cancel(orderId);
+        return orderId;
+    }
 }
