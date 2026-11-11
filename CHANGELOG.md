@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.3.1...v5.4.0) (2026-11-11)
+
+
+### Features
+
+* **order:** expose if order can be canceled ([2f240ac](https://github.com/lyesDOUKI/adyl-creation-back/commit/2f240ac7242733e75df75b1558a65e539d30dbea))
+
 ## [5.3.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.3.0...v5.3.1) (2026-11-11)
 
 
