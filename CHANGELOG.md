@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.3.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.3.0...v5.3.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **order:** fix typo problems ([4029289](https://github.com/lyesDOUKI/adyl-creation-back/commit/4029289d3fa15b5d99ad38fc741bd5f7ea5d2c78))
+
 ## [5.3.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.2.1...v5.3.0) (2026-11-11)
 
 
