@@ -10,7 +10,7 @@ COPY domain/pom.xml domain/
 COPY bootstrap/pom.xml bootstrap/
 
 # 2. Téléchargement des dépendances (mis en cache par Docker)
-RUN mvn dependency:go-offline
+RUN mvn dependency:go-offline -DskipE2E
 
 # 3. Copie du code source complet
 COPY libs ./libs
@@ -18,7 +18,7 @@ COPY domain ./domain
 COPY bootstrap ./bootstrap
 
 # 4. Compilation
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipE2E -DskipTests
 
 # --- ÉTAPE RUNTIME ---
 FROM eclipse-temurin:25-jre

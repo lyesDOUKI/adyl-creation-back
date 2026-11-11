@@ -33,3 +33,5 @@ jobs:
 
       - name: Compilation et tests
         run: mvn -B -ntp clean verify
+      - name: Build de l'image Docker
+        run: docker build -t adyl-creation-api:ci .

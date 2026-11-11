@@ -11,7 +11,6 @@
         <module>libs</module>
         <module>domain</module>
         <module>bootstrap</module>
-        <module>e2e</module>
     </modules>
 
     <properties>
@@ -101,4 +100,17 @@
             </plugins>
         </pluginManagement>
     </build>
+    <profiles>
+        <profile>
+            <id>with-e2e</id>
+            <activation>
+                <property>
+                    <name>!skipE2E</name>
+                </property>
+            </activation>
+            <modules>
+                <module>e2e</module>
+            </modules>
+        </profile>
+    </profiles>
 </project>
