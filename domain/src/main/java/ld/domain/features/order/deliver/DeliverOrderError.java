@@ -2,6 +2,7 @@ package ld.domain.features.order.deliver;
 
 import ld.standard.lib.validation.DomainError;
 
+import java.time.Instant;
 import java.util.UUID;
 
 public sealed interface DeliverOrderError extends DomainError {
@@ -10,7 +11,7 @@ public sealed interface DeliverOrderError extends DomainError {
 
     record OrderAlreadyRejected() implements DeliverOrderError {}
 
-    record OrderAlreadyCancelled() implements DeliverOrderError {}
+    record OrderAlreadyCancelled(Instant cancelledAt) implements DeliverOrderError {}
 
     record OrderNotFound(UUID orderId) implements DeliverOrderError {}
 }

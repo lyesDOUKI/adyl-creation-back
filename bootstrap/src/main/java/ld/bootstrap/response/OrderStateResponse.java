@@ -8,7 +8,8 @@ public enum OrderStateResponse {
     PENDING,
     REJECTED,
     DELIVERED,
-    ACCEPTED;
+    ACCEPTED,
+    CANCELLED;
 
     public static OrderStateResponse from(OrderState orderState) {
         return switch (orderState) {
@@ -16,6 +17,7 @@ public enum OrderStateResponse {
             case REJECTED -> REJECTED;
             case DELIVERED -> DELIVERED;
             case ACCEPTED -> ACCEPTED;
+            case CANCELLED -> CANCELLED;
         };
     }
 }

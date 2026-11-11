@@ -621,6 +621,7 @@ paths:
           description: |-
             Conflit avec l'état actuel de la ressource
 
+            - `ORDER_ALREADY_CANCELLED` : Commande annulée (champs additionnels : cancelledAt)
             - `ORDER_ALREADY_DELIVERED` : Commande livrée
           content:
             application/problem+json:
@@ -629,8 +630,10 @@ paths:
                   propertyName: code
                   mapping:
                     ORDER_ALREADY_DELIVERED: "#/components/schemas/RejectOrderOrderAlreadyDelivered"
+                    ORDER_ALREADY_CANCELLED: "#/components/schemas/RejectOrderOrderAlreadyCancelled"
                 oneOf:
                 - $ref: "#/components/schemas/RejectOrderOrderAlreadyDelivered"
+                - $ref: "#/components/schemas/RejectOrderOrderAlreadyCancelled"
         "500":
           description: |-
             Erreur interne du serveur
@@ -739,6 +742,7 @@ paths:
           description: |-
             Conflit avec l'état actuel de la ressource
 
+            - `ORDER_ALREADY_CANCELLED` : Commande annulée (champs additionnels : cancelledAt)
             - `ORDER_ALREADY_REJECTED` : Commande rejetée
             - `ORDER_STILL_PENDING` : Commande en attente
           content:
@@ -749,9 +753,11 @@ paths:
                   mapping:
                     ORDER_ALREADY_REJECTED: "#/components/schemas/DeliverOrderOrderAlreadyRejected"
                     ORDER_STILL_PENDING: "#/components/schemas/DeliverOrderOrderStillPending"
+                    ORDER_ALREADY_CANCELLED: "#/components/schemas/DeliverOrderOrderAlreadyCancelled"
                 oneOf:
                 - $ref: "#/components/schemas/DeliverOrderOrderAlreadyRejected"
                 - $ref: "#/components/schemas/DeliverOrderOrderStillPending"
+                - $ref: "#/components/schemas/DeliverOrderOrderAlreadyCancelled"
         "500":
           description: |-
             Erreur interne du serveur
@@ -849,6 +855,7 @@ paths:
           description: |-
             Conflit avec l'état actuel de la ressource
 
+            - `ORDER_ALREADY_CANCELLED` : Commande annulée (champs additionnels : cancelledAt)
             - `ORDER_ALREADY_DELIVERED` : Commande livrée
             - `ORDER_ALREADY_REJECTED` : Commande rejetée
           content:
@@ -859,9 +866,11 @@ paths:
                   mapping:
                     ORDER_ALREADY_REJECTED: "#/components/schemas/AcceptOrderOrderAlreadyRejected"
                     ORDER_ALREADY_DELIVERED: "#/components/schemas/AcceptOrderOrderAlreadyDelivered"
+                    ORDER_ALREADY_CANCELLED: "#/components/schemas/AcceptOrderOrderAlreadyCancelled"
                 oneOf:
                 - $ref: "#/components/schemas/AcceptOrderOrderAlreadyRejected"
                 - $ref: "#/components/schemas/AcceptOrderOrderAlreadyDelivered"
+                - $ref: "#/components/schemas/AcceptOrderOrderAlreadyCancelled"
         "500":
           description: |-
             Erreur interne du serveur
@@ -1656,6 +1665,7 @@ components:
       - REJECTED
       - DELIVERED
       - ACCEPTED
+      - CANCELLED
     DeliverOrderRequest:
       type: object
       description: Livraison d'une commande
@@ -1983,6 +1993,7 @@ components:
           - REJECTED
           - DELIVERED
           - ACCEPTED
+          - CANCELLED
         lines:
           type: array
           description: Lignes de la commande
@@ -2250,6 +2261,36 @@ components:
       - status
       - title
       title: Requête multipart invalide
+    RejectOrderOrderAlreadyCancelled:
+      type: object
+      properties:
+        code:
+          type: string
+          const: ORDER_ALREADY_CANCELLED
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande annulée
+        status:
+          type: integer
+          format: int32
+          const: 409
+          description: Statut HTTP
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        cancelledAt:
+          type: string
+          format: date-time
+          description: Date d'annulation de la commande
+      required:
+      - cancelledAt
+      - code
+      - detail
+      - status
+      - title
+      title: Commande annulée
     CreateOrderProductsNotFound:
       type: object
       properties:
@@ -2789,6 +2830,36 @@ components:
       - status
       - title
       title: Commande introuvable
+    DeliverOrderOrderAlreadyCancelled:
+      type: object
+      properties:
+        code:
+          type: string
+          const: ORDER_ALREADY_CANCELLED
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande annulée
+        status:
+          type: integer
+          format: int32
+          const: 409
+          description: Statut HTTP
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        cancelledAt:
+          type: string
+          format: date-time
+          description: Date d'annulation de la commande
+      required:
+      - cancelledAt
+      - code
+      - detail
+      - status
+      - title
+      title: Commande annulée
     AcceptOrderOrderAlreadyRejected:
       type: object
       properties:
@@ -2913,6 +2984,7 @@ components:
       - status
       - title
       title: Commande livrée
+    ApiErrorCode: {}
     CreateProductProductAlreadyExists:
       type: object
       properties:
@@ -3001,6 +3073,36 @@ components:
       - status
       - title
       title: Champ de tri invalide
+    AcceptOrderOrderAlreadyCancelled:
+      type: object
+      properties:
+        code:
+          type: string
+          const: ORDER_ALREADY_CANCELLED
+          description: Code stable de l'erreur (seul à utiliser pour la logique client)
+        title:
+          type: string
+          description: "Titre court, destiné à un humain"
+          example: Commande annulée
+        status:
+          type: integer
+          format: int32
+          const: 409
+          description: Statut HTTP
+        detail:
+          type: string
+          description: "Explication lisible, destinée à un humain"
+        cancelledAt:
+          type: string
+          format: date-time
+          description: Date d'annulation de la commande
+      required:
+      - cancelledAt
+      - code
+      - detail
+      - status
+      - title
+      title: Commande annulée
     ServerInternalError:
       type: object
       properties:

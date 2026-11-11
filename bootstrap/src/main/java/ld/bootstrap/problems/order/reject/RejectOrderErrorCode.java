@@ -1,5 +1,6 @@
 package ld.bootstrap.problems.order.reject;
 
+import ld.bootstrap.problems.order.reject.RejectOrderProblem.AlreadyCancelled;
 import ld.bootstrap.problems.order.reject.RejectOrderProblem.AlreadyDelivered;
 import ld.bootstrap.problems.order.reject.RejectOrderProblem.NotFound;
 import ld.spring.web.lib.ApiErrorCode;
@@ -12,8 +13,8 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public enum RejectOrderErrorCode implements ApiErrorCode {
 
     ORDER_NOT_FOUND(NOT_FOUND, "Commande introuvable", NotFound.class),
-    ORDER_ALREADY_DELIVERED(CONFLICT, "Commande livrée", AlreadyDelivered.class);
-
+    ORDER_ALREADY_DELIVERED(CONFLICT, "Commande livrée", AlreadyDelivered.class),
+    ORDER_ALREADY_CANCELLED(CONFLICT, "Commande annulée", AlreadyCancelled.class);
     private final HttpStatus status;
     private final String title;
     private final Class<? extends ApiProblem> payload;
