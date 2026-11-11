@@ -7,6 +7,12 @@
 
 * **order:** fix typo problems ([4029289](https://github.com/lyesDOUKI/adyl-creation-back/commit/4029289d3fa15b5d99ad38fc741bd5f7ea5d2c78))
 
+<!-- api-contract:start -->
+### API Contract
+
+API `5.0.0` → `5.0.1` : modifications cosmétiques uniquement (description, summary, title, examples).
+<!-- api-contract:end -->
+
 ## [5.3.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.2.1...v5.3.0) (2026-11-11)
 
 
