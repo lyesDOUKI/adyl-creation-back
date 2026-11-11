@@ -14,9 +14,10 @@ import java.time.Instant;
 public class CancelOrderUseCaseImpl extends AbstractOrderLifecycleUseCase<CancelOrderError> implements CancelOrderUseCase {
 
     private final Clock clock;
-    protected CancelOrderUseCaseImpl(OrderEditor orderEditor,
-                                     AggregateEventDispatcher<OrderEvent> orderEventDispatcher,
-                                     UnitOfWork unitOfWork, Clock clock) {
+    public CancelOrderUseCaseImpl(OrderEditor orderEditor,
+                                  AggregateEventDispatcher<OrderEvent> orderEventDispatcher,
+                                  UnitOfWork unitOfWork,
+                                  Clock clock) {
         super(orderEditor, orderEventDispatcher, unitOfWork);
         this.clock = clock;
     }
