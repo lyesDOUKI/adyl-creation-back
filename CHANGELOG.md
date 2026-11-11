@@ -11,6 +11,25 @@
 * **order:** add integration tests for cancel use case ([93ff35b](https://github.com/lyesDOUKI/adyl-creation-back/commit/93ff35b2b6b492167fa05a2f79158b8467f54e92))
 * **order:** handle new status in REST mapping ([2a24c3f](https://github.com/lyesDOUKI/adyl-creation-back/commit/2a24c3f135364c4883a3b0d3fe76956e63a5bb77))
 
+<!-- api-contract:start -->
+### API Contract
+
+API `4.0.0` → `5.0.0` : ⚠️ **breaking change**.
+
+- ❌ **ERR** — [response-property-enum-value-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders — added the new `CANCELLED` enum value to the `content/items/status` response property for the response status `200` — The server may now return a value the previous contract excluded, so a client written against it may not handle the response. If the value set is meant to grow, declare it with x-extensible-enum.
+- ❌ **ERR** — [response-property-enum-value-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API GET /orders/{id} — added the new `CANCELLED` enum value to the `status` response property for the response status `200` — The server may now return a value the previous contract excluded, so a client written against it may not handle the response. If the value set is meant to grow, declare it with x-extensible-enum.
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — added `#/components/schemas/AcceptOrderOrderAlreadyCancelled` to the response body `oneOf` list for the response status `409`
+- ❌ **ERR** — [response-property-enum-value-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — added the new `CANCELLED` enum value to the `status` response property for the response status `200` — The server may now return a value the previous contract excluded, so a client written against it may not handle the response. If the value set is meant to grow, declare it with x-extensible-enum.
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added `#/components/schemas/DeliverOrderOrderAlreadyCancelled` to the response body `oneOf` list for the response status `409`
+- ❌ **ERR** — [response-property-enum-value-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added the new `CANCELLED` enum value to the `status` response property for the response status `200` — The server may now return a value the previous contract excluded, so a client written against it may not handle the response. If the value set is meant to grow, declare it with x-extensible-enum.
+- ❌ **ERR** — [response-body-one-of-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/reject — added `#/components/schemas/RejectOrderOrderAlreadyCancelled` to the response body `oneOf` list for the response status `409`
+- ❌ **ERR** — [response-property-enum-value-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/reject — added the new `CANCELLED` enum value to the `status` response property for the response status `200` — The server may now return a value the previous contract excluded, so a client written against it may not handle the response. If the value set is meant to grow, declare it with x-extensible-enum.
+- ℹ️ **INFO** — [response-body-discriminator-mapping-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/accept — added `ORDER_ALREADY_CANCELLED` mapping keys to the response discriminator for the response status `409`
+- ℹ️ **INFO** — [endpoint-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/cancel — endpoint added
+- ℹ️ **INFO** — [response-body-discriminator-mapping-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/deliver — added `ORDER_ALREADY_CANCELLED` mapping keys to the response discriminator for the response status `409`
+- ℹ️ **INFO** — [response-body-discriminator-mapping-added] at /home/runner/work/_temp/head-openapi-normalized.yaml — in API POST /orders/{id}/reject — added `ORDER_ALREADY_CANCELLED` mapping keys to the response discriminator for the response status `409`
+<!-- api-contract:end -->
+
 ## [5.2.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.2.0...v5.2.1) (2026-11-11)
 
 
