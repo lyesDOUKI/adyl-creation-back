@@ -1,5 +1,23 @@
 # Changelog
 
+## [5.2.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.4...v5.2.0) (2026-11-11)
+
+
+### Features
+
+* add E2E tests for appointment context ([635f449](https://github.com/lyesDOUKI/adyl-creation-back/commit/635f449559846506f36f045d21095c8cb728f635))
+* add E2E tests for customer context ([231f811](https://github.com/lyesDOUKI/adyl-creation-back/commit/231f811b641070868a01a164b79cf0c50f69e182))
+* add E2E tests for order context ([429cabf](https://github.com/lyesDOUKI/adyl-creation-back/commit/429cabf9947ad180a21e8073b67f2562ea165fa1))
+* add E2E tests for product context ([54f38cd](https://github.com/lyesDOUKI/adyl-creation-back/commit/54f38cd5830f71cc7b16d53a356f7e933f2e6645))
+* add E2E tests for product-photos context ([b566b36](https://github.com/lyesDOUKI/adyl-creation-back/commit/b566b36dcffb831e6cc7a021f440e5149e099c41))
+* add E2E tests module configuration ([4f3fb3c](https://github.com/lyesDOUKI/adyl-creation-back/commit/4f3fb3c2f5b2a8f15d394863e4276cdd253447b1))
+
+
+### Bug Fixes
+
+* **product:** remove duplicated photos caused by double fetch join ([909d7e4](https://github.com/lyesDOUKI/adyl-creation-back/commit/909d7e494ea6b4250f31d6de653c15036366138c))
+* protect POST order entrypoint ([6ce6bc2](https://github.com/lyesDOUKI/adyl-creation-back/commit/6ce6bc2090983c88d583ee4bfa2c11bee29de6d4))
+
 ## [5.1.4](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.1.3...v5.1.4) (2026-11-08)
 
 
