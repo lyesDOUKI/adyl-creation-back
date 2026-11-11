@@ -6,6 +6,8 @@ import ld.domain.features.order.OrderCreator;
 import ld.domain.features.order.accept.AcceptOrderUseCase;
 import ld.domain.features.order.accept.AcceptOrderUseCaseImpl;
 import ld.domain.features.order.accept.CustomerOrderHistoryFinder;
+import ld.domain.features.order.cancel.CancelOrderUseCase;
+import ld.domain.features.order.cancel.CancelOrderUseCaseImpl;
 import ld.domain.features.order.deliver.DeliverOrderUseCase;
 import ld.domain.features.order.deliver.DeliverOrderUseCaseImpl;
 import ld.domain.features.order.lifecycle.DiscountClaimer;
@@ -66,6 +68,16 @@ public class OrderConfiguration {
             Clock clock
     ) {
         return new RejectOrderUseCaseImpl(orderEditor, orderEventAggregateEventDispatcher, unitOfWork, clock);
+    }
+
+    @Bean
+    public CancelOrderUseCase cancelOrderUseCase(
+            OrderEditor orderEditor,
+            AggregateEventDispatcher<OrderEvent> orderEventAggregateEventDispatcher,
+            UnitOfWork unitOfWork,
+            Clock clock
+    ) {
+        return new CancelOrderUseCaseImpl(orderEditor, orderEventAggregateEventDispatcher, unitOfWork, clock);
     }
 
     @Bean

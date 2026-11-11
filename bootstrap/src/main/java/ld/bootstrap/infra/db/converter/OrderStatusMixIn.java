@@ -13,7 +13,8 @@ import ld.domain.features.order.model.OrderStatus;
         @JsonSubTypes.Type(value = OrderStatus.Pending.class, name = "PENDING"),
         @JsonSubTypes.Type(value = OrderStatus.Rejected.class, name = "REJECTED"),
         @JsonSubTypes.Type(value = OrderStatus.Delivered.class, name = "DELIVERED"),
-        @JsonSubTypes.Type(value = OrderStatus.Accepted.class, name = "ACCEPTED")
+        @JsonSubTypes.Type(value = OrderStatus.Accepted.class, name = "ACCEPTED"),
+        @JsonSubTypes.Type(value = OrderStatus.Cancelled.class, name = "CANCELLED")
 })
 public interface OrderStatusMixIn {
 }
