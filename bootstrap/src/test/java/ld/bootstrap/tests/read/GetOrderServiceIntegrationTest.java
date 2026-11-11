@@ -1,5 +1,6 @@
 package ld.bootstrap.tests.read;
 
+import ld.bootstrap.api.hal.order.OrderModelAssembler;
 import ld.bootstrap.config.common.SharedPostgresContainer;
 import ld.bootstrap.context.OrderIntegrationTest;
 import ld.bootstrap.infra.db.converter.OrderStatusConverter;
@@ -20,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.hateoas.EntityModel;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 import java.math.BigDecimal;
@@ -98,7 +100,8 @@ class GetOrderServiceIntegrationTest {
         );
 
         Optional<GetOrderResponse> result =
-                getOrderService.findById(orderId, customerIdentitySubject);
+                getOrderService.findById(orderId, customerIdentitySubject)
+                        .map(OrderModelAssembler::toModel).map(EntityModel::getContent);
 
         assertThat(result).isPresent();
 
@@ -187,7 +190,8 @@ class GetOrderServiceIntegrationTest {
         );
 
         Optional<GetOrderResponse> result =
-                getOrderService.findById(orderId, customerIdentitySubject);
+                getOrderService.findById(orderId, customerIdentitySubject)
+                        .map(OrderModelAssembler::toModel).map(EntityModel::getContent);;
 
         assertThat(result).isPresent();
 
@@ -209,10 +213,8 @@ class GetOrderServiceIntegrationTest {
         insertCustomer(customerIdentitySubject);
 
         Optional<GetOrderResponse> result =
-                getOrderService.findById(
-                        UUID.randomUUID(),
-                        customerIdentitySubject
-                );
+                getOrderService.findById(UUID.randomUUID(), customerIdentitySubject)
+                        .map(OrderModelAssembler::toModel).map(EntityModel::getContent);;
 
         assertThat(result).isEmpty();
     }
@@ -254,10 +256,8 @@ class GetOrderServiceIntegrationTest {
         insertCustomer(otherCustomerIdentitySubject);
 
         Optional<GetOrderResponse> result =
-                getOrderService.findById(
-                        orderId,
-                        otherCustomerIdentitySubject
-                );
+                getOrderService.findById(orderId, otherCustomerIdentitySubject)
+                        .map(OrderModelAssembler::toModel).map(EntityModel::getContent);;
 
         assertThat(result).isEmpty();
     }

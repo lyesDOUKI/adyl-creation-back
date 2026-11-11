@@ -1,5 +1,6 @@
 package ld.bootstrap.infra.db.jooq;
 
+import ld.bootstrap.infra.db.converter.OrderStatusConverter;
 import ld.bootstrap.infra.db.jooq.utils.JooqSortUtils;
 import ld.bootstrap.infra.db.read.GetOrderQueryRepository;
 import ld.bootstrap.jooq.tables.records.OrdersRecord;
@@ -32,7 +33,7 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
     );
 
     private final DSLContext dsl;
-
+    private final OrderStatusConverter orderStatusConverter = new OrderStatusConverter();
     public JooqGetOrderQueryRepository(DSLContext dsl) {
         this.dsl = dsl;
     }
@@ -142,6 +143,7 @@ public class JooqGetOrderQueryRepository implements GetOrderQueryRepository {
                 record.getUpdatedAt().toInstant(ZoneOffset.UTC),
                 record.getTotal(),
                 record.getStatusType(),
+                orderStatusConverter.convertToEntityAttribute(record.getStatusData().data()),
                 lines
         );
     }

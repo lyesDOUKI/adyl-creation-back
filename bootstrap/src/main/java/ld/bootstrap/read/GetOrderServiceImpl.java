@@ -3,6 +3,7 @@ package ld.bootstrap.read;
 import ld.bootstrap.infra.db.jooq.OrderLineQuery;
 import ld.bootstrap.infra.db.jooq.OrderQuery;
 import ld.bootstrap.infra.db.read.GetOrderQueryRepository;
+import ld.bootstrap.read.view.OrderView;
 import ld.bootstrap.response.GetOrderResponse;
 import ld.bootstrap.response.OrderLineResponse;
 import ld.bootstrap.response.OrderStateResponse;
@@ -26,8 +27,9 @@ public class GetOrderServiceImpl implements GetOrderService {
     }
 
     @Override
-    public Optional<GetOrderResponse> findById(UUID orderId, UUID customerId) {
-        return repository.findById(orderId, customerId).map(this::toResponse);
+    public Optional<OrderView> findById(UUID orderId, UUID customerId) {
+        return repository.findById(orderId, customerId)
+                .map(order -> new OrderView(toResponse(order), order.orderStatus()));
     }
 
     @Override

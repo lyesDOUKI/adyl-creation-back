@@ -41,6 +41,11 @@ class PlaceOrderE2ETest extends E2EBase {
 
         expectSelfie(snapshots.of(fetched)).toBe("""
 {
+    "_links": {
+        "cancel": {
+            "href": "/api/orders/<uuid-1>/cancel"
+        }
+    },
     "orderId": "<uuid-1>",
     "customerId": "<uuid-2>",
     "orderReference": "<reference>",

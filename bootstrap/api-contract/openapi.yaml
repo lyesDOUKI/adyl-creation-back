@@ -1386,7 +1386,11 @@ paths:
       tags:
       - Commandes
       summary: Récupération d'une commande
-      description: Retourne une commande du client authentifié.
+      description: |
+        Retourne une commande du client authentifié.
+
+        **Liens HAL possibles (`_links`)**
+        - `cancel` : Présent uniquement si la commande est annulable (état PENDING).
       operationId: getOrder
       parameters:
       - name: id
@@ -1400,9 +1404,15 @@ paths:
         "200":
           description: Commande récupérée avec succès
           content:
-            application/json:
+            application/hal+json:
               schema:
-                $ref: "#/components/schemas/GetOrderResponse"
+                $ref: "#/components/schemas/GetOrderHalResponse"
+          links:
+            cancel:
+              operationId: cancelOrder
+              parameters:
+                id: $response.body#/orderId
+              description: Présent uniquement si la commande est annulable (état PENDING).
         "400":
           description: |-
             Requête invalide
@@ -2250,6 +2260,79 @@ components:
       - size
       - totalElements
       - totalPages
+    GetOrderHalResponse:
+      type: object
+      description: Commande au format HAL
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          description: Identifiant de la commande
+        customerId:
+          type: string
+          format: uuid
+          description: Identifiant du client
+        orderReference:
+          type: string
+          description: Référence lisible de la commande
+        customerMessage:
+          type:
+          - string
+          - "null"
+          description: "Message laissé par le client, s'il y en a un"
+        createdAt:
+          type: string
+          format: date-time
+          description: Date de création (UTC)
+          example: 2026-09-15T07:00:00Z
+        updatedAt:
+          type: string
+          format: date-time
+          description: Date de dernière mise à jour (UTC)
+          example: 2026-09-15T07:30:00Z
+        total:
+          type: number
+          description: "Montant total, en euros"
+          example: 42.5
+        status:
+          type: string
+          description: Statut de la commande
+          enum:
+          - PENDING
+          - REJECTED
+          - DELIVERED
+          - ACCEPTED
+          - CANCELLED
+        lines:
+          type: array
+          description: Lignes de la commande
+          items:
+            $ref: "#/components/schemas/OrderLineResponse"
+        lineCount:
+          type: integer
+          format: int32
+          description: Nombre de lignes
+          minimum: 0
+        totalQuantity:
+          type: integer
+          format: int32
+          description: "Quantité totale, tous produits confondus"
+        _links:
+          $ref: "#/components/schemas/Links"
+          example:
+            cancel:
+              href: "/orders/{id}/cancel"
+      required:
+      - createdAt
+      - customerId
+      - lineCount
+      - lines
+      - orderId
+      - orderReference
+      - status
+      - total
+      - totalQuantity
+      - updatedAt
     AppointmentsResponse:
       type: object
       description: Rendez-vous d'un client
@@ -3177,7 +3260,6 @@ components:
       - status
       - title
       title: Commande livrée
-    ApiErrorCode: {}
     CreateProductProductAlreadyExists:
       type: object
       properties:
@@ -3434,3 +3516,26 @@ components:
       - status
       - title
       title: Commande rejetée
+    Link:
+      type: object
+      properties:
+        href:
+          type: string
+        hreflang:
+          type: string
+        title:
+          type: string
+        type:
+          type: string
+        deprecation:
+          type: string
+        profile:
+          type: string
+        name:
+          type: string
+        templated:
+          type: boolean
+    Links:
+      type: object
+      additionalProperties:
+        $ref: "#/components/schemas/Link"

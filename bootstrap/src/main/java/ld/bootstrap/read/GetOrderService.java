@@ -1,5 +1,6 @@
 package ld.bootstrap.read;
 
+import ld.bootstrap.read.view.OrderView;
 import ld.bootstrap.response.GetOrderResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -9,5 +10,5 @@ import java.util.UUID;
 
 public interface GetOrderService {
     Page<GetOrderResponse> findAll(Pageable pageable, UUID customerId);
-    Optional<GetOrderResponse> findById(UUID orderId, UUID customerId);
+    Optional<OrderView> findById(UUID orderId, UUID customerId);
 }

@@ -8,6 +8,10 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import ld.bootstrap.api.hal.conf.ApiLinks;
+import ld.bootstrap.api.hal.order.GetOrderModel;
+import ld.bootstrap.api.hal.order.OrderLinkRel;
+import ld.bootstrap.api.hal.order.OrderModelAssembler;
 import ld.bootstrap.infra.security.AdminOnly;
 import ld.bootstrap.infra.security.CurrentCustomerId;
 import ld.bootstrap.infra.security.CustomerOnly;
@@ -41,10 +45,12 @@ import ld.spring.web.lib.ResultToResponse;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @RestController
@@ -220,26 +226,30 @@ public class OrderController {
     }
 
     @CustomerOnly
-    @GetMapping("{id}")
+    @GetMapping(path = "{id}", produces = MediaTypes.HAL_JSON_VALUE)
     @Operation(
             operationId = "getOrder",
             summary = "Récupération d'une commande",
             description = "Retourne une commande du client authentifié."
     )
     @ApiProblems(GetOrderErrorCode.class)
+    @ApiLinks(OrderLinkRel.class)
     @ApiResponse(
             responseCode = "200",
             description = "Commande récupérée avec succès",
             content = @Content(
-                    mediaType = MediaType.APPLICATION_JSON_VALUE,
-                    schema = @Schema(implementation = GetOrderResponse.class)))
-    public ResponseEntity<ApiResponseBody> getById(
+                    mediaType = MediaTypes.HAL_JSON_VALUE,
+                    schema = @Schema(implementation = GetOrderModel.class)))
+    public ResponseEntity<?> getById(
             @Parameter(description = "Identifiant de la commande")
             @PathVariable("id") UUID orderId,
             @Parameter(hidden = true) @CurrentCustomerId UUID currentCustomerId
     ) {
-        return ResultToResponse.okOrNotFound(
-                getOrderService.findById(orderId, currentCustomerId),
-                () -> new GetOrderProblem.OrderNotFound(orderId));
+        return getOrderService.findById(orderId, currentCustomerId)
+                .map(OrderModelAssembler::toModel)
+                .<ResponseEntity<?>>map(ResponseEntity::ok)
+                .orElseGet(() -> ResultToResponse.okOrNotFound(
+                        Optional.empty(),
+                        () -> new GetOrderProblem.OrderNotFound(orderId)));
     }
 }
