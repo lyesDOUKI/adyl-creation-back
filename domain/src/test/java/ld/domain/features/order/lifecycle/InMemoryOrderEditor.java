@@ -10,7 +10,7 @@ import java.util.UUID;
 public class InMemoryOrderEditor implements OrderEditor {
 
     private final Map<UUID, OrderSnapshot> store = new HashMap<>();
-
+    private int pinged = 0;
     @Override
     public Optional<OrderSnapshot> findById(UUID orderId) {
         return Optional.ofNullable(store.get(orderId));
@@ -18,6 +18,15 @@ public class InMemoryOrderEditor implements OrderEditor {
 
     @Override
     public void save(OrderSnapshot orderSnapshot) {
+        pinged++;
         store.put(orderSnapshot.orderId(), orderSnapshot);
+    }
+
+    public int attempt() {
+        return pinged;
+    }
+
+    public void reset() {
+        pinged = 0;
     }
 }

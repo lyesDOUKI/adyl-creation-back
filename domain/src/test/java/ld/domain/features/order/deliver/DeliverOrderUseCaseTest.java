@@ -381,4 +381,50 @@ class DeliverOrderUseCaseTest {
                     .isZero();
         }
     }
+
+    @Nested
+    @DisplayName("Quand la commande est au statut CANCELLED")
+    class WhenOrderIsCancelled {
+
+        @Test
+        @DisplayName("La livraison échoue avec une erreur business")
+        void shouldFailToAcceptOrder() {
+            var orderId = UUID.randomUUID();
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
+                            .withOrderId(orderId)
+                            .withOrderStatus(new OrderStatus.Cancelled(Instant.now(FIXED_CLOCK)))
+                            .build()
+            );
+
+            var result = deliverOrderUseCase.execute(new DeliverOrderCommand(
+                    orderId,
+                    DeliveryMethod.HAND_DELIVERY,
+                    "Remis en main propre"
+            ));
+            assertFailureOfType(result, DeliverOrderError.OrderAlreadyCancelled.class);
+        }
+
+        @Test
+        @DisplayName("Le statut n'est pas modifié et aucun événement n'est publié")
+        void shouldNotChangeStatusNorDispatchEvent() {
+            var orderId = UUID.randomUUID();
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
+                            .withOrderId(orderId)
+                            .withOrderStatus(new OrderStatus.Cancelled(Instant.now(FIXED_CLOCK)))
+                            .build()
+            );
+            inMemoryOrderLifecycleRepository.reset();
+
+            deliverOrderUseCase.execute(new DeliverOrderCommand(
+                    orderId,
+                    DeliveryMethod.HAND_DELIVERY,
+                    "Remis en main propre"
+            ));
+
+            assertThat(inMemoryOrderLifecycleRepository.attempt()).isZero();
+            assertThat(orderEventAggregateEventDispatcher.count()).isZero();
+        }
+    }
 }

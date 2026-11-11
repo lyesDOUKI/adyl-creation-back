@@ -1,6 +1,7 @@
 package ld.domain.features.order.model;
 
 import ld.domain.features.order.accept.AcceptOrderError;
+import ld.domain.features.order.cancel.CancelOrderError;
 import ld.domain.features.order.deliver.DeliverOrderError;
 import ld.domain.features.order.reject.RejectOrderError;
 import ld.domain.valueObjects.Percentage;
@@ -94,8 +95,8 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
             }
 
             case OrderStatus.Rejected _ -> Result.failure(new AcceptOrderError.OrderAlreadyRejected());
-
             case OrderStatus.Delivered _ -> Result.failure(new AcceptOrderError.OrderAlreadyDelivered());
+            case OrderStatus.Cancelled _ -> Result.failure(new AcceptOrderError.OrderAlreadyCancelled());
         };
     }
 
@@ -110,6 +111,7 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
             case OrderStatus.Delivered _ -> Result.failure(new RejectOrderError.OrderAlreadyDelivered());
 
             case OrderStatus.Rejected _ -> Result.success(this);
+            case OrderStatus.Cancelled cancelled -> Result.failure(new RejectOrderError.OrderAlreadyCancelled());
         };
     }
 
@@ -125,8 +127,8 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
             case OrderStatus.Delivered _ -> Result.success(this);
 
             case OrderStatus.Pending _ -> Result.failure(new DeliverOrderError.OrderStillPending());
-
             case OrderStatus.Rejected _ -> Result.failure(new DeliverOrderError.OrderAlreadyRejected());
+            case OrderStatus.Cancelled _ -> Result.failure(new DeliverOrderError.OrderAlreadyCancelled());
         };
     }
 
@@ -176,5 +178,19 @@ public class Order extends AggregateRoot<UUID, OrderEvent> implements Snapshotta
 
     public UUID customerIdentity() {
         return this.customerInfo.identitySubject();
+    }
+
+    public Result<Order, CancelOrderError> cancel(Instant now) {
+        return switch (this.orderStatus) {
+            case OrderStatus.Delivered delivered -> Result.failure(new CancelOrderError.OrderAlreadyDelivered(delivered.deliveredAt()));
+            case OrderStatus.Accepted accepted -> Result.failure(new CancelOrderError.OrderAlreadyAccepted(accepted.acceptedAt()));
+            case OrderStatus.Rejected rejected -> Result.failure(new CancelOrderError.OrderAlreadyRejected(rejected.rejectedAt(), rejected.reason()));
+            case OrderStatus.Pending _ -> {
+                this.orderStatus = new OrderStatus.Cancelled(now);
+                addDomainEvent(new OrderCancelled(getId(), now));
+                yield Result.success(this);
+            }
+            case OrderStatus.Cancelled _ -> Result.success(this);
+        };
     }
 }

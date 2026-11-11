@@ -38,5 +38,13 @@ public sealed interface OrderStatus {
 
     }
 
+    record Cancelled(Instant cancelledAt) implements OrderStatus {
+
+        @Override
+        public OrderState type() {
+            return OrderState.CANCELLED;
+        }
+    }
+
     OrderStatus PENDING = new Pending();
 }

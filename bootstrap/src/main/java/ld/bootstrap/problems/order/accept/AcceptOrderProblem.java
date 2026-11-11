@@ -30,7 +30,7 @@ public sealed interface AcceptOrderProblem extends ApiProblem {
     static AcceptOrderProblem from(AcceptOrderError error) {
         return switch (error) {
             case AcceptOrderError.OrderAlreadyRejected _ -> new Rejected();
-            case AcceptOrderError.OrderAlreadyDelivered _ -> new Delivered();
+            case AcceptOrderError.OrderAlreadyCancelled _ -> new Delivered();
             case AcceptOrderError.OrderNotFound e -> new NotFound(e.orderId());
         };
     }

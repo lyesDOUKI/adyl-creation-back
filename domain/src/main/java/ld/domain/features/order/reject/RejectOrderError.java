@@ -6,9 +6,9 @@ import java.util.UUID;
 
 public sealed interface RejectOrderError extends DomainError {
 
-    record OrderAlreadyDelivered() implements RejectOrderError {
-    }
+    record OrderAlreadyDelivered() implements RejectOrderError {}
 
-    record OrderNotFound(UUID orderId) implements RejectOrderError {
-    }
+    record OrderAlreadyCancelled() implements RejectOrderError {}
+
+    record OrderNotFound(UUID orderId) implements RejectOrderError {}
 }

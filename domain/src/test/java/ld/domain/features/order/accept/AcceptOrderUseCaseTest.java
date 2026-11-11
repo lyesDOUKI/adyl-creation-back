@@ -510,4 +510,42 @@ class AcceptOrderUseCaseTest {
             assertThat(orderEventAggregateEventDispatcher.count()).isZero();
         }
     }
+
+    @Nested
+    @DisplayName("Quand la commande est au statut CANCELLED")
+    class WhenOrderIsCancelled {
+
+        @Test
+        @DisplayName("L'acceptation échoue avec une erreur business")
+        void shouldFailToAcceptOrder() {
+            var orderId = UUID.randomUUID();
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
+                            .withOrderId(orderId)
+                            .withOrderStatus(new OrderStatus.Cancelled(Instant.now(FIXED_CLOCK)))
+                            .build()
+            );
+
+            var result = acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
+            assertFailureOfType(result, AcceptOrderError.OrderAlreadyCancelled.class);
+        }
+
+        @Test
+        @DisplayName("Le statut n'est pas modifié et aucun événement n'est publié")
+        void shouldNotChangeStatusNorDispatchEvent() {
+            var orderId = UUID.randomUUID();
+            inMemoryOrderLifecycleRepository.save(
+                    OrderSnapshotTestBuilder.anOrder(FIXED_CLOCK)
+                            .withOrderId(orderId)
+                            .withOrderStatus(new OrderStatus.Cancelled(Instant.now(FIXED_CLOCK)))
+                            .build()
+            );
+            inMemoryOrderLifecycleRepository.reset();
+
+            acceptOrderUseCase.execute(new AcceptOrderCommand(orderId));
+
+            assertThat(inMemoryOrderLifecycleRepository.attempt()).isZero();
+            assertThat(orderEventAggregateEventDispatcher.count()).isZero();
+        }
+    }
 }
