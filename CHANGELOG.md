@@ -1,5 +1,12 @@
 # Changelog
 
+## [5.4.1](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.4.0...v5.4.1) (2026-11-12)
+
+
+### Documentation
+
+* **project:** add ADR's for architectural decisions ([e708c22](https://github.com/lyesDOUKI/adyl-creation-back/commit/e708c22b0a451fb845980340a618b6633a638106))
+
 ## [5.4.0](https://github.com/lyesDOUKI/adyl-creation-back/compare/v5.3.1...v5.4.0) (2026-11-11)
 
 
